@@ -52,7 +52,7 @@ export const Navbar = () => {
               className="h-10 w-10 object-contain"
             />
           </span>
-          <span className="navbar__logo-text">MSAI INDIA</span>
+          <span className="navbar__logo-text">TIMS</span>
         </a>
 
         <ul className="navbar__links">

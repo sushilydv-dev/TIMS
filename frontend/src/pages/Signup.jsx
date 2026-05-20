@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import background from "../../assets/background.jpg";
+import background from "../assets/background.jpg";
 
 const Signup = () => {
   const [step, setStep] = useState(1);
@@ -61,7 +61,7 @@ const Signup = () => {
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "An error occurred during signup."
+        err.response?.data?.message || "An error occurred during signup.",
       );
     } finally {
       setLoading(false);
@@ -179,10 +179,15 @@ const Signup = () => {
             <div className="text-center text-sm">
               {countdown > 0 ? (
                 <p className="text-gray-300">
-                  OTP expires in <span className="text-indigo-400 font-bold">{countdown}s</span>
+                  OTP expires in{" "}
+                  <span className="text-indigo-400 font-bold">
+                    {countdown}s
+                  </span>
                 </p>
               ) : (
-                <p className="text-red-400">OTP has expired. Please try signing up again.</p>
+                <p className="text-red-400">
+                  OTP has expired. Please try signing up again.
+                </p>
               )}
             </div>
 
@@ -193,27 +198,30 @@ const Signup = () => {
             >
               {loading ? "Verifying..." : "Verify & Register"}
             </button>
-            
+
             <button
-                type="button"
-                onClick={() => { setStep(1); setOtp(""); }}
-                className="w-full py-3 px-4 mt-2 rounded-xl font-semibold text-gray-300 bg-transparent border border-white/10 hover:bg-white/5 focus:outline-none transition-all duration-300"
+              type="button"
+              onClick={() => {
+                setStep(1);
+                setOtp("");
+              }}
+              className="w-full py-3 px-4 mt-2 rounded-xl font-semibold text-gray-300 bg-transparent border border-white/10 hover:bg-white/5 focus:outline-none transition-all duration-300"
             >
-                Back to details
+              Back to details
             </button>
           </form>
         )}
 
         {step === 1 && (
-            <p className="mt-8 text-center text-gray-300 text-sm">
+          <p className="mt-8 text-center text-gray-300 text-sm">
             Already have an account?{" "}
             <Link
-                to="/login"
-                className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+              to="/login"
+              className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
             >
-                Sign in
+              Sign in
             </Link>
-            </p>
+          </p>
         )}
       </div>
     </div>

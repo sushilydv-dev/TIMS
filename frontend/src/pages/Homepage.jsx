@@ -1,6 +1,6 @@
 import React from "react";
-import { Navbar } from "../Navbar";
-import background from "../../assets/background.jpg";
+import { Navbar } from "../components/Navbar";
+import background from "../assets/background.jpg";
 
 export const Homepage = () => {
   return (
