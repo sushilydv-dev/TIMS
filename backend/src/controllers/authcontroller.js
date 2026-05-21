@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs"
 import User from "../models/user.js"
 import OTP from "../models/otp.js"
+import Role from "../models/role.js"
 import generateToken from "../utils/generatetoken.js"
 import emailjs from "@emailjs/nodejs"
 import { Op } from "sequelize"
@@ -15,7 +16,7 @@ export const sendOTP = async (req, res) => {
         }
 
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 60 * 5000); // 1 minute from now
+        const expiresAt = new Date(Date.now() + 60 * 5000); 
 
         await OTP.destroy({ where: { email } });
         await OTP.create({ email, otp: otpCode, expiresAt });
@@ -42,7 +43,7 @@ export const sendOTP = async (req, res) => {
 
 export const registerUser = async (req, res) => {
     try {
-        const { username, email, password, otp } = req.body;
+        const { username, email, password, otp, role } = req.body;
 
         const validOTP = await OTP.findOne({
             where: {
@@ -73,6 +74,11 @@ export const registerUser = async (req, res) => {
             password: hashedPassword
         });
 
+        const createdRole = await Role.create({
+            userId: user.id,
+            role: role || "STUDENT"
+        });
+
         await OTP.destroy({ where: { email } });
 
         if (user) {
@@ -80,6 +86,7 @@ export const registerUser = async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                role: createdRole.role,
                 token: generateToken(user.id)
             });
         } else {
@@ -97,10 +104,14 @@ export const loginUser = async (req, res) => {
         const user = await User.findOne({ where: { email } });
 
         if (user && (await bcrypt.compare(password, user.password))) {
+            const roleRecord = await Role.findOne({ where: { userId: user.id } });
+            const userRole = roleRecord ? roleRecord.role : "STUDENT";
+
             res.json({
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                role: userRole,
                 token: generateToken(user.id)
             });
         } else {
@@ -118,7 +129,13 @@ export const getProfile = async (req, res) => {
         });
 
         if (user) {
-            res.json(user);
+            const roleRecord = await Role.findOne({ where: { userId: user.id } });
+            const userRole = roleRecord ? roleRecord.role : "STUDENT";
+
+            const userJson = user.toJSON();
+            userJson.role = userRole;
+
+            res.json(userJson);
         } else {
             res.status(404).json({ message: "User not found" });
         }

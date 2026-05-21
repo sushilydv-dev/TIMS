@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import background from "../assets/background.jpg";
+import { useAuth } from "../app/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -9,6 +9,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -16,15 +17,8 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await axios.post("/api/auth/login", {
-        email,
-        password,
-      });
-
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        navigate("/");
-      }
+      await login(email, password);
+      navigate("/dashboard");
     } catch (err) {
       setError(
         err.response?.data?.message || "An error occurred during login.",

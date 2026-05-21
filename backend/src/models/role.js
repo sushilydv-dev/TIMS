@@ -1,25 +1,22 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
-const OTP = sequelize.define("OTP", {
-    email: {
-        type: DataTypes.STRING(100),
+const Role = sequelize.define("Role", {
+    userId: {
+        type: DataTypes.INTEGER,
         allowNull: false,
         references: {
             model: "Users",
-            key: "email"
+            key: "id"
         },
         onDelete: "CASCADE",
         onUpdate: "CASCADE"
     },
-    otp: {
-        type: DataTypes.STRING(6),
+    role: {
+        type: DataTypes.STRING(40),
         allowNull: false,
-    },
-    expiresAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
+        defaultValue: "STUDENT"
     }
 });
 
-export default OTP;
+export default Role;
