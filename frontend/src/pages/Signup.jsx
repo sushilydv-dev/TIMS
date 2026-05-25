@@ -38,7 +38,7 @@ const Signup = () => {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    loading(true);
+    setLoading(true);
     setError("");
 
     try {

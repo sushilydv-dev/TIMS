@@ -11,8 +11,6 @@ import Role from "./src/models/role.js"
 User.hasOne(Role, { foreignKey: 'userId', as: 'roleRelation', onDelete: 'CASCADE' });
 Role.belongsTo(User, { foreignKey: 'userId' });
 
-User.hasMany(OTP, { foreignKey: 'email', sourceKey: 'email', onDelete: 'CASCADE' });
-OTP.belongsTo(User, { foreignKey: 'email', targetKey: 'email' });
 
 dotenv.config()
 const app = express()
