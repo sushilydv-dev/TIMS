@@ -1,40 +1,64 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FcGoogle } from "react-icons/fc";
+import { FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
 import axios from "axios";
-import background from "../assets/background.jpg";
+
+const slides = [
+  {
+    image: "https://images.unsplash.com/photo-1681164315051-add1906a9b07?q=80&w=1139&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    heading: "Expert Curated Courses",
+    subtext: "Learn from the best instructors handpicked for quality and excellence"
+  },
+  {
+    image: "https://images.unsplash.com/photo-1661555144338-093c85f8c588?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    heading: "Track Your Progress",
+    subtext: "Stay on top of your learning journey with real-time progress tracking"
+  },
+  {
+    image: "https://images.unsplash.com/photo-1756885427018-86c8c5969c5b?q=80&w=1111&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    heading: "Earn Certificates",
+    subtext: "Get recognized for your skills with industry-accepted certificates"
+  }
+];
 
 const Signup = () => {
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [step, setStep] = useState(1);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(60);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    let timer;
-    if (step === 2 && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
-    } else if (countdown === 0) {
-      clearInterval(timer);
-    }
+    const timer = setInterval(() => {
+      setCurrentImgIndex((prev) => (prev + 1) % slides.length);
+    }, 3000);
     return () => clearInterval(timer);
-  }, [step, countdown]);
+  }, []);
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    if (!username.trim() || !email.trim() || !password) {
+      setError("All fields are required");
+      return;
+    }
+    if (!agreed) {
+      setError("You must agree to the Terms & Conditions");
+      return;
+    }
     setLoading(true);
     setError("");
 
     try {
       await axios.post("/api/auth/send-otp", { email });
       setStep(2);
-      setCountdown(60);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send OTP.");
     } finally {
@@ -57,11 +81,11 @@ const Signup = () => {
 
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
-        navigate("/");
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "An error occurred during signup.",
+        err.response?.data?.message || "An error occurred during signup."
       );
     } finally {
       setLoading(false);
@@ -69,161 +93,209 @@ const Signup = () => {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-gray-900 bg-cover bg-center relative"
-      style={{ backgroundImage: `url(${background})` }}
-    >
-      <div className="absolute inset-0 bg-black/60"></div>
+    <div className="w-screen h-screen overflow-hidden flex">
 
-      <div className="relative z-10 w-full max-w-md p-8 m-4 rounded-3xl backdrop-blur-3xl backdrop-brightness-75 bg-white/10 border border-white/20 shadow-2xl transition-all duration-300">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2 tracking-wide">
-            {step === 1 ? "Create Account" : "Verify Email"}
-          </h2>
-          <p className="text-gray-300">
-            {step === 1 ? "Join MSAI INDIA today" : `OTP sent to ${email}`}
-          </p>
+      {/* Left Panel (Form) */}
+      <div className="w-full md:w-1/2 h-screen overflow-y-auto flex flex-col justify-center px-8 md:px-16 bg-[#fff5f5]">
+        <div className="max-w-md mx-auto w-full">
+
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-[#111111] mb-2 tracking-wide" style={{ fontFamily: "'Syne', 'Plus Jakarta Sans', sans-serif" }}>
+              {step === 1 ? 'Create an account' : 'Verify Email'}
+            </h2>
+            <div className="h-[2px] w-10 bg-brand mb-4"></div>
+            <p className="text-[#555555]">
+              Already have an account?{" "}
+              <Link to="/login" className="text-brand hover:underline focus:outline-none font-medium cursor-pointer">
+                Log in
+              </Link>
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          {step === 1 ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-[#f5f5f5] text-[#111111] px-4 py-3.5 border-b-2 border-gray-200 focus:border-brand focus:ring-0 outline-none transition-all placeholder:text-[#9ca3af]"
+                />
+              </div>
+
+              <div>
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#f5f5f5] text-[#111111] px-4 py-3.5 border-b-2 border-gray-200 focus:border-brand focus:ring-0 outline-none transition-all placeholder:text-[#9ca3af]"
+                />
+              </div>
+
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#f5f5f5] text-[#111111] px-4 py-3.5 pr-12 border-b-2 border-gray-200 focus:border-brand focus:ring-0 outline-none transition-all placeholder:text-[#9ca3af]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#111111] transition-colors focus:outline-none cursor-pointer"
+                >
+                  {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                </button>
+              </div>
+
+              <div className="pt-1">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative flex items-center justify-center mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      className="peer appearance-none w-5 h-5 border-2 border-[#e0e0e0] rounded bg-white checked:bg-brand checked:border-brand focus:ring-2 focus:ring-brand/30 focus:outline-none transition-all cursor-pointer"
+                    />
+                    <svg className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <span className="text-sm text-[#555555] group-hover:text-[#111111] transition-colors">
+                    I agree to the <a href="#" className="text-brand hover:underline">Terms & Conditions</a>
+                  </span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-brand text-white font-semibold py-3.5 rounded-xl hover:bg-[#e02e26] transition-all shadow-[0_4px_20px_rgba(252,54,45,0.4)] hover:shadow-[0_6px_25px_rgba(252,54,45,0.6)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-brand active:scale-[0.98] cursor-pointer mt-4 disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : 'Continue'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Enter 6-digit OTP"
+                  maxLength="6"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full bg-[#f5f5f5] text-[#111111] px-4 py-3.5 border-b-2 border-gray-200 focus:border-brand focus:ring-0 outline-none transition-all placeholder:text-[#9ca3af] text-center text-2xl tracking-[0.5em]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-brand text-white font-semibold py-3.5 rounded-xl hover:bg-[#e02e26] transition-all shadow-[0_4px_20px_rgba(252,54,45,0.4)] hover:shadow-[0_6px_25px_rgba(252,54,45,0.6)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-brand active:scale-[0.98] cursor-pointer mt-4 disabled:opacity-50"
+              >
+                {loading ? 'Verifying...' : 'Verify & Register'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1);
+                  setOtp("");
+                  setError("");
+                }}
+                className="w-full py-3.5 rounded-xl font-medium text-[#555555] bg-white hover:bg-gray-50 border border-[#e0e0e0] transition-all cursor-pointer text-center focus:outline-none focus:border-brand"
+              >
+                Back to details
+              </button>
+            </form>
+          )}
+
+          {step === 1 && (
+            <>
+              <div className="my-8 flex items-center gap-4">
+                <div className="flex-1 h-px bg-[#e0e0e0]"></div>
+                <span className="text-sm text-[#9ca3af] whitespace-nowrap">Or register with</span>
+                <div className="flex-1 h-px bg-[#e0e0e0]"></div>
+              </div>
+
+              <div className="flex gap-4">
+                <button type="button" className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-[#111111] py-3.5 rounded-xl border border-[#e0e0e0] transition-colors focus:outline-none focus:border-brand cursor-pointer">
+                  <FcGoogle size={20} />
+                  <span className="font-medium text-sm">Google</span>
+                </button>
+                <button type="button" className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-[#111111] py-3.5 rounded-xl border border-[#e0e0e0] transition-colors focus:outline-none focus:border-brand cursor-pointer">
+                  <FaApple size={20} />
+                  <span className="font-medium text-sm">Apple</span>
+                </button>
+              </div>
+            </>
+          )}
+
+        </div>
+      </div>
+
+      {/* Right Panel (Image) */}
+      <div className="hidden md:flex w-1/2 h-screen relative overflow-hidden flex-col justify-between">
+        {/* Background Images with Fade */}
+        {slides.map((slide, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-700 ${index === currentImgIndex ? 'opacity-100' : 'opacity-0'}`}
+            style={{ backgroundImage: `url('${slide.image}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          ></div>
+        ))}
+
+        <div className="absolute inset-0 bg-black/30 z-0" />
+
+        <div className="relative z-10 flex justify-between items-center w-full p-10">
+          <h1 className="text-3xl font-black text-white tracking-tighter">
+            AMU<span className="text-brand">.</span>
+          </h1>
+          <Link to="/" className="px-5 py-2.5 bg-white/80 hover:bg-white backdrop-blur-md text-[#111111] text-sm font-medium rounded-full transition-colors border border-[#e0e0e0] cursor-pointer">
+            Back to website &rarr;
+          </Link>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-200 text-sm text-center">
-            {error}
+        <div className="relative z-10 mt-auto pb-8 p-10">
+          <div className="relative h-24 mb-6">
+            {slides.map((slide, index) => (
+              <div
+                key={index}
+                className={`absolute bottom-0 left-0 transition-opacity duration-700 ${index === currentImgIndex ? 'opacity-100' : 'opacity-0'}`}
+              >
+                <h2 className="text-3xl font-bold text-white tracking-wide" style={{ fontFamily: "'Syne', 'Plus Jakarta Sans', sans-serif" }}>
+                  {slide.heading}
+                </h2>
+                <p className="text-white/80 text-sm mt-2 max-w-sm">
+                  {slide.subtext}
+                </p>
+              </div>
+            ))}
           </div>
-        )}
 
-        {step === 1 ? (
-          <form onSubmit={handleSendOtp} className="space-y-5">
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-200 mb-2"
-                htmlFor="username"
-              >
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                required
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all duration-300"
-                placeholder="johndoe"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-200 mb-2"
-                htmlFor="email"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all duration-300"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-200 mb-2"
-                htmlFor="password"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all duration-300"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 mt-2 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Sending OTP..." : "Continue"}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleSignup} className="space-y-5">
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-200 mb-2"
-                htmlFor="otp"
-              >
-                Enter 6-digit OTP
-              </label>
-              <input
-                id="otp"
-                type="text"
-                required
-                maxLength="6"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all duration-300 text-center text-2xl tracking-[0.5em]"
-                placeholder="------"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-            </div>
-
-            <div className="text-center text-sm">
-              {countdown > 0 ? (
-                <p className="text-gray-300">
-                  OTP expires in{" "}
-                  <span className="text-indigo-400 font-bold">
-                    {countdown}s
-                  </span>
-                </p>
-              ) : (
-                <p className="text-red-400">
-                  OTP has expired. Please try signing up again.
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || countdown === 0}
-              className="w-full py-3 px-4 mt-2 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Verifying..." : "Verify & Register"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setStep(1);
-                setOtp("");
-              }}
-              className="w-full py-3 px-4 mt-2 rounded-xl font-semibold text-gray-300 bg-transparent border border-white/10 hover:bg-white/5 focus:outline-none transition-all duration-300"
-            >
-              Back to details
-            </button>
-          </form>
-        )}
-
-        {step === 1 && (
-          <p className="mt-8 text-center text-gray-300 text-sm">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
-            >
-              Sign in
-            </Link>
-          </p>
-        )}
+          {/* Carousel Indicators */}
+          <div className="flex gap-2 items-center">
+            {slides.map((_, index) => (
+              <button
+                type="button"
+                key={index}
+                onClick={() => setCurrentImgIndex(index)}
+                className={`h-1.5 rounded-full transition-all duration-500 cursor-pointer focus:outline-none ${index === currentImgIndex ? 'w-8 bg-brand' : 'w-2 bg-white/30'}`}
+              ></button>
+            ))}
+          </div>
+        </div>
       </div>
+
     </div>
   );
 };
