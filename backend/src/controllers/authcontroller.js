@@ -1,145 +1,288 @@
 import bcrypt from "bcryptjs"
 import User from "../models/user.js"
 import OTP from "../models/otp.js"
-import Role from "../models/role.js"
 import generateToken from "../utils/generatetoken.js"
-import emailjs from "@emailjs/nodejs"
 import { Op } from "sequelize"
+import { asyncHandler } from "../utils/asyncHandler.js"
+import { sendTemplateEmail } from "../utils/emailService.js"
+import InviteToken from "../models/inviteToken.js"
+import { isAdminEmail } from "../config/adminEmails.js"
+import { getCanonicalRoleByName, getUserRoleForClient } from "../utils/roleHelpers.js"
+import { normalizeRoleName } from "../config/roles.js"
+import { ensureRoleProfile } from "../utils/ensureRoleProfile.js"
 
-export const sendOTP = async (req, res) => {
-    try {
-        const { email } = req.body;
+export const sendOTP = asyncHandler(async (req, res) => {
+    const { email } = req.body;
 
-        const userExists = await User.findOne({ where: { email } });
-        if (userExists) {
-            return res.status(400).json({ message: "User already exists" });
-        }
-
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 60 * 5000); 
-
-        await OTP.destroy({ where: { email } });
-        await OTP.create({ email, otp: otpCode, expiresAt });
-
-        await emailjs.send(
-            process.env.EMAILJS_SERVICE_ID,
-            process.env.EMAILJS_TEMPLATE_ID,
-            {
-                to_email: email,
-                otp: otpCode,
-            },
-            {
-                publicKey: process.env.EMAILJS_PUBLIC_KEY,
-                privateKey: process.env.EMAILJS_PRIVATE_KEY,
-            }
-        );
-
-        res.status(200).json({ message: "OTP sent successfully" });
-    } catch (error) {
-        console.error("SEND OTP ERROR:", error);
-        res.status(500).json({ message: "Failed to send OTP", error: error?.message || error });
+    const userExists = await User.findOne({ where: { email } });
+    if (userExists) {
+        res.status(400);
+        throw new Error("User already exists");
     }
-};
+    
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 60 * 5000); 
 
-export const registerUser = async (req, res) => {
-    try {
-        const { username, email, password, otp, role } = req.body;
+    await OTP.destroy({ where: { email } });
+    await OTP.create({ email, otp: otpCode, expiresAt });
 
-        const validOTP = await OTP.findOne({
-            where: {
-                email,
-                otp,
-                expiresAt: { [Op.gt]: new Date() }
-            }
-        });
+    await sendTemplateEmail(process.env.EMAILJS_TEMPLATE_ID, {
+        to_email: email,
+        otp: otpCode,
+    });
 
-        if (!validOTP) {
-            return res.status(400).json({ message: "Invalid or expired OTP" });
-        }
+    res.status(200).json({ message: "OTP sent successfully" });
+});
 
-        const userExists = await User.findOne({
-            where: { email }
-        });
+export const registerUser = asyncHandler(async (req, res) => {
+    const { username, email, password, otp, role } = req.body;
 
-        if (userExists) {
-            return res.status(400).json({ message: "User already exists" });
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        const user = await User.create({
-            name: username,
+    const validOTP = await OTP.findOne({
+        where: {
             email,
-            password: hashedPassword
-        });
-
-        const createdRole = await Role.create({
-            userId: user.id,
-            role: role || "STUDENT"
-        });
-
-        await OTP.destroy({ where: { email } });
-
-        if (user) {
-            res.status(201).json({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: createdRole.role,
-                token: generateToken(user.id)
-            });
-        } else {
-            res.status(400).json({ message: "Invalid user data" });
+            otp,
+            expiresAt: { [Op.gt]: new Date() }
         }
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
+    });
+
+    if (!validOTP) {
+        res.status(400);
+        throw new Error("Invalid or expired OTP");
     }
-};
 
-export const loginUser = async (req, res) => {
-    try {
-        const { email, password } = req.body;
+    const userExists = await User.findOne({
+        where: { email }
+    });
 
-        const user = await User.findOne({ where: { email } });
-
-        if (user && (await bcrypt.compare(password, user.password))) {
-            const roleRecord = await Role.findOne({ where: { userId: user.id } });
-            const userRole = roleRecord ? roleRecord.role : "STUDENT";
-
-            res.json({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: userRole,
-                token: generateToken(user.id)
-            });
-        } else {
-            res.status(401).json({ message: "Invalid email or password" });
-        }
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
+    if (userExists) {
+        res.status(400);
+        throw new Error("User already exists");
     }
-};
 
-export const getProfile = async (req, res) => {
-    try {
-        const user = await User.findByPk(req.user.id, {
-            attributes: { exclude: ['password'] }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const signupRole = isAdminEmail(email)
+        ? "ADMIN"
+        : normalizeRoleName(role);
+    const roleRecord = await getCanonicalRoleByName(signupRole);
+
+    const user = await User.create({
+        name: username,
+        email,
+        password: hashedPassword,
+        role_id: roleRecord.id,
+        status: "active",
+    });
+
+    await ensureRoleProfile(user, signupRole);
+
+    await OTP.destroy({ where: { email } });
+
+    if (user) {
+        const clientRole = await getUserRoleForClient(user, email);
+        res.status(201).json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: clientRole,
+            token: generateToken(user.id)
         });
-
-        if (user) {
-            const roleRecord = await Role.findOne({ where: { userId: user.id } });
-            const userRole = roleRecord ? roleRecord.role : "STUDENT";
-
-            const userJson = user.toJSON();
-            userJson.role = userRole;
-
-            res.json(userJson);
-        } else {
-            res.status(404).json({ message: "User not found" });
-        }
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
+    } else {
+        res.status(400);
+        throw new Error("Invalid user data");
     }
-};
+});
+
+export const loginUser = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (user && (await bcrypt.compare(password, user.password))) {
+        if (user.status === "inactive") {
+            res.status(403);
+            throw new Error(
+                "Account not activated. Please use the activation link from your invitation email.",
+            );
+        }
+
+        if (user.status === "suspended") {
+            res.status(403);
+            throw new Error("Your account has been suspended. Contact support.");
+        }
+
+        const userRole = await getUserRoleForClient(user, email);
+
+        res.json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: userRole,
+            token: generateToken(user.id)
+        });
+    } else {
+        res.status(401);
+        throw new Error("Invalid email or password");
+    }
+});
+
+export const getProfile = asyncHandler(async (req, res) => {
+    const user = await User.findByPk(req.user.id, {
+        attributes: { exclude: ['password'] }
+    });
+
+    if (user) {
+        const userRole = await getUserRoleForClient(user);
+
+        const userJson = user.toJSON();
+        userJson.role = userRole;
+
+        res.json(userJson);
+    } else {
+        res.status(404);
+        throw new Error("User not found");
+    }
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        res.status(400);
+        throw new Error("Email is required");
+    }
+
+    const userExists = await User.findOne({ where: { email } });
+    if (!userExists) {
+        res.status(404);
+        throw new Error("User with this email does not exist");
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 60 * 5000); 
+
+    await OTP.destroy({ where: { email } });
+    await OTP.create({ email, otp: otpCode, expiresAt });
+
+    await sendTemplateEmail(process.env.EMAILJS_TEMPLATE_ID, {
+        to_email: email,
+        otp: otpCode,
+    });
+
+    res.status(200).json({ message: "Reset OTP sent successfully" });
+});
+
+export const getActivationInfo = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+
+    if (!token) {
+        res.status(400);
+        throw new Error("Activation token is required");
+    }
+
+    const invite = await InviteToken.findOne({
+        where: {
+            token,
+            expiresAt: { [Op.gt]: new Date() },
+        },
+        include: [{ model: User, attributes: { exclude: ["password"] } }],
+    });
+
+    if (!invite?.User) {
+        res.status(400);
+        throw new Error("Invalid or expired activation link");
+    }
+
+    const userRole = await getUserRoleForClient(invite.User);
+
+    res.json({
+        email: invite.User.email,
+        name: invite.User.name,
+        role: userRole,
+    });
+});
+
+export const activateAccount = asyncHandler(async (req, res) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+        res.status(400);
+        throw new Error("Token and password are required");
+    }
+
+    if (String(password).length < 8) {
+        res.status(400);
+        throw new Error("Password must be at least 8 characters");
+    }
+
+    const invite = await InviteToken.findOne({
+        where: {
+            token,
+            expiresAt: { [Op.gt]: new Date() },
+        },
+        include: [{ model: User }],
+    });
+
+    if (!invite?.User) {
+        res.status(400);
+        throw new Error("Invalid or expired activation link");
+    }
+
+    const user = invite.User;
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.status = "active";
+    await user.save();
+
+    await ensureRoleProfile(user);
+
+    await InviteToken.destroy({ where: { user_id: user.id } });
+
+    const userRole = await getUserRoleForClient(user);
+
+    res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: userRole,
+        token: generateToken(user.id),
+        message: "Account activated successfully",
+    });
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+        res.status(400);
+        throw new Error("All fields are required");
+    }
+
+    const validOTP = await OTP.findOne({
+        where: {
+            email,
+            otp,
+            expiresAt: { [Op.gt]: new Date() }
+        }
+    });
+
+    if (!validOTP) {
+        res.status(400);
+        throw new Error("Invalid or expired OTP");
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+        res.status(404);
+        throw new Error("User not found");
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    await OTP.destroy({ where: { email } });
+
+    res.status(200).json({ message: "Password reset successfully" });
+});

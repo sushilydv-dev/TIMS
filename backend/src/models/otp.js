@@ -14,6 +14,9 @@ const OTP = sequelize.define("OTP", {
     type: DataTypes.DATE,
     allowNull: false,
   },
+}, {
+  tableName: "OTPs",
+  timestamps: true,
 });
 
 export default OTP;
