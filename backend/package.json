@@ -21,6 +21,7 @@
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.21.0",
+    "razorpay": "^2.9.6",
     "sequelize": "^6.37.8"
   },
   "devDependencies": {

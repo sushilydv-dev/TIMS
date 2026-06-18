@@ -21,6 +21,7 @@ import AssessmentResult from "./assessmentResult.js";
 import Certificate from "./certificate.js";
 import Notification from "./notification.js";
 import InviteToken from "./inviteToken.js";
+import Installment from "./installment.js";
 
 User.belongsTo(Role, { foreignKey: "role_id", as: "role" });
 Role.hasMany(User, { foreignKey: "role_id" });
@@ -82,8 +83,14 @@ ProjectSubmission.belongsTo(Student, { foreignKey: "student_id" });
 Student.hasMany(Fee, { foreignKey: "student_id", onDelete: "CASCADE" });
 Fee.belongsTo(Student, { foreignKey: "student_id" });
 
-Fee.hasMany(Payment, { foreignKey: "fee_id", onDelete: "CASCADE" });
-Payment.belongsTo(Fee, { foreignKey: "fee_id" });
+Fee.hasMany(Payment, { foreignKey: "fee_id", onDelete: "CASCADE", as: "payments" });
+Payment.belongsTo(Fee, { foreignKey: "fee_id", as: "fee" });
+
+Fee.hasMany(Installment, { foreignKey: "fee_id", onDelete: "CASCADE", as: "installments" });
+Installment.belongsTo(Fee, { foreignKey: "fee_id", as: "fee" });
+
+Installment.hasMany(Payment, { foreignKey: "installment_id", onDelete: "SET NULL", as: "payments" });
+Payment.belongsTo(Installment, { foreignKey: "installment_id", as: "installment" });
 
 Assessment.hasMany(AssessmentResult, { foreignKey: "assessment_id", onDelete: "CASCADE" });
 AssessmentResult.belongsTo(Assessment, { foreignKey: "assessment_id" });
@@ -121,4 +128,5 @@ export {
   Certificate,
   Notification,
   InviteToken,
+  Installment,
 };

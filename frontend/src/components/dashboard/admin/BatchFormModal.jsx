@@ -8,16 +8,15 @@ import {
   secondaryBtnClass,
 } from "../dashboardTheme";
 
-export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle }) {
+export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle, courseDuration }) {
   const [batchName, setBatchName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [trainerId, setTrainerId] = useState("");
-  const [selectedStudents, setSelectedStudents] = useState([]);
   const [trainers, setTrainers] = useState([]);
-  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
 
   useEffect(() => {
     if (!open) return;
@@ -38,7 +37,6 @@ export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle
       setStartDate("");
       setEndDate("");
       setTrainerId("");
-      setSelectedStudents([]);
       setError("");
       setLoading(false);
       return;
@@ -46,15 +44,10 @@ export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle
 
     const load = async () => {
       try {
-        const [trainersRes, studentsRes] = await Promise.all([
-          axios.get("/api/admin/trainers"),
-          axios.get("/api/admin/students"),
-        ]);
+        const trainersRes = await axios.get("/api/admin/trainers");
         setTrainers(trainersRes.data || []);
-        setStudents(studentsRes.data || []);
       } catch {
         setTrainers([]);
-        setStudents([]);
       }
     };
 
@@ -63,11 +56,20 @@ export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle
 
   if (!open) return null;
 
-  const toggleStudent = (id) => {
-    setSelectedStudents((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    );
+  const handleStartDateChange = (val) => {
+    setStartDate(val);
+    if (val && courseDuration) {
+      const date = new Date(val);
+      if (!isNaN(date.getTime())) {
+        date.setMonth(date.getMonth() + Number(courseDuration));
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        setEndDate(`${year}-${month}-${day}`);
+      }
+    }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,8 +83,9 @@ export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle
         trainer_id: trainerId,
         start_date: startDate,
         end_date: endDate,
-        student_ids: selectedStudents,
+        student_ids: [],
       });
+
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -121,7 +124,8 @@ export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle
           Create batch
         </h2>
         <p className="text-sm text-[#636363] mt-1.5 mb-6 font-medium">
-          For <strong className="text-[#0c0407]">{courseTitle}</strong> — assign a trainer and enroll students.
+          For <strong className="text-[#0c0407]">{courseTitle}</strong> — assign a trainer.
+
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -144,8 +148,9 @@ export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle
                 required
                 className={inputClass}
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleStartDateChange(e.target.value)}
               />
+
             </div>
             <div>
               <label className="block text-xs font-bold text-[#475569] mb-1.5">End date</label>
@@ -181,36 +186,7 @@ export function BatchFormModal({ open, onClose, onSuccess, courseId, courseTitle
             )}
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-[#475569] mb-2">
-              Add students ({selectedStudents.length} selected)
-            </label>
-            <div className="max-h-44 overflow-y-auto rounded-xl border border-black/[0.08] bg-[#fafafa] p-2 space-y-1">
-              {students.length === 0 ? (
-                <p className="text-xs text-[#94a3b8] font-semibold p-3 text-center">
-                  No student profiles available.
-                </p>
-              ) : (
-                students.map((s) => (
-                  <label
-                    key={s.id}
-                    className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedStudents.includes(s.id)}
-                      onChange={() => toggleStudent(s.id)}
-                      className="rounded border-black/20 text-[#fc362d] focus:ring-[#fc362d]/30"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#0c0407] truncate">{s.name}</p>
-                      <p className="text-[10px] text-[#94a3b8] font-semibold truncate">{s.email}</p>
-                    </div>
-                  </label>
-                ))
-              )}
-            </div>
-          </div>
+
 
           {error && (
             <p className="text-xs font-semibold text-[#b91c1c] bg-[#fef2f2] border border-[#b91c1c]/20 rounded-xl px-3 py-2">

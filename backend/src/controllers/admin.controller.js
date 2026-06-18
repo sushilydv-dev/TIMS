@@ -4,6 +4,10 @@ import { Op } from "sequelize";
 import User from "../models/user.js";
 import Role from "../models/role.js";
 import InviteToken from "../models/inviteToken.js";
+import Trainer from "../models/trainer.js";
+import Hr from "../models/hr.js";
+import Batch from "../models/batch.js";
+import sequelize from "../config/db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendTemplateEmail } from "../utils/emailService.js";
 import {
@@ -248,6 +252,264 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
       email: target.email,
       status: target.status,
       role: await getUserRoleForClient(target),
+    },
+  });
+});
+
+export const listTrainersBrowse = asyncHandler(async (req, res) => {
+  const { search, page, limit, offset } = req.query;
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const offsetNum = offset !== undefined ? Math.max(0, parseInt(offset, 10) || 0) : (pageNum - 1) * limitNum;
+
+  const term = String(search || "").trim();
+  const userWhere = {};
+  if (term) {
+    userWhere[Op.or] = [
+      { name: { [Op.iLike]: `%${term}%` } },
+      { email: { [Op.iLike]: `%${term}%` } },
+    ];
+  }
+
+  const { count, rows: trainers } = await Trainer.findAndCountAll({
+    include: [
+      {
+        model: User,
+        attributes: ["id", "name", "email", "status"],
+        where: userWhere,
+        required: true,
+      },
+      {
+        model: Batch,
+        attributes: ["id", "batch_name"],
+        required: false,
+      },
+    ],
+    order: [[User, "name", "ASC"]],
+    limit: limitNum,
+    offset: offsetNum,
+    distinct: true,
+  });
+
+  const totalPages = Math.max(Math.ceil(count / limitNum), 1);
+
+  res.json({
+    trainers: trainers.map((t) => ({
+      id: t.id,
+      specialization: t.specialization,
+      experience_year: t.experience_year,
+      salary: t.salary,
+      profile_img: t.profile_img || "",
+      User: t.User,
+      Batches: t.Batches || [],
+    })),
+    total: count,
+    totalPages,
+    page: pageNum,
+    limit: limitNum,
+  });
+});
+
+export const updateTrainerProfile = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    name,
+    email,
+    status,
+    specialization,
+    experience_year,
+    salary,
+    profile_img,
+    batch_ids,
+  } = req.body;
+
+  const trainer = await Trainer.findByPk(id, {
+    include: [{ model: User }],
+  });
+
+  if (!trainer) {
+    res.status(404);
+    throw new Error("Trainer not found");
+  }
+
+  const user = trainer.User;
+  if (!user) {
+    res.status(404);
+    throw new Error("Associated User not found");
+  }
+
+  if (email && email.trim().toLowerCase() !== user.email.toLowerCase()) {
+    const existing = await User.findOne({
+      where: { email: email.trim().toLowerCase() },
+    });
+    if (existing) {
+      res.status(400);
+      throw new Error("Email is already taken by another user");
+    }
+  }
+
+  await sequelize.transaction(async (t) => {
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email.trim().toLowerCase();
+    if (status !== undefined) {
+      if (user.id === req.user.id) {
+        res.status(400);
+        throw new Error("You cannot change your own status");
+      }
+      user.status = status;
+    }
+    await user.save({ transaction: t });
+
+    if (specialization !== undefined) trainer.specialization = specialization;
+    if (experience_year !== undefined) trainer.experience_year = parseInt(experience_year, 10) || 0;
+    if (salary !== undefined) trainer.salary = parseInt(salary, 10) || 0;
+    if (profile_img !== undefined) trainer.profile_img = profile_img;
+    await trainer.save({ transaction: t });
+
+    if (batch_ids !== undefined) {
+      const cleanBatchIds = Array.isArray(batch_ids) ? batch_ids.filter(Boolean) : [];
+      
+      await Batch.update(
+        { trainer_id: null },
+        {
+          where: {
+            trainer_id: trainer.id,
+            id: { [Op.notIn]: cleanBatchIds },
+          },
+          transaction: t,
+        }
+      );
+
+      if (cleanBatchIds.length > 0) {
+        await Batch.update(
+          { trainer_id: trainer.id },
+          {
+            where: { id: cleanBatchIds },
+            transaction: t,
+          }
+        );
+      }
+    }
+  });
+
+  const updatedTrainer = await Trainer.findByPk(trainer.id, {
+    include: [{ model: User }, { model: Batch, attributes: ["id", "batch_name"] }],
+  });
+
+  res.json({
+    message: "Trainer profile updated successfully",
+    trainer: {
+      id: updatedTrainer.id,
+      specialization: updatedTrainer.specialization,
+      experience_year: updatedTrainer.experience_year,
+      salary: updatedTrainer.salary,
+      profile_img: updatedTrainer.profile_img || "",
+      User: updatedTrainer.User,
+      Batches: updatedTrainer.Batches || [],
+    },
+  });
+});
+
+export const listHrDetailed = asyncHandler(async (req, res) => {
+  const { search, page, limit, offset } = req.query;
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const offsetNum = offset !== undefined ? Math.max(0, parseInt(offset, 10) || 0) : (pageNum - 1) * limitNum;
+
+  const term = String(search || "").trim();
+  const userWhere = {};
+  if (term) {
+    userWhere[Op.or] = [
+      { name: { [Op.iLike]: `%${term}%` } },
+      { email: { [Op.iLike]: `%${term}%` } },
+    ];
+  }
+
+  const { count, rows: hrList } = await Hr.findAndCountAll({
+    include: [
+      {
+        model: User,
+        attributes: ["id", "name", "email", "status"],
+        where: userWhere,
+        required: true,
+      },
+    ],
+    order: [[User, "name", "ASC"]],
+    limit: limitNum,
+    offset: offsetNum,
+    distinct: true,
+  });
+
+  const totalPages = Math.max(Math.ceil(count / limitNum), 1);
+
+  res.json({
+    hrList: hrList.map((h) => ({
+      id: h.id,
+      profile_img: h.profile_img || "",
+      User: h.User,
+    })),
+    total: count,
+    totalPages,
+    page: pageNum,
+    limit: limitNum,
+  });
+});
+
+export const updateHrProfile = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, email, status, profile_img } = req.body;
+
+  const hr = await Hr.findByPk(id, {
+    include: [{ model: User }],
+  });
+
+  if (!hr) {
+    res.status(404);
+    throw new Error("HR Coordinator not found");
+  }
+
+  const user = hr.User;
+  if (!user) {
+    res.status(404);
+    throw new Error("Associated User not found");
+  }
+
+  if (email && email.trim().toLowerCase() !== user.email.toLowerCase()) {
+    const existing = await User.findOne({
+      where: { email: email.trim().toLowerCase() },
+    });
+    if (existing) {
+      res.status(400);
+      throw new Error("Email is already taken by another user");
+    }
+  }
+
+  await sequelize.transaction(async (t) => {
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email.trim().toLowerCase();
+    if (status !== undefined) {
+      if (user.id === req.user.id) {
+        res.status(400);
+        throw new Error("You cannot change your own status");
+      }
+      user.status = status;
+    }
+    await user.save({ transaction: t });
+
+    if (profile_img !== undefined) hr.profile_img = profile_img;
+    await hr.save({ transaction: t });
+  });
+
+  const updatedHr = await Hr.findByPk(hr.id, {
+    include: [{ model: User }],
+  });
+
+  res.json({
+    message: "HR Coordinator profile updated successfully",
+    hr: {
+      id: updatedHr.id,
+      profile_img: updatedHr.profile_img || "",
+      User: updatedHr.User,
     },
   });
 });

@@ -14,6 +14,10 @@ import { BatchesList } from "./components/dashboard/admin/BatchesList";
 import CourseDetail from "./pages/admin/CourseDetail";
 import { SystemHealth } from "./components/dashboard/admin/SystemHealth";
 import { BillingLedger } from "./components/dashboard/admin/BillingLedger";
+import { RequireAdminOrHR } from "./components/dashboard/admin/RequireAdminOrHR";
+import { StudentControl } from "./components/dashboard/admin/StudentControl";
+import { TrainerControl } from "./components/dashboard/admin/TrainerControl";
+import { HrControl } from "./components/dashboard/admin/HrControl";
 import ActivateAccount from "./pages/ActivateAccount";
 import { AuthProvider } from "./app/AuthContext";
 import { PrivateRoutes } from "./Routes/PrivateRoutes";
@@ -43,6 +47,30 @@ export const App = () => {
                 element={
                   <RequireAdmin>
                     <UserControl />
+                  </RequireAdmin>
+                }
+              />
+              <Route
+                path="students"
+                element={
+                  <RequireAdminOrHR>
+                    <StudentControl />
+                  </RequireAdminOrHR>
+                }
+              />
+              <Route
+                path="trainers"
+                element={
+                  <RequireAdmin>
+                    <TrainerControl />
+                  </RequireAdmin>
+                }
+              />
+              <Route
+                path="hr"
+                element={
+                  <RequireAdmin>
+                    <HrControl />
                   </RequireAdmin>
                 }
               />

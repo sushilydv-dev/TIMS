@@ -27,6 +27,22 @@ async function columnExists(tableName, columnName) {
  * Safe migrations before Sequelize alter — avoids integer→varchar failures on students.
  */
 export async function migrateStudentsSchema() {
+  if (await tableExists("payment")) {
+    const txType = await columnType("payment", "transaction_id");
+    if (txType && (txType === "integer" || txType === "bigint" || txType === "smallint")) {
+      try {
+        await sequelize.query(`
+          ALTER TABLE "payment"
+          ALTER COLUMN "transaction_id" TYPE VARCHAR(255)
+          USING "transaction_id"::varchar;
+        `);
+        console.log("Migrated payment.transaction_id from integer to VARCHAR");
+      } catch (err) {
+        console.warn("payment.transaction_id migration warning:", err.message);
+      }
+    }
+  }
+
   if (!(await tableExists("students"))) {
     return;
   }

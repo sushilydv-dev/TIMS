@@ -24,9 +24,9 @@ const SLIDES = [
   },
   {
     image: tailored,
-    title: "One platform for your growth",
+    title: "Tailored training programs",
     description:
-      "Track courses, attendance, and progress — all in the TIMS training ecosystem.",
+      "Configure course models, batch schedules, and student enrollment to fit your workflows.",
   },
 ];
 
@@ -50,7 +50,7 @@ export function AuthImageSlider() {
       >
         {SLIDES.map((slide, index) => (
           <div
-            key={slide.title}
+            key={`${slide.title}-${index}`}
             className="relative min-w-full h-full shrink-0"
             aria-hidden={index !== activeIndex}
           >

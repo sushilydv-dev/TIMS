@@ -7,6 +7,8 @@ import User from "../models/user.js";
 import Enrollment from "../models/enrollment.js";
 import Fee from "../models/fee.js";
 import Attendance from "../models/attendance.js";
+import Installment from "../models/installment.js";
+import Payment from "../models/payment.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 function formatTrainer(trainer) {
@@ -15,7 +17,11 @@ function formatTrainer(trainer) {
     id: trainer.id,
     name: user?.name || "Trainer",
     email: user?.email || "",
+    status: user?.status || "inactive",
     specialization: trainer.specialization,
+    experience_year: trainer.experience_year,
+    salary: trainer.salary,
+    profile_img: trainer.profile_img || "",
   };
 }
 
@@ -25,7 +31,14 @@ function formatStudent(student) {
     id: student.id,
     name: user?.name || "Student",
     email: user?.email || "",
+    status: user?.status || "inactive",
     student_code: student.student_code,
+    phone: student.phone || "",
+    address: student.address || "",
+    college_name: student.college_name || "",
+    qualification: student.qualification || "",
+    joining_date: student.joining_date || "",
+    profile_img: student.profile_img || "",
   };
 }
 
@@ -79,11 +92,16 @@ function summarizeFees(fees = []) {
 function formatStudentBrowseRow(student, enrolled) {
   const base = formatStudent(student);
   const fees = summarizeFees(student.Fees || []);
+  const enrollment = student.Enrollments?.[0] || null;
+  const batch = enrollment?.Batch || null;
+  const course = batch?.Course || null;
 
   return {
     ...base,
     enrolled,
     fees,
+    batch_name: batch?.batch_name || "Unassigned",
+    course_title: course?.title || "Unassigned",
   };
 }
 
@@ -125,11 +143,7 @@ export const listTrainers = asyncHandler(async (_req, res) => {
     order: [[User, "name", "ASC"]],
   });
 
-  res.json(
-    trainers
-      .filter((t) => t.User?.status === "active")
-      .map(formatTrainer),
-  );
+  res.json(trainers.map(formatTrainer));
 });
 
 export const listStudents = asyncHandler(async (_req, res) => {
@@ -138,11 +152,7 @@ export const listStudents = asyncHandler(async (_req, res) => {
     order: [[User, "name", "ASC"]],
   });
 
-  res.json(
-    students
-      .filter((s) => s.User?.status === "active")
-      .map(formatStudent),
-  );
+  res.json(students.map(formatStudent));
 });
 
 export const browseStudents = asyncHandler(async (req, res) => {
@@ -172,7 +182,6 @@ export const browseStudents = asyncHandler(async (req, res) => {
   const userInclude = {
     model: User,
     attributes: ["id", "name", "email", "status"],
-    where: { status: "active" },
     required: true,
   };
 
@@ -187,7 +196,15 @@ export const browseStudents = asyncHandler(async (req, res) => {
 
   const { rows, count } = await Student.findAndCountAll({
     where,
-    include: [userInclude, { model: Fee, required: false }],
+    include: [
+      userInclude,
+      { model: Fee, required: false },
+      {
+        model: Enrollment,
+        required: false,
+        include: [{ model: Batch, include: [{ model: Course }] }],
+      },
+    ],
     order: [[User, "name", "ASC"]],
     offset,
     limit,
@@ -418,14 +435,27 @@ export const getStudentDetails = asyncHandler(async (req, res) => {
   const student = await Student.findByPk(id, {
     include: [
       { model: User, attributes: ["id", "name", "email", "status"] },
-      { model: Fee, required: false },
+      {
+        model: Fee,
+        required: false,
+        include: [
+          { model: Installment, as: "installments" },
+          { model: Payment, as: "payments" },
+        ],
+      },
       { model: Attendance, required: false },
+      { model: Enrollment, include: [{ model: Batch, include: [{ model: Course }] }] },
     ],
   });
 
   if (!student) {
     res.status(404);
     throw new Error("Student not found");
+  }
+
+  const fee = student.Fees?.[0];
+  if (fee?.installments) {
+    fee.installments.sort((a, b) => (a.sequence_number ?? 0) - (b.sequence_number ?? 0));
   }
 
   res.json(student);

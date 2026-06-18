@@ -10,6 +10,7 @@ import { isAdminEmail } from "../config/adminEmails.js"
 import { getCanonicalRoleByName, getUserRoleForClient } from "../utils/roleHelpers.js"
 import { normalizeRoleName } from "../config/roles.js"
 import { ensureRoleProfile } from "../utils/ensureRoleProfile.js"
+import Student from "../models/student.js"
 
 export const sendOTP = asyncHandler(async (req, res) => {
     const { email } = req.body;
@@ -26,10 +27,15 @@ export const sendOTP = asyncHandler(async (req, res) => {
     await OTP.destroy({ where: { email } });
     await OTP.create({ email, otp: otpCode, expiresAt });
 
-    await sendTemplateEmail(process.env.EMAILJS_TEMPLATE_ID, {
-        to_email: email,
-        otp: otpCode,
-    });
+    try {
+        await sendTemplateEmail(process.env.EMAILJS_TEMPLATE_ID, {
+            to_email: email,
+            otp: otpCode,
+        });
+    } catch (emailErr) {
+        console.error("Failed to send OTP email via EmailJS:", emailErr.message);
+        console.log(`[FALLBACK] OTP for ${email} is: ${otpCode}`);
+    }
 
     res.status(200).json({ message: "OTP sent successfully" });
 });
@@ -113,14 +119,17 @@ export const loginUser = asyncHandler(async (req, res) => {
         }
 
         const userRole = await getUserRoleForClient(user, email);
+        const student = await Student.findOne({ where: { user_id: user.id } });
 
         res.json({
             id: user.id,
             name: user.name,
             email: user.email,
             role: userRole,
-            token: generateToken(user.id)
+            token: generateToken(user.id),
+            Student: student ? { id: student.id } : null
         });
+
     } else {
         res.status(401);
         throw new Error("Invalid email or password");
@@ -129,7 +138,8 @@ export const loginUser = asyncHandler(async (req, res) => {
 
 export const getProfile = asyncHandler(async (req, res) => {
     const user = await User.findByPk(req.user.id, {
-        attributes: { exclude: ['password'] }
+        attributes: { exclude: ['password'] },
+        include: [{ model: Student, required: false }]
     });
 
     if (user) {
@@ -137,6 +147,7 @@ export const getProfile = asyncHandler(async (req, res) => {
 
         const userJson = user.toJSON();
         userJson.role = userRole;
+        userJson.Student = user.Student ? { id: user.Student.id } : null;
 
         res.json(userJson);
     } else {
@@ -164,10 +175,15 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     await OTP.destroy({ where: { email } });
     await OTP.create({ email, otp: otpCode, expiresAt });
 
-    await sendTemplateEmail(process.env.EMAILJS_TEMPLATE_ID, {
-        to_email: email,
-        otp: otpCode,
-    });
+    try {
+        await sendTemplateEmail(process.env.EMAILJS_TEMPLATE_ID, {
+            to_email: email,
+            otp: otpCode,
+        });
+    } catch (emailErr) {
+        console.error("Failed to send OTP email via EmailJS:", emailErr.message);
+        console.log(`[FALLBACK] OTP for ${email} is: ${otpCode}`);
+    }
 
     res.status(200).json({ message: "Reset OTP sent successfully" });
 });
@@ -239,6 +255,7 @@ export const activateAccount = asyncHandler(async (req, res) => {
     await InviteToken.destroy({ where: { user_id: user.id } });
 
     const userRole = await getUserRoleForClient(user);
+    const student = await Student.findOne({ where: { user_id: user.id } });
 
     res.json({
         id: user.id,
@@ -246,8 +263,10 @@ export const activateAccount = asyncHandler(async (req, res) => {
         email: user.email,
         role: userRole,
         token: generateToken(user.id),
+        Student: student ? { id: student.id } : null,
         message: "Account activated successfully",
     });
+
 });
 
 export const resetPassword = asyncHandler(async (req, res) => {

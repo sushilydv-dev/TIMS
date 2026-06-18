@@ -15,6 +15,11 @@ const Hr = sequelize.define(
       unique: true,
       references: { model: "users", key: "id" },
     },
+    profile_img: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "",
+    },
   },
   {
     tableName: "hr",

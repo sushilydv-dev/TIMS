@@ -2,6 +2,8 @@ import { Op } from "sequelize";
 import Role from "../models/role.js";
 import User from "../models/user.js";
 import { HARDCODED_ROLE_NAMES } from "./roles.js";
+import bcrypt from "bcryptjs";
+import { getAdminEmails } from "./adminEmails.js";
 
 export async function seedRoles() {
   for (const role_name of HARDCODED_ROLE_NAMES) {
@@ -51,5 +53,46 @@ export async function seedRoles() {
     }
     await row.destroy();
     console.log(`Removed invalid role: ${row.role_name}`);
+  }
+
+  await seedAdminUser();
+}
+
+export async function seedAdminUser() {
+  const adminEmails = getAdminEmails();
+  if (adminEmails.length === 0) {
+    console.log("No ADMIN_EMAIL configured in environment. Skipping admin seed.");
+    return;
+  }
+
+  const password = process.env.Admin_PASSWORD || process.env.ADMIN_PASSWORD || "Admin@123";
+  const adminRole = await Role.findOne({ where: { role_name: "ADMIN" } });
+  if (!adminRole) {
+    console.warn("ADMIN role not found. Cannot seed admin user.");
+    return;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+
+  for (const email of adminEmails) {
+    const existing = await User.findOne({ where: { email } });
+    if (!existing) {
+      const hashedPassword = await bcrypt.hash(password, salt);
+      await User.create({
+        name: "Admin User",
+        email,
+        password: hashedPassword,
+        role_id: adminRole.id,
+        status: "active",
+      });
+      console.log(`Successfully seeded admin user: ${email}`);
+    } else {
+      // Ensure the existing user has the ADMIN role
+      if (existing.role_id !== adminRole.id) {
+        existing.role_id = adminRole.id;
+        await existing.save();
+        console.log(`Updated existing user ${email} role to ADMIN`);
+      }
+    }
   }
 }

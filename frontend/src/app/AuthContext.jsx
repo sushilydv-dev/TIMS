@@ -47,7 +47,11 @@ export const AuthProvider = ({ children }) => {
       try {
         axios.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
         const response = await axios.get("/api/auth/profile");
-        setUser({ ...response.data, role: normalizeRole(response.data.role) });
+        setUser({
+          ...response.data,
+          role: normalizeRole(response.data.role),
+          Student: response.data.Student ? { id: response.data.Student.id } : null,
+        });
         setToken(storedToken);
       } catch (error) {
         console.error("Error fetching user profile, falling back to mock or clearing:", error);

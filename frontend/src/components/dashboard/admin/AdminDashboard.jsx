@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiUsers,
   FiBookOpen,
@@ -18,6 +19,7 @@ import {
 import { pageWrapClass } from "../dashboardTheme";
 
 export const AdminDashboard = ({ user }) => {
+  const navigate = useNavigate();
   return (
     <div className={pageWrapClass}>
       <WelcomeBanner
@@ -26,8 +28,8 @@ export const AdminDashboard = ({ user }) => {
         description="Monitor system health, user access, courses, and financial flows from one console."
         actions={
           <>
-            <PrimaryButton>Global Settings</PrimaryButton>
-            <SecondaryButton>System Audit</SecondaryButton>
+            <PrimaryButton onClick={() => navigate("/dashboard/students")}>Enroll Student</PrimaryButton>
+            <SecondaryButton onClick={() => navigate("/dashboard/billing")}>Billing Ledger</SecondaryButton>
           </>
         }
       />
@@ -166,14 +168,37 @@ export const AdminDashboard = ({ user }) => {
               </h3>
               <div className="grid grid-cols-1 gap-2">
                 {[
-                  { label: "Configure Server Ports", desc: "Change active gateway port settings", icon: <FiSettings className="w-4 h-4 text-[#475569]" /> },
-                  { label: "Manage User Permissions", desc: "Override and assign granular RBAC keys", icon: <FiShield className="w-4 h-4 text-[#05CD99]" /> },
-                  { label: "Full Database Backup", desc: "Capture safe structural dump file", icon: <FiDatabase className="w-4 h-4 text-teal-600" /> },
-                  { label: "Flush OTP Cache", desc: "Clear verifying registers in Redis", icon: <FiTrash2 className="w-4 h-4 text-red-500" /> },
+                  {
+                    label: "Enroll New Student",
+                    desc: "Register student & configure payment blueprints",
+                    icon: <FiUsers className="w-4 h-4 text-[#fc362d]" />,
+                    onClick: () => navigate("/dashboard/students"),
+                  },
+                  {
+                    label: "Configure Server Ports",
+                    desc: "Change active gateway port settings",
+                    icon: <FiSettings className="w-4 h-4 text-[#475569]" />,
+                  },
+                  {
+                    label: "Manage User Permissions",
+                    desc: "Override and assign granular RBAC keys",
+                    icon: <FiShield className="w-4 h-4 text-[#05CD99]" />,
+                  },
+                  {
+                    label: "Full Database Backup",
+                    desc: "Capture safe structural dump file",
+                    icon: <FiDatabase className="w-4 h-4 text-teal-600" />,
+                  },
+                  {
+                    label: "Flush OTP Cache",
+                    desc: "Clear verifying registers in Redis",
+                    icon: <FiTrash2 className="w-4 h-4 text-red-500" />,
+                  },
                 ].map((act, i) => (
                   <button
                     key={i}
-                    className="flex items-start text-left p-3 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-black/[0.08] transition-all cursor-pointer group"
+                    onClick={act.onClick || (() => alert(`Simulated command: ${act.label}`))}
+                    className="flex items-start text-left p-3 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-black/[0.08] transition-all cursor-pointer group w-full"
                   >
                     <div className="w-8 h-8 rounded-xl bg-[#fafafa] flex items-center justify-center mr-3 mt-0.5 group-hover:scale-105 transition-transform flex-shrink-0">
                       {act.icon}

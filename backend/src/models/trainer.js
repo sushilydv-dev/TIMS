@@ -27,6 +27,11 @@ const Trainer = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    profile_img: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "",
+    },
   },
   {
     tableName: "trainers",

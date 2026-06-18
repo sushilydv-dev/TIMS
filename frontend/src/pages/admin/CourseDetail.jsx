@@ -147,7 +147,9 @@ export const CourseDetail = () => {
         onSuccess={handleBatchSuccess}
         courseId={course.id}
         courseTitle={course.title}
+        courseDuration={course.duration_month}
       />
+
 
       <BatchEditPanel
         open={Boolean(editBatch)}

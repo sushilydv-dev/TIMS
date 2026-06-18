@@ -1,8 +1,8 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
-const Payment = sequelize.define(
-  "Payment",
+const Installment = sequelize.define(
+  "Installment",
   {
     id: {
       type: DataTypes.UUID,
@@ -14,36 +14,48 @@ const Payment = sequelize.define(
       allowNull: false,
       references: { model: "fees", key: "id" },
     },
-    amount: {
+    installment_label: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    amount_due: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    payment_date: {
+    amount_settled: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    due_date: {
       type: DataTypes.DATEONLY,
       allowNull: false,
-    },
-    payment_methhod: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    transaction_id: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    installment_id: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: "installments", key: "id" },
     },
     status: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: "SUCCESS",
+      defaultValue: "PENDING",
+    },
+    razorpay_order_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    razorpay_payment_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    razorpay_signature: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    sequence_number: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
   },
   {
-    tableName: "payment",
+    tableName: "installments",
   },
 );
 
-export default Payment;
+export default Installment;

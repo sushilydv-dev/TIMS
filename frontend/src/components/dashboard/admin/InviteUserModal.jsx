@@ -9,10 +9,10 @@ const ROLE_OPTIONS = [
   { value: "STUDENT", label: "Student" },
 ];
 
-export function InviteUserModal({ open, onClose, onSuccess }) {
+export function InviteUserModal({ open, onClose, onSuccess, fixedRole }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("TRAINER");
+  const [role, setRole] = useState(fixedRole || "TRAINER");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,11 +33,11 @@ export function InviteUserModal({ open, onClose, onSuccess }) {
     if (!open) {
       setEmail("");
       setPassword("");
-      setRole("TRAINER");
+      setRole(fixedRole || "TRAINER");
       setError("");
       setLoading(false);
     }
-  }, [open]);
+  }, [open, fixedRole]);
 
   if (!open) return null;
 
@@ -135,19 +135,26 @@ export function InviteUserModal({ open, onClose, onSuccess }) {
             <label htmlFor="invite-role" className="block text-xs font-bold text-[#475569] mb-1.5">
               Assign role
             </label>
-            <select
-              id="invite-role"
-              required
-              className={inputClass}
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              {ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            {fixedRole ? (
+              <div className="w-full px-4 py-3 rounded-xl border border-black/10 bg-slate-50 text-xs font-bold text-[#475569] flex items-center justify-between">
+                <span>{ROLE_OPTIONS.find((opt) => opt.value === fixedRole)?.label || fixedRole}</span>
+                <span className="text-[10px] text-gray-400 font-normal uppercase tracking-wider">Fixed</span>
+              </div>
+            ) : (
+              <select
+                id="invite-role"
+                required
+                className={inputClass}
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                {ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {error && (

@@ -1,5 +1,5 @@
-import React from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   FiHome,
   FiBookOpen,
@@ -10,6 +10,7 @@ import {
   FiLogOut,
   FiAward,
   FiCalendar,
+  FiChevronDown,
 } from "react-icons/fi";
 import { useAuth } from "../../app/AuthContext";
 import logo from "../../assets/logo.png";
@@ -18,6 +19,15 @@ import { navActiveClass, navInactiveClass } from "./dashboardTheme";
 export const Sidebar = ({ activeRole }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [userControlOpen, setUserControlOpen] = useState(false);
+
+  useEffect(() => {
+    const paths = ["/dashboard/students", "/dashboard/trainers", "/dashboard/hr"];
+    if (paths.includes(location.pathname)) {
+      setUserControlOpen(true);
+    }
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -38,11 +48,20 @@ export const Sidebar = ({ activeRole }) => {
       case "ADMIN":
         return [
           ...baseLinks,
-          { label: "User Control", icon: <FiUsers className="w-5 h-5" />, path: "/dashboard/users" },
+          {
+            label: "User Control",
+            icon: <FiUsers className="w-5 h-5" />,
+            path: "#user-control",
+            isDropdown: true,
+            subLinks: [
+              { label: "Student Control", path: "/dashboard/students" },
+              { label: "Trainer Control", path: "/dashboard/trainers" },
+              { label: "HR Control", path: "/dashboard/hr" },
+            ],
+          },
           { label: "Manage Departments", icon: <FiLayers className="w-5 h-5" />, path: "/dashboard/departments" },
           { label: "Courses", icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard/courses" },
           { label: "Batches", icon: <FiCalendar className="w-5 h-5" />, path: "/dashboard/batches" },
-         
           { label: "Fee Status", icon: <FiActivity className="w-5 h-5" />, path: "/dashboard/health" },
           { label: "Billing Ledger", icon: <FiDollarSign className="w-5 h-5" />, path: "/dashboard/billing" },
         ];
@@ -50,7 +69,7 @@ export const Sidebar = ({ activeRole }) => {
       case "HR":
         return [
           ...baseLinks,
-          { label: "Onboard Student", icon: <FiUsers className="w-5 h-5" />, path: "#" },
+          { label: "Student Control", icon: <FiUsers className="w-5 h-5" />, path: "/dashboard/students" },
           { label: "Batches Grid", icon: <FiLayers className="w-5 h-5" />, path: "#" },
           { label: "Recruiters Stream", icon: <FiActivity className="w-5 h-5" />, path: "#" },
         ];
@@ -64,9 +83,9 @@ export const Sidebar = ({ activeRole }) => {
       case "STUDENT":
         return [
           ...baseLinks,
-          { label: "Syllabus Track", icon: <FiBookOpen className="w-5 h-5" />, path: "#" },
-          { label: "Projects Panel", icon: <FiAward className="w-5 h-5" />, path: "#" },
-          { label: "Receipts Locker", icon: <FiDollarSign className="w-5 h-5" />, path: "#" },
+          { label: "Syllabus Track", icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard?tab=syllabus" },
+          { label: "Projects Panel", icon: <FiAward className="w-5 h-5" />, path: "/dashboard?tab=projects" },
+          { label: "Receipts Locker", icon: <FiDollarSign className="w-5 h-5" />, path: "/dashboard?tab=fees" },
         ];
       default:
         return baseLinks;
@@ -90,8 +109,55 @@ export const Sidebar = ({ activeRole }) => {
         </p>
 
         <nav className="space-y-0.5">
-          {navLinks.map((link, idx) =>
-            link.path.startsWith("/") ? (
+          {navLinks.map((link, idx) => {
+            if (link.isDropdown) {
+              return (
+                <div key={idx} className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => setUserControlOpen(!userControlOpen)}
+                    className={`flex items-center justify-between w-full py-3 pr-4 font-semibold transition-all text-sm cursor-pointer ${
+                      userControlOpen ? "text-[#0c0407]" : "text-[#64748b] hover:text-[#0c0407]"
+                    } border-l-[3px] border-transparent pl-[13px] hover:bg-black/[0.02]`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={userControlOpen ? "text-[#475569]" : "text-[#94a3b8]"}>
+                        {link.icon}
+                      </span>
+                      <span>{link.label}</span>
+                    </div>
+                    <FiChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        userControlOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  <div
+                    className={`pl-10 space-y-0.5 overflow-hidden transition-all duration-300 ${
+                      userControlOpen ? "max-h-40 opacity-100 mt-1 mb-2" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    {link.subLinks.map((subLink) => (
+                      <NavLink
+                        key={subLink.path}
+                        to={subLink.path}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 py-2 pr-4 font-semibold transition-all text-xs ${
+                            isActive
+                              ? "text-[#0c0407] font-bold border-l-[3px] border-[#fc362d] pl-[10px]"
+                              : "text-[#64748b] hover:text-[#0c0407] hover:bg-black/[0.02] border-l-[3px] border-transparent pl-[10px]"
+                          }`
+                        }
+                      >
+                        {subLink.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            return link.path.startsWith("/") ? (
               <NavLink
                 key={link.path}
                 to={link.path}
@@ -119,8 +185,8 @@ export const Sidebar = ({ activeRole }) => {
                 <span className="text-[#94a3b8]">{link.icon}</span>
                 <span>{link.label}</span>
               </span>
-            )
-          )}
+            );
+          })}
         </nav>
       </div>
 

@@ -17,12 +17,24 @@ async function resolveRoleName(user, roleNameOverride) {
 async function generateStudentCode() {
   const year = new Date().getFullYear();
   const prefix = `STU-${year}-`;
-  const count = await Student.count({
+  const students = await Student.findAll({
     where: {
       student_code: { [Op.like]: `${prefix}%` },
     },
+    attributes: ["student_code"],
   });
-  return `${prefix}${String(count + 1).padStart(3, "0")}`;
+
+  let maxNum = 0;
+  for (const s of students) {
+    if (s.student_code && s.student_code.startsWith(prefix)) {
+      const suffixStr = s.student_code.slice(prefix.length);
+      const suffixNum = parseInt(suffixStr, 10);
+      if (!isNaN(suffixNum) && suffixNum > maxNum) {
+        maxNum = suffixNum;
+      }
+    }
+  }
+  return `${prefix}${String(maxNum + 1).padStart(3, "0")}`;
 }
 
 /**

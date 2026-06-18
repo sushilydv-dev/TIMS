@@ -14,6 +14,24 @@ const Fee = sequelize.define(
       allowNull: false,
       references: { model: "students", key: "id" },
     },
+    base_amount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    discount_amount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    payment_scheme_mode: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "FULL",
+    },
+    scholarship_tag: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     total_amount: {
       type: DataTypes.INTEGER,
       allowNull: false,
