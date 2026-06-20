@@ -4,8 +4,10 @@ import adminRoutes from "./admin.routes.js"
 import paymentRoutes from "./payment.routes.js"
 import studentControlRoutes from "./studentControl.routes.js"
 import studentRoutes from "./student.routes.js"
+import publicRoutes from "./public.routes.js"
 const router=express.Router()
 router.use("/auth", authRoutes);
+router.use("/public", publicRoutes);
 router.use("/admin", adminRoutes);
 router.use("/admin/students", studentControlRoutes);
 router.use("/students", studentRoutes);

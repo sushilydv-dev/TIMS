@@ -28,7 +28,11 @@ function formatFees(amount) {
 
 export const CourseSetup = () => {
   const [departments, setDepartments] = useState([]);
-  const [stats, setStats] = useState({ departments: 0, courses: 0, modules: 0 });
+  const [stats, setStats] = useState({
+    departments: 0,
+    courses: 0,
+    modules: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
   const [formOpen, setFormOpen] = useState(false);
@@ -44,7 +48,9 @@ export const CourseSetup = () => {
       const { data } = await axios.get("/api/admin/curriculum");
       const depts = data?.departments ?? [];
       setDepartments(depts);
-      setFlatDepartments(depts.map(({ id, name, code }) => ({ id, name, code })));
+      setFlatDepartments(
+        depts.map(({ id, name, code }) => ({ id, name, code })),
+      );
       setStats(data?.stats ?? { departments: 0, courses: 0, modules: 0 });
       setExpanded((prev) => {
         const next = { ...prev };
@@ -85,7 +91,9 @@ export const CourseSetup = () => {
   const handleDeleteDepartment = async (dept) => {
     const courseCount = dept.courses?.length ?? 0;
     if (courseCount > 0) {
-      setToast(`Remove ${courseCount} course(s) from this department before deleting`);
+      setToast(
+        `Remove ${courseCount} course(s) from this department before deleting`,
+      );
       window.setTimeout(() => setToast(""), 5000);
       return;
     }
@@ -165,7 +173,10 @@ export const CourseSetup = () => {
           },
           {
             label: "Avg modules / course",
-            value: stats.courses > 0 ? (totalModules / stats.courses).toFixed(1) : "0",
+            value:
+              stats.courses > 0
+                ? (totalModules / stats.courses).toFixed(1)
+                : "0",
             change: "Curriculum depth",
             icon: <FiBookOpen className="w-5 h-5" />,
           },
@@ -174,7 +185,9 @@ export const CourseSetup = () => {
 
       {loading ? (
         <Panel>
-          <p className="text-sm text-[#94a3b8] font-semibold py-8 text-center">Loading…</p>
+          <p className="text-sm text-[#94a3b8] font-semibold py-8 text-center">
+            Loading…
+          </p>
         </Panel>
       ) : departments.length === 0 ? (
         <Panel>
@@ -228,7 +241,10 @@ export const CourseSetup = () => {
                     </div>
                   </button>
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <SecondaryButton type="button" onClick={() => openCreate(dept.id)}>
+                    <SecondaryButton
+                      type="button"
+                      onClick={() => openCreate(dept.id)}
+                    >
                       <span className="inline-flex items-center gap-1">
                         <FiPlus className="w-3.5 h-3.5" /> Add course
                       </span>
@@ -268,7 +284,8 @@ export const CourseSetup = () => {
                                   {course.title}
                                 </p>
                                 <p className="text-[11px] text-[#94a3b8] font-semibold mt-0.5">
-                                  {course.duration_month} mo · {formatFees(course.fees)}
+                                  {course.duration_month} mo ·{" "}
+                                  {formatFees(course.fees)}
                                   {course.module_count > 0 &&
                                     ` · ${course.module_count} module${course.module_count !== 1 ? "s" : ""}`}
                                 </p>

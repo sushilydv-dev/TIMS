@@ -35,6 +35,22 @@ const Course = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    /** Base64 data URL or absolute URL for the course thumbnail image */
+    thumbnail_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    /** YouTube embed URL or direct video URL for the course demo */
+    demo_video_url: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    /** JSON array of outcome/skill bullet-point strings */
+    outcomes: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
   },
   {
     tableName: "courses",

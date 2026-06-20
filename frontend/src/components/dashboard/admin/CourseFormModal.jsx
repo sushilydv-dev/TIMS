@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import React, { useEffect, useRef, useState } from "react";
+import { FiImage, FiPlus, FiTrash2, FiX } from "react-icons/fi";
 import axios from "axios";
 import {
   cardClass,
@@ -8,10 +8,22 @@ import {
   secondaryBtnClass,
 } from "../dashboardTheme";
 
-const emptyModule = () => ({
-  title: "",
-  learning_items: [""],
-});
+const emptyModule = () => ({ title: "", learning_items: [""] });
+
+/* ── Section heading helper ─────────────────────────── */
+function SectionHeading({ title, description, action }) {
+  return (
+    <div className="flex items-center justify-between gap-3 mb-4">
+      <div>
+        <h3 className="text-sm font-bold text-[#0c0407]">{title}</h3>
+        {description && (
+          <p className="text-[11px] text-[#94a3b8] font-semibold mt-0.5">{description}</p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
 
 export function CourseFormModal({
   open,
@@ -22,21 +34,27 @@ export function CourseFormModal({
   editCourse = null,
 }) {
   const isEdit = Boolean(editCourse?.id);
+  const fileInputRef = useRef(null);
 
+  /* ── form state ── */
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [durationMonth, setDurationMonth] = useState(3);
   const [fees, setFees] = useState(0);
   const [modules, setModules] = useState([emptyModule()]);
+  const [outcomes, setOutcomes] = useState([""]);
+  const [thumbnailPreview, setThumbnailPreview] = useState(null); // data URL shown in preview
+  const [thumbnailData, setThumbnailData] = useState(null);       // data URL sent to API (null = unchanged)
+  const [clearThumbnail, setClearThumbnail] = useState(false);    // explicit remove
+  const [demoVideoUrl, setDemoVideoUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /* ── keyboard / scroll lock ── */
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
@@ -45,19 +63,16 @@ export function CourseFormModal({
     };
   }, [open, onClose]);
 
+  /* ── populate / reset on open ── */
   useEffect(() => {
     if (!open) {
-      setTitle("");
-      setDescription("");
-      setDepartmentId("");
-      setDurationMonth(3);
-      setFees(0);
-      setModules([emptyModule()]);
-      setError("");
-      setLoading(false);
+      setTitle(""); setDescription(""); setDepartmentId("");
+      setDurationMonth(3); setFees(0);
+      setModules([emptyModule()]); setOutcomes([""]);
+      setThumbnailPreview(null); setThumbnailData(null); setClearThumbnail(false);
+      setDemoVideoUrl(""); setError(""); setLoading(false);
       return;
     }
-
     if (editCourse) {
       setTitle(editCourse.title || "");
       setDescription(editCourse.description || "");
@@ -68,70 +83,131 @@ export function CourseFormModal({
         editCourse.modules?.length
           ? editCourse.modules.map((m) => ({
               title: m.title || "",
-              learning_items:
-                m.learning_items?.length > 0 ? [...m.learning_items] : [""],
+              learning_items: m.learning_items?.length > 0 ? [...m.learning_items] : [""],
             }))
           : [emptyModule()],
       );
+      setOutcomes(
+        editCourse.outcomes?.length ? [...editCourse.outcomes] : [""],
+      );
+      setThumbnailPreview(editCourse.thumbnail_url || null);
+      setThumbnailData(null);
+      setClearThumbnail(false);
+      setDemoVideoUrl(editCourse.demo_video_url || "");
     } else {
       setDepartmentId(initialDepartmentId || departments[0]?.id || "");
       setModules([emptyModule()]);
+      setOutcomes([""]);
+      setThumbnailPreview(null); setThumbnailData(null); setClearThumbnail(false);
+      setDemoVideoUrl("");
     }
   }, [open, editCourse, initialDepartmentId, departments]);
 
   if (!open) return null;
 
-  const updateModule = (index, patch) => {
-    setModules((prev) =>
-      prev.map((mod, i) => (i === index ? { ...mod, ...patch } : mod)),
+  /* ── image file picker — compresses via canvas before storing ── */
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Image must be under 10 MB");
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      // Resize to max 1280px on the longest side
+      const MAX = 1280;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width >= height) { height = Math.round((height / width) * MAX); width = MAX; }
+        else { width = Math.round((width / height) * MAX); height = MAX; }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+
+      // Encode as JPEG at 82% quality — typically 80–200 KB
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      setThumbnailPreview(dataUrl);
+      setThumbnailData(dataUrl);
+      setClearThumbnail(false);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      setError("Could not read image file");
+    };
+
+    img.src = objectUrl;
+    e.target.value = "";
+  };
+
+  const handleRemoveImage = () => {
+    setThumbnailPreview(null);
+    setThumbnailData(null);
+    setClearThumbnail(true);
+  };
+
+  /* ── outcomes helpers ── */
+  const updateOutcome = (i, val) =>
+    setOutcomes((prev) => prev.map((o, idx) => (idx === i ? val : o)));
+  const addOutcome = () => setOutcomes((prev) => [...prev, ""]);
+  const removeOutcome = (i) =>
+    setOutcomes((prev) =>
+      prev.length === 1 ? [""] : prev.filter((_, idx) => idx !== i),
     );
-  };
 
-  const addModule = () => {
-    setModules((prev) => [...prev, emptyModule()]);
-  };
-
-  const removeModule = (index) => {
+  /* ── module helpers ── */
+  const updateModule = (i, patch) =>
+    setModules((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
+  const addModule = () => setModules((prev) => [...prev, emptyModule()]);
+  const removeModule = (i) =>
+    setModules((prev) => (prev.length === 1 ? [emptyModule()] : prev.filter((_, idx) => idx !== i)));
+  const updateLearningItem = (mi, ii, val) =>
     setModules((prev) =>
-      prev.length === 1 ? [emptyModule()] : prev.filter((_, i) => i !== index),
-    );
-  };
-
-  const updateLearningItem = (modIndex, itemIndex, value) => {
-    setModules((prev) =>
-      prev.map((mod, i) => {
-        if (i !== modIndex) return mod;
-        const items = [...mod.learning_items];
-        items[itemIndex] = value;
-        return { ...mod, learning_items: items };
+      prev.map((m, idx) => {
+        if (idx !== mi) return m;
+        const items = [...m.learning_items];
+        items[ii] = val;
+        return { ...m, learning_items: items };
       }),
     );
-  };
-
-  const addLearningItem = (modIndex) => {
+  const addLearningItem = (mi) =>
     setModules((prev) =>
-      prev.map((mod, i) =>
-        i === modIndex
-          ? { ...mod, learning_items: [...mod.learning_items, ""] }
-          : mod,
+      prev.map((m, idx) =>
+        idx === mi ? { ...m, learning_items: [...m.learning_items, ""] } : m,
       ),
     );
-  };
-
-  const removeLearningItem = (modIndex, itemIndex) => {
+  const removeLearningItem = (mi, ii) =>
     setModules((prev) =>
-      prev.map((mod, i) => {
-        if (i !== modIndex) return mod;
-        const items = mod.learning_items.filter((_, j) => j !== itemIndex);
-        return { ...mod, learning_items: items.length ? items : [""] };
+      prev.map((m, idx) => {
+        if (idx !== mi) return m;
+        const items = m.learning_items.filter((_, j) => j !== ii);
+        return { ...m, learning_items: items.length ? items : [""] };
       }),
     );
-  };
 
+  /* ── submit ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    // Build thumbnail_url value:
+    // - new file chosen → send base64
+    // - explicit clear → send null
+    // - unchanged (no new file, no clear) → send undefined so backend ignores it
+    let thumbnailValue;
+    if (thumbnailData) thumbnailValue = thumbnailData;
+    else if (clearThumbnail) thumbnailValue = null;
+    // else leave undefined
 
     const payload = {
       title,
@@ -139,12 +215,16 @@ export function CourseFormModal({
       department_id: departmentId,
       duration_month: Number(durationMonth),
       fees: Number(fees),
+      demo_video_url: demoVideoUrl.trim() || null,
+      outcomes: outcomes.map((o) => o.trim()).filter(Boolean),
       modules: modules.map((mod, index) => ({
         title: mod.title,
         sequence_order: index + 1,
         learning_items: mod.learning_items,
       })),
     };
+
+    if (thumbnailValue !== undefined) payload.thumbnail_url = thumbnailValue;
 
     try {
       if (isEdit) {
@@ -194,15 +274,15 @@ export function CourseFormModal({
           {isEdit ? "Update program" : "Create program"}
         </h2>
         <p className="text-sm text-[#636363] mt-1.5 mb-6 font-medium">
-          Assign a department, set fees & duration, and define training modules with learning outcomes.
+          Assign a department, set fees & duration, add media, define outcomes and training modules.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* ── Basic info ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">
-                Course title
-              </label>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">Course title</label>
               <input
                 required
                 className={inputClass}
@@ -213,9 +293,7 @@ export function CourseFormModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">
-                Description
-              </label>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">Description</label>
               <textarea
                 className={`${inputClass} min-h-[80px] resize-y`}
                 value={description}
@@ -225,9 +303,7 @@ export function CourseFormModal({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">
-                Department
-              </label>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">Department</label>
               <select
                 required
                 className={inputClass}
@@ -236,17 +312,13 @@ export function CourseFormModal({
               >
                 <option value="">Select department</option>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">
-                Duration (months)
-              </label>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">Duration (months)</label>
               <input
                 type="number"
                 min={1}
@@ -258,9 +330,7 @@ export function CourseFormModal({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">
-                Fees (₹)
-              </label>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">Fees (₹)</label>
               <input
                 type="number"
                 min={0}
@@ -272,22 +342,132 @@ export function CourseFormModal({
             </div>
           </div>
 
-          <div className="border-t border-black/[0.08] pt-5">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-[#0c0407]">Training modules</h3>
-                <p className="text-[11px] text-[#94a3b8] font-semibold mt-0.5">
-                  What students will learn in each module
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={addModule}
-                className={`${secondaryBtnClass} !py-2 !px-3 inline-flex items-center gap-1`}
-              >
-                <FiPlus className="w-3.5 h-3.5" /> Module
-              </button>
+          {/* ── Media ── */}
+          <div className="border-t border-black/[0.08] pt-5 space-y-4">
+            <SectionHeading
+              title="Course media"
+              description="Thumbnail shown on the course page; paste a video URL for a demo preview"
+            />
+
+            {/* Thumbnail */}
+            <div>
+              <label className="block text-xs font-bold text-[#475569] mb-2">
+                Thumbnail image <span className="text-[#94a3b8] font-normal">(max 10 MB · auto-compressed · JPEG/PNG/WebP)</span>
+              </label>
+
+              {thumbnailPreview ? (
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-black/[0.08] bg-[#f0eef4]">
+                  <img
+                    src={thumbnailPreview}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-2.5 py-1.5 rounded-lg bg-white/90 border border-black/10 text-xs font-semibold text-[#475569] hover:bg-white cursor-pointer"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="p-1.5 rounded-lg bg-white/90 border border-black/10 text-[#b91c1c] hover:bg-white cursor-pointer"
+                      aria-label="Remove image"
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full aspect-video rounded-2xl border-2 border-dashed border-black/[0.1] bg-[#fafafa] hover:border-[#fc362d]/40 hover:bg-[#fc362d]/[0.02] transition-all flex flex-col items-center justify-center gap-2 text-[#94a3b8] cursor-pointer"
+                >
+                  <FiImage className="w-8 h-8" />
+                  <span className="text-xs font-semibold">Click to upload thumbnail</span>
+                </button>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleImageChange}
+              />
             </div>
+
+            {/* Demo video URL */}
+            <div>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">
+                Demo video URL <span className="text-[#94a3b8] font-normal">(YouTube, Vimeo or direct .mp4)</span>
+              </label>
+              <input
+                type="url"
+                className={inputClass}
+                value={demoVideoUrl}
+                onChange={(e) => setDemoVideoUrl(e.target.value)}
+                placeholder="https://www.youtube.com/embed/..."
+              />
+            </div>
+          </div>
+
+          {/* ── Skills & Outcomes ── */}
+          <div className="border-t border-black/[0.08] pt-5">
+            <SectionHeading
+              title="Skills & Outcomes"
+              description="What students will be able to do after completing this course"
+              action={
+                <button
+                  type="button"
+                  onClick={addOutcome}
+                  className={`${secondaryBtnClass} !py-2 !px-3 inline-flex items-center gap-1`}
+                >
+                  <FiPlus className="w-3.5 h-3.5" /> Add point
+                </button>
+              }
+            />
+            <div className="space-y-2">
+              {outcomes.map((outcome, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#fc362d] shrink-0" />
+                  <input
+                    className={`${inputClass} flex-1`}
+                    value={outcome}
+                    onChange={(e) => updateOutcome(i, e.target.value)}
+                    placeholder={`e.g. Build production-ready REST APIs`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeOutcome(i)}
+                    className="p-2 rounded-lg text-[#94a3b8] hover:text-[#b91c1c] hover:bg-[#fef2f2] cursor-pointer"
+                    aria-label="Remove outcome"
+                  >
+                    <FiX className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Training modules ── */}
+          <div className="border-t border-black/[0.08] pt-5">
+            <SectionHeading
+              title="Training modules"
+              description="What students will learn in each module"
+              action={
+                <button
+                  type="button"
+                  onClick={addModule}
+                  className={`${secondaryBtnClass} !py-2 !px-3 inline-flex items-center gap-1`}
+                >
+                  <FiPlus className="w-3.5 h-3.5" /> Module
+                </button>
+              }
+            />
 
             <div className="space-y-4">
               {modules.map((mod, modIndex) => (
@@ -300,9 +480,7 @@ export function CourseFormModal({
                       required
                       className={`${inputClass} flex-1 bg-white`}
                       value={mod.title}
-                      onChange={(e) =>
-                        updateModule(modIndex, { title: e.target.value })
-                      }
+                      onChange={(e) => updateModule(modIndex, { title: e.target.value })}
                       placeholder={`Module ${modIndex + 1} title`}
                     />
                     <button
@@ -324,9 +502,7 @@ export function CourseFormModal({
                         <input
                           className={`${inputClass} flex-1 bg-white text-[11px]`}
                           value={item}
-                          onChange={(e) =>
-                            updateLearningItem(modIndex, itemIndex, e.target.value)
-                          }
+                          onChange={(e) => updateLearningItem(modIndex, itemIndex, e.target.value)}
                           placeholder="e.g. Build REST APIs with Express"
                         />
                         <button

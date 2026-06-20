@@ -22,6 +22,9 @@ import ActivateAccount from "./pages/ActivateAccount";
 import { AuthProvider } from "./app/AuthContext";
 import { PrivateRoutes } from "./Routes/PrivateRoutes";
 import { PublicRoutes } from "./Routes/PublicRoutes";
+import CoursePage from "./pages/CoursePage";
+import AboutPage from "./pages/AboutPage";
+import AllCoursesPage from "./pages/AllCoursesPage";
 
 export const App = () => {
   return (
@@ -32,6 +35,9 @@ export const App = () => {
 
           <Route element={<PublicRoutes />}>
             <Route path="/" element={<Homepage />} />
+            <Route path="/about-us" element={<AboutPage />} />
+            <Route path="/all-courses" element={<AllCoursesPage />} />
+            <Route path="/course/:courseId" element={<CoursePage />} />
             <Route element={<AuthPresenceWrapper />}>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />

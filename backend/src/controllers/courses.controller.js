@@ -29,6 +29,9 @@ function formatCourse(course, modules = []) {
     fees: course.fees,
     department_id: course.department_id,
     created_by: course.created_by,
+    thumbnail_url: course.thumbnail_url || null,
+    demo_video_url: course.demo_video_url || null,
+    outcomes: Array.isArray(course.outcomes) ? course.outcomes : [],
     modules: modules.map((m) => ({
       id: m.id,
       title: m.title,
@@ -72,6 +75,8 @@ function formatCourseSummary(course) {
     duration_month: course.duration_month,
     fees: course.fees,
     module_count: Number(course.module_count) || 0,
+    thumbnail_url: course.thumbnail_url || null,
+    demo_video_url: course.demo_video_url || null,
   };
 }
 
@@ -210,6 +215,9 @@ export const createCourse = asyncHandler(async (req, res) => {
     duration_month,
     fees,
     modules,
+    thumbnail_url,
+    demo_video_url,
+    outcomes,
   } = req.body;
 
   if (!title?.trim() || !department_id) {
@@ -224,6 +232,9 @@ export const createCourse = asyncHandler(async (req, res) => {
   }
 
   const normalizedModules = normalizeModules(modules);
+  const normalizedOutcomes = Array.isArray(outcomes)
+    ? outcomes.map((o) => String(o || "").trim()).filter(Boolean)
+    : [];
 
   const course = await Course.create({
     title: title.trim(),
@@ -232,6 +243,9 @@ export const createCourse = asyncHandler(async (req, res) => {
     duration_month: Number(duration_month) || 1,
     fees: Number(fees) || 0,
     created_by: req.user?.id || null,
+    thumbnail_url: thumbnail_url || null,
+    demo_video_url: demo_video_url?.trim() || null,
+    outcomes: normalizedOutcomes,
   });
 
   await replaceCourseModules(course.id, normalizedModules);
@@ -255,6 +269,9 @@ export const updateCourse = asyncHandler(async (req, res) => {
     duration_month,
     fees,
     modules,
+    thumbnail_url,
+    demo_video_url,
+    outcomes,
   } = req.body;
 
   if (department_id) {
@@ -272,6 +289,13 @@ export const updateCourse = asyncHandler(async (req, res) => {
     course.duration_month = Number(duration_month) || 1;
   }
   if (fees !== undefined) course.fees = Number(fees) || 0;
+  if (thumbnail_url !== undefined) course.thumbnail_url = thumbnail_url || null;
+  if (demo_video_url !== undefined) course.demo_video_url = demo_video_url?.trim() || null;
+  if (outcomes !== undefined) {
+    course.outcomes = Array.isArray(outcomes)
+      ? outcomes.map((o) => String(o || "").trim()).filter(Boolean)
+      : [];
+  }
 
   await course.save();
 
