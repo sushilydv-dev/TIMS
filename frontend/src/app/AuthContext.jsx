@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token") || null);
   const [loading, setLoading] = useState(true);
 
-  
   if (token) {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
@@ -28,15 +27,40 @@ export const AuthProvider = ({ children }) => {
       // Check if it is a mock token first
       if (storedToken.startsWith("mock-token-")) {
         const role = storedToken.replace("mock-token-", "");
-        let mockUser = { id: "mock-1", email: `${role.toLowerCase()}@tims.com`, name: "Demo User", role: role.toUpperCase() };
+        let mockUser = {
+          id: "mock-1",
+          email: `${role.toLowerCase()}@tims.com`,
+          name: "Demo User",
+          role: role.toUpperCase(),
+        };
         if (role === "admin" || role === "super_admin") {
-          mockUser = { id: "admin-123", email: "admin@tims.com", name: "Adela Parkson", role: "ADMIN" };
+          mockUser = {
+            id: "admin-123",
+            email: "admin@tims.com",
+            name: "Adela Parkson",
+            role: "ADMIN",
+          };
         } else if (role === "hr_coordinator") {
-          mockUser = { id: "hr-123", email: "hr@tims.com", name: "Sarah Jenkins", role: "HR_COORDINATOR" };
+          mockUser = {
+            id: "hr-123",
+            email: "hr@tims.com",
+            name: "Sarah Jenkins",
+            role: "HR_COORDINATOR",
+          };
         } else if (role === "trainer") {
-          mockUser = { id: "trainer-123", email: "trainer@tims.com", name: "Dr. Marcus Vance", role: "TRAINER" };
+          mockUser = {
+            id: "trainer-123",
+            email: "trainer@tims.com",
+            name: "Dr. Marcus Vance",
+            role: "TRAINER",
+          };
         } else if (role === "student") {
-          mockUser = { id: "student-123", email: "student@tims.com", name: "Alex Manda", role: "STUDENT" };
+          mockUser = {
+            id: "student-123",
+            email: "student@tims.com",
+            name: "Alex Manda",
+            role: "STUDENT",
+          };
         }
         setUser(mockUser);
         setToken(storedToken);
@@ -45,16 +69,22 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        axios.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
+        axios.defaults.headers.common["Authorization"] =
+          `Bearer ${storedToken}`;
         const response = await axios.get("/api/auth/profile");
         setUser({
           ...response.data,
           role: normalizeRole(response.data.role),
-          Student: response.data.Student ? { id: response.data.Student.id } : null,
+          Student: response.data.Student
+            ? { id: response.data.Student.id }
+            : null,
         });
         setToken(storedToken);
       } catch (error) {
-        console.error("Error fetching user profile, falling back to mock or clearing:", error);
+        console.error(
+          "Error fetching user profile, falling back to mock or clearing:",
+          error,
+        );
         // Clear invalid token
         localStorage.removeItem("token");
         setUser(null);
@@ -72,7 +102,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post("/api/auth/login", { email, password });
       const { token: userToken, ...userData } = response.data;
-      const normalizedUser = { ...userData, role: normalizeRole(userData.role) };
+      const normalizedUser = {
+        ...userData,
+        role: normalizeRole(userData.role),
+      };
 
       localStorage.setItem("token", userToken);
       axios.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
@@ -80,23 +113,45 @@ export const AuthProvider = ({ children }) => {
       setUser(normalizedUser);
       return { token: userToken, ...normalizedUser };
     } catch (error) {
-      console.warn("Backend API error or server down, trying local mock login...");
+      console.warn(
+        "Backend API error or server down, trying local mock login...",
+      );
       // Check for mock users
       const emailLower = email.toLowerCase();
       let mockUser = null;
       let mockRoleToken = null;
 
       if (emailLower === "admin@tims.com") {
-        mockUser = { id: "admin-123", email: "admin@tims.com", name: "Adela Parkson", role: "ADMIN" };
+        mockUser = {
+          id: "admin-123",
+          email: "admin@tims.com",
+          name: "Adela Parkson",
+          role: "ADMIN",
+        };
         mockRoleToken = "mock-token-admin";
       } else if (emailLower === "hr@tims.com") {
-        mockUser = { id: "hr-123", email: "hr@tims.com", name: "Sarah Jenkins", role: "HR_COORDINATOR" };
+        mockUser = {
+          id: "hr-123",
+          email: "hr@tims.com",
+          name: "Sarah Jenkins",
+          role: "HR_COORDINATOR",
+        };
         mockRoleToken = "mock-token-hr_coordinator";
       } else if (emailLower === "trainer@tims.com") {
-        mockUser = { id: "trainer-123", email: "trainer@tims.com", name: "Dr. Marcus Vance", role: "TRAINER" };
+        mockUser = {
+          id: "trainer-123",
+          email: "trainer@tims.com",
+          name: "Dr. Marcus Vance",
+          role: "TRAINER",
+        };
         mockRoleToken = "mock-token-trainer";
       } else if (emailLower === "student@tims.com") {
-        mockUser = { id: "student-123", email: "student@tims.com", name: "Alex Manda", role: "STUDENT" };
+        mockUser = {
+          id: "student-123",
+          email: "student@tims.com",
+          name: "Alex Manda",
+          role: "STUDENT",
+        };
         mockRoleToken = "mock-token-student";
       }
 
@@ -122,7 +177,10 @@ export const AuthProvider = ({ children }) => {
         role,
       });
       const { token: userToken, ...userData } = response.data;
-      const normalizedUser = { ...userData, role: normalizeRole(userData.role) };
+      const normalizedUser = {
+        ...userData,
+        role: normalizeRole(userData.role),
+      };
 
       localStorage.setItem("token", userToken);
       axios.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
@@ -162,7 +220,15 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, establishSession }}
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        logout,
+        establishSession,
+      }}
     >
       {children}
     </AuthContext.Provider>
