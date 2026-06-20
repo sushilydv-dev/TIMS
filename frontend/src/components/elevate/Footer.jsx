@@ -22,7 +22,7 @@ export const Footer = () => {
              
              
                        
-                        <div className="flex items-center justify-center bg-amber-300 h-[40px] w-[80px] overflow-hidden">
+                        <div className="flex items-center justify-center ">
                           <img
                             src={productlogo}
                             alt="MSAI India Logo"
