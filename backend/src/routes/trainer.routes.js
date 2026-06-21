@@ -208,6 +208,121 @@ router.get("/batches/:batchId/submissions", asyncHandler(async (req, res) => {
   })));
 }));
 
+/* ── GET /api/trainer/batches/:batchId/projects ──────── */
+router.get("/batches/:batchId/projects", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({
+    where: { id: req.params.batchId, trainer_id: trainer.id },
+  });
+  if (!batch) { res.status(404); throw new Error("Batch not found"); }
+
+  const projects = await Project.findAll({
+    where: { course_id: batch.course_id },
+    order: [["deadline", "ASC"]],
+  });
+
+  // For each project, get submission stats
+  const projectIds = projects.map(p => p.id);
+  const allSubs = projectIds.length > 0
+    ? await ProjectSubmission.findAll({
+        where: { project_id: { [Op.in]: projectIds } },
+        include: [{ model: Student, include: [{ model: User, attributes: ["id", "name"] }] }],
+      })
+    : [];
+
+  const subMap = {};
+  allSubs.forEach(s => {
+    if (!subMap[s.project_id]) subMap[s.project_id] = [];
+    subMap[s.project_id].push(s);
+  });
+
+  res.json(projects.map(p => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    deadline: p.deadline,
+    assigned_by: p.assigned_by,
+    course_id: p.course_id,
+    submission_count: (subMap[p.id] || []).length,
+    graded_count: (subMap[p.id] || []).filter(s => s.marks > 0).length,
+    submissions: (subMap[p.id] || []).map(s => ({
+      id: s.id,
+      student: { id: s.Student?.id, name: s.Student?.User?.name || "" },
+      github_link: s.GitHub_link,
+      file_url: s.file_url,
+      submitted_at: s.submitted_at,
+      marks: s.marks,
+      feedback: s.feedback,
+      graded: s.marks > 0,
+    })),
+  })));
+}));
+
+/* ── POST /api/trainer/batches/:batchId/projects ─────── */
+router.post("/batches/:batchId/projects", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({
+    where: { id: req.params.batchId, trainer_id: trainer.id },
+  });
+  if (!batch) { res.status(404); throw new Error("Batch not found"); }
+
+  const { title, description, deadline } = req.body;
+  if (!title?.trim() || !description?.trim() || !deadline?.trim()) {
+    res.status(400); throw new Error("title, description, and deadline are required");
+  }
+
+  const project = await Project.create({
+    course_id: batch.course_id,
+    title: title.trim(),
+    description: description.trim(),
+    deadline: deadline.trim(),
+    assigned_by: String(req.user.id),
+  });
+
+  res.status(201).json(project);
+}));
+
+/* ── PUT /api/trainer/projects/:id ──────────────────── */
+router.put("/projects/:id", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const project = await Project.findByPk(req.params.id);
+  if (!project) { res.status(404); throw new Error("Project not found"); }
+
+  // Verify trainer owns a batch for this course
+  const batch = await Batch.findOne({ where: { course_id: project.course_id, trainer_id: trainer.id } });
+  if (!batch) { res.status(403); throw new Error("Not authorized to edit this project"); }
+
+  const { title, description, deadline } = req.body;
+  if (title !== undefined) project.title = title.trim();
+  if (description !== undefined) project.description = description.trim();
+  if (deadline !== undefined) project.deadline = deadline.trim();
+  await project.save();
+
+  res.json(project);
+}));
+
+/* ── DELETE /api/trainer/projects/:id ───────────────── */
+router.delete("/projects/:id", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const project = await Project.findByPk(req.params.id);
+  if (!project) { res.status(404); throw new Error("Project not found"); }
+
+  const batch = await Batch.findOne({ where: { course_id: project.course_id, trainer_id: trainer.id } });
+  if (!batch) { res.status(403); throw new Error("Not authorized to delete this project"); }
+
+  await ProjectSubmission.destroy({ where: { project_id: project.id } });
+  await project.destroy();
+  res.json({ message: "Project deleted" });
+}));
+
 /* ── PUT /api/trainer/submissions/:id/grade ──────────*/
 router.put("/submissions/:id/grade", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
@@ -218,8 +333,9 @@ router.put("/submissions/:id/grade", asyncHandler(async (req, res) => {
 
   const { marks, feedback } = req.body;
   if (marks === undefined) { res.status(400); throw new Error("marks is required"); }
+  if (Number(marks) < 0 || Number(marks) > 10) { res.status(400); throw new Error("marks must be between 0 and 10"); }
 
-  submission.marks = Number(marks) || 0;
+  submission.marks = Number(marks);
   submission.feedback = String(feedback || "").trim();
   await submission.save();
 

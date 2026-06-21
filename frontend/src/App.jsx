@@ -27,6 +27,7 @@ import AboutPage from "./pages/AboutPage";
 import AllCoursesPage from "./pages/AllCoursesPage";
 import { TrainerBatches } from "./components/dashboard/trainer/TrainerBatches";
 import { TrainerAttendance } from "./components/dashboard/trainer/TrainerAttendance";
+import StudentProjects from "./components/dashboard/student/StudentProjects";
 
 export const App = () => {
   return (
@@ -55,6 +56,9 @@ export const App = () => {
               <Route path="trainer/batches" element={<TrainerBatches />} />
               <Route path="trainer/batches/:batchId" element={<TrainerBatches />} />
               <Route path="trainer/attendance" element={<TrainerAttendance />} />
+
+              {/* ── Student routes ── */}
+              <Route path="student/projects" element={<StudentProjects />} />
               <Route
                 path="users"
                 element={

@@ -20,12 +20,14 @@ const ProjectSubmission = sequelize.define(
       references: { model: "students", key: "id" },
     },
     GitHub_link: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
+      defaultValue: "",
     },
     file_url: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,     // base64 PDFs need TEXT, not VARCHAR(255)
       allowNull: false,
+      defaultValue: "",
     },
     submitted_at: {
       type: DataTypes.DATEONLY,
@@ -34,10 +36,12 @@ const ProjectSubmission = sequelize.define(
     marks: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 0,
     },
     feedback: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
+      defaultValue: "",
     },
   },
   {

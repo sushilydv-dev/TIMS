@@ -58,15 +58,18 @@ router.get("/me/dashboard", asyncHandler(async (req, res) => {
   if (course?.id) {
     materials = await StudyMaterial.findAll({
       where: { course_id: course.id },
-      order: [["createdAt", "DESC"]],
+      order: [["id", "ASC"]],
       limit: 20,
     });
   }
 
-  // Projects + submissions
+  // Projects + submissions with trainer info
   let projects = [];
   if (course?.id) {
-    const rawProjects = await Project.findAll({ where: { course_id: course.id } });
+    const rawProjects = await Project.findAll({
+      where: { course_id: course.id },
+      order: [["deadline", "ASC"]],
+    });
     const projectIds = rawProjects.map(p => p.id);
     const submissions = projectIds.length > 0
       ? await ProjectSubmission.findAll({
@@ -76,18 +79,22 @@ router.get("/me/dashboard", asyncHandler(async (req, res) => {
     const submissionMap = {};
     submissions.forEach(s => { submissionMap[s.project_id] = s; });
 
+    // Resolve trainer name from assigned_by (user id)
+    const trainerUser = trainer ? { name: trainer.User?.name || "Your Trainer" } : null;
+
     projects = rawProjects.map(p => ({
       id: p.id,
       title: p.title,
       description: p.description,
       deadline: p.deadline,
+      assigned_by_name: trainerUser?.name || "Trainer",
       submission: submissionMap[p.id] ? {
-        id: submissionMap[p.id].id,
-        github_link: submissionMap[p.id].GitHub_link,
-        file_url: submissionMap[p.id].file_url,
+        id:           submissionMap[p.id].id,
+        github_link:  submissionMap[p.id].GitHub_link,
+        file_url:     submissionMap[p.id].file_url,
         submitted_at: submissionMap[p.id].submitted_at,
-        marks: submissionMap[p.id].marks,
-        feedback: submissionMap[p.id].feedback,
+        marks:        submissionMap[p.id].marks,
+        feedback:     submissionMap[p.id].feedback,
       } : null,
     }));
   }
@@ -133,7 +140,9 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
   if (!project) { res.status(404); throw new Error("Project not found"); }
 
   const { github_link, file_url } = req.body;
-  if (!github_link?.trim()) { res.status(400); throw new Error("github_link is required"); }
+  if (!github_link?.trim() && !file_url?.trim()) {
+    res.status(400); throw new Error("Either github_link or file_url is required");
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const existing = await ProjectSubmission.findOne({
@@ -141,8 +150,8 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
   });
 
   if (existing) {
-    existing.GitHub_link = github_link.trim();
-    existing.file_url = file_url?.trim() || "";
+    existing.GitHub_link = github_link?.trim() || "";
+    existing.file_url    = file_url?.trim() || "";
     existing.submitted_at = today;
     await existing.save();
     return res.json({ message: "Submission updated", submission: existing });
@@ -151,8 +160,8 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
   const submission = await ProjectSubmission.create({
     project_id: req.params.projectId,
     student_id: student.id,
-    GitHub_link: github_link.trim(),
-    file_url: file_url?.trim() || "",
+    GitHub_link: github_link?.trim() || "",
+    file_url:    file_url?.trim() || "",
     submitted_at: today,
     marks: 0,
     feedback: "",
