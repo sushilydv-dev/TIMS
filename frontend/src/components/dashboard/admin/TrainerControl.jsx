@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { FiUsers, FiSearch, FiEdit, FiX, FiShield, FiCalendar, FiDollarSign } from "react-icons/fi";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { FiUsers, FiSearch, FiX, FiShield, FiCalendar, FiImage, FiTrash2 } from "react-icons/fi";
 import axios from "axios";
 import {
   WelcomeBanner,
@@ -8,10 +8,9 @@ import {
   PanelHeader,
   StatusBadge,
   Toast,
-  SecondaryButton,
   PrimaryButton,
 } from "../DashboardUI";
-import { pageWrapClass, inputClass, secondaryBtnClass, primaryBtnClass } from "../dashboardTheme";
+import { pageWrapClass, inputClass, primaryBtnClass } from "../dashboardTheme";
 import { UserListPagination } from "./UserListPagination";
 import { InviteUserModal } from "./InviteUserModal";
 import trainerPlaceholder from "../../../assets/trainer_placeholder.png";
@@ -32,7 +31,8 @@ export const TrainerControl = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
-  
+  const imgInputRef = useRef(null);
+
   // Stats
   const [stats, setStats] = useState({
     totalCount: 0,
@@ -43,8 +43,8 @@ export const TrainerControl = () => {
   // Selected trainer for profile panel
   const [selectedTrainer, setSelectedTrainer] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [batches, setBatches] = useState([]); // All batches for checkboxes
-  
+  const [batches, setBatches] = useState([]);
+
   // Panel form state
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -56,6 +56,10 @@ export const TrainerControl = () => {
     profile_img: "",
     batch_ids: [],
   });
+
+  // Image upload state (separate from form — base64 data URL)
+  const [imgPreview, setImgPreview] = useState(null); // shown in UI
+  const [imgData, setImgData]       = useState(null); // sent to API (null = unchanged)
 
   const [panelEditMode, setPanelEditMode] = useState(false);
 
@@ -79,10 +83,11 @@ export const TrainerControl = () => {
   const handleInviteSuccess = () => {
     showToastMsg("Invitation sent successfully");
     setPage(1);
+    // Always re-fetch page 1 regardless of current page state
     fetchTrainers(1);
   };
 
-  const fetchTrainers = useCallback(async (targetPage = page) => {
+  const fetchTrainers = useCallback(async (targetPage = 1) => {
     setLoading(true);
     try {
       const { data } = await axios.get("/api/admin/trainers/browse", {
@@ -96,29 +101,32 @@ export const TrainerControl = () => {
       setTrainers(data?.trainers || []);
       setTotal(data?.total || 0);
 
-      // Compute stats
-      const totalCount = data?.total || 0;
-      let activeCount = 0;
-      let sumExp = 0;
-      if (Array.isArray(data?.trainers)) {
-        data.trainers.forEach((t) => {
-          if (t.User?.status === "active") activeCount++;
-          sumExp += Number(t.experience_year || 0);
+      // Use server-computed stats when available, fall back to page-slice
+      if (data?.stats) {
+        setStats({
+          totalCount: data.stats.totalCount,
+          activeCount: data.stats.activeCount,
+          avgExp: data.stats.avgExp,
         });
+      } else {
+        const totalCount = data?.total || 0;
+        let activeCount = 0;
+        let sumExp = 0;
+        if (Array.isArray(data?.trainers)) {
+          data.trainers.forEach((t) => {
+            if (t.User?.status === "active") activeCount++;
+            sumExp += Number(t.experience_year || 0);
+          });
+        }
+        setStats({ totalCount, activeCount, avgExp: totalCount > 0 ? Math.round(sumExp / totalCount) : 0 });
       }
-      setStats({
-        totalCount,
-        activeCount,
-        avgExp: totalCount > 0 ? Math.round(sumExp / totalCount) : 0,
-      });
-
     } catch (err) {
       setTrainers([]);
       setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch]);
+  }, [debouncedSearch]);
 
   const fetchAllBatches = async () => {
     try {
@@ -131,7 +139,8 @@ export const TrainerControl = () => {
 
   useEffect(() => {
     fetchTrainers(page);
-  }, [page, debouncedSearch, fetchTrainers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, debouncedSearch]);
 
   useEffect(() => {
     fetchAllBatches();
@@ -149,8 +158,46 @@ export const TrainerControl = () => {
       profile_img: trainer.profile_img || "",
       batch_ids: Array.isArray(trainer.Batches) ? trainer.Batches.map(b => b.id) : [],
     });
+    setImgPreview(trainer.profile_img || null);
+    setImgData(null);
     setPanelEditMode(false);
     setPanelOpen(true);
+  };
+
+  // Canvas-based image compressor — resizes to max 512px, JPEG 85%
+  const handleImgFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToastMsg("Image must be under 10 MB");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX = 512;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width >= height) { height = Math.round((height / width) * MAX); width = MAX; }
+        else { width = Math.round((width / height) * MAX); height = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      setImgPreview(dataUrl);
+      setImgData(dataUrl);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); showToastMsg("Could not read image"); };
+    img.src = objectUrl;
+    e.target.value = "";
+  };
+
+  const handleRemoveImg = () => {
+    setImgPreview(null);
+    setImgData(""); // empty string = explicitly cleared
   };
 
   const handleToggleStatus = async () => {
@@ -158,7 +205,6 @@ export const TrainerControl = () => {
     setLoading(true);
     try {
       await axios.put(`/api/admin/trainers/${selectedTrainer.id}`, {
-        ...profileForm,
         status: nextStatus,
       });
       showToastMsg(
@@ -180,14 +226,17 @@ export const TrainerControl = () => {
 
     setLoading(true);
     try {
-      const { data } = await axios.put(`/api/admin/trainers/${selectedTrainer.id}`, {
+      const payload = {
         ...profileForm,
         experience_year: Number(profileForm.experience_year),
         salary: Number(profileForm.salary),
-      });
+      };
+      // Only send profile_img if it changed
+      if (imgData !== null) payload.profile_img = imgData;
+
+      const { data } = await axios.put(`/api/admin/trainers/${selectedTrainer.id}`, payload);
       showToastMsg("Trainer profile updated successfully!");
       setPanelEditMode(false);
-      // Reload this trainer data
       if (data?.trainer) {
         setSelectedTrainer(data.trainer);
         setProfileForm({
@@ -200,6 +249,8 @@ export const TrainerControl = () => {
           profile_img: data.trainer.profile_img || "",
           batch_ids: Array.isArray(data.trainer.Batches) ? data.trainer.Batches.map(b => b.id) : [],
         });
+        setImgPreview(data.trainer.profile_img || null);
+        setImgData(null);
       }
       fetchTrainers(page);
     } catch (err) {
@@ -423,15 +474,10 @@ export const TrainerControl = () => {
                 <div className="flex flex-col items-center pb-5 mt-[-48px]">
                   <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
                     <img
-                      src={
-                        profileForm.profile_img ||
-                        trainerPlaceholder
-                      }
+                      src={imgPreview || trainerPlaceholder}
                       alt="Trainer Profile"
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = trainerPlaceholder;
-                      }}
+                      onError={(e) => { e.target.src = trainerPlaceholder; }}
                     />
                   </div>
                   
@@ -500,6 +546,8 @@ export const TrainerControl = () => {
                         profile_img: selectedTrainer.profile_img || "",
                         batch_ids: Array.isArray(selectedTrainer.Batches) ? selectedTrainer.Batches.map(b => b.id) : [],
                       });
+                      setImgPreview(selectedTrainer.profile_img || null);
+                      setImgData(null);
                     }}
                     className="text-[10px] font-bold text-[#fc362d] hover:underline"
                   >
@@ -574,14 +622,61 @@ export const TrainerControl = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">Profile Image URL</label>
+                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">
+                      Profile Photo
+                    </label>
+
+                    {imgPreview ? (
+                      <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-black/[0.08] bg-[#f0eef4]">
+                        <img
+                          src={imgPreview}
+                          alt="Profile preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 right-2 flex gap-1.5">
+                          {panelEditMode && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => imgInputRef.current?.click()}
+                                className="px-2.5 py-1 rounded-lg bg-white/90 border border-black/10 text-[10px] font-bold text-[#475569] hover:bg-white cursor-pointer"
+                              >
+                                Change
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleRemoveImg}
+                                className="p-1.5 rounded-lg bg-white/90 border border-black/10 text-[#b91c1c] hover:bg-white cursor-pointer"
+                                aria-label="Remove photo"
+                              >
+                                <FiTrash2 className="w-3 h-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : panelEditMode ? (
+                      <button
+                        type="button"
+                        onClick={() => imgInputRef.current?.click()}
+                        className="w-full py-6 rounded-xl border-2 border-dashed border-black/[0.1] bg-[#fafafa] hover:border-[#fc362d]/40 hover:bg-[#fc362d]/[0.02] transition-all flex flex-col items-center justify-center gap-1.5 text-[#94a3b8] cursor-pointer"
+                      >
+                        <FiImage className="w-6 h-6" />
+                        <span className="text-[10px] font-semibold">Click to upload photo</span>
+                        <span className="text-[9px] text-[#c0bccf]">JPEG / PNG · auto-compressed</span>
+                      </button>
+                    ) : (
+                      <div className="w-full py-4 rounded-xl border border-black/[0.06] bg-[#fafafa] flex items-center justify-center text-[#c0bccf]">
+                        <span className="text-[10px] font-medium">No photo uploaded</span>
+                      </div>
+                    )}
+
                     <input
-                      type="text"
-                      value={profileForm.profile_img}
-                      onChange={(e) => setProfileForm({ ...profileForm, profile_img: e.target.value })}
-                      disabled={!panelEditMode}
-                      placeholder="https://example.com/avatar.jpg"
-                      className={`${inputClass} disabled:bg-[#fafafa] disabled:text-[#64748b] disabled:cursor-not-allowed`}
+                      ref={imgInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleImgFileChange}
                     />
                   </div>
                 </div>

@@ -76,9 +76,9 @@ export const Sidebar = ({ activeRole }) => {
       case "TRAINER":
         return [
           ...baseLinks,
-          { label: "Active Cohorts", icon: <FiLayers className="w-5 h-5" />, path: "#" },
-          { label: "Curriculum Edit", icon: <FiBookOpen className="w-5 h-5" />, path: "#" },
-          { label: "Submissions Grade", icon: <FiAward className="w-5 h-5" />, path: "#" },
+          { label: "My Batches",  icon: <FiLayers   className="w-5 h-5" />, path: "/dashboard/trainer/batches" },
+          { label: "Attendance",  icon: <FiCalendar className="w-5 h-5" />, path: "/dashboard/trainer/attendance" },
+          { label: "Submissions", icon: <FiAward    className="w-5 h-5" />, path: "/dashboard/trainer/batches" },
         ];
       case "STUDENT":
         return [

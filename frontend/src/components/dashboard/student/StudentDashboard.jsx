@@ -1,482 +1,439 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  FiAward,
-  FiUsers,
-  FiBookOpen,
-  FiCheck,
-  FiCheckCircle,
-  FiDownload,
-  FiLock,
-  FiUnlock,
-  FiCreditCard,
+  FiAward, FiUsers, FiBookOpen, FiCheck, FiCheckCircle,
+  FiDownload, FiLock, FiUnlock, FiCreditCard, FiExternalLink,
+  FiAlertCircle, FiUpload,
 } from "react-icons/fi";
 import axios from "axios";
 import {
-  WelcomeBanner,
-  StatCards,
-  PrimaryButton,
-  SecondaryButton,
-  Toast,
+  WelcomeBanner, StatCards, PrimaryButton, SecondaryButton, Toast,
 } from "../DashboardUI";
-import { pageWrapClass, inputClass, primaryBtnClass } from "../dashboardTheme";
+import {
+  pageWrapClass, inputClass, primaryBtnClass, cardClass, labelMutedClass,
+} from "../dashboardTheme";
 import { MyFeesDesk } from "./MyFeesDesk";
 
+/* ── helpers ─────────────────────────────────────────── */
+const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+/* ── AttendanceDonut ──────────────────────────────────── */
+function AttendanceDonut({ pct, present, absent, total }) {
+  const displayPct = isNaN(pct) ? 0 : pct;
+  return (
+    <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
+      <h3 className="text-sm font-extrabold text-[#0c0407] mb-4">Attendance Progress</h3>
+      <div className="flex items-center justify-around gap-4 h-40">
+        <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+            <path strokeWidth="3.5" stroke="#f1f5f9" fill="none" d="M18 2.0845 a15.9155 15.9155 0 0 1 0 31.831 a15.9155 15.9155 0 0 1 0-31.831" />
+            <path strokeWidth="3.5" strokeLinecap="round" fill="none"
+              stroke={displayPct >= 75 ? "#059669" : displayPct >= 50 ? "#d97706" : "#b91c1c"}
+              strokeDasharray={`${displayPct}, 100`}
+              d="M18 2.0845 a15.9155 15.9155 0 0 1 0 31.831 a15.9155 15.9155 0 0 1 0-31.831"
+            />
+          </svg>
+          <div className="absolute flex flex-col items-center">
+            <span className="text-xl font-extrabold text-[#0c0407]">{displayPct}%</span>
+            <span className="text-[8px] font-bold text-[#94a3b8] uppercase tracking-wider">Attendance</span>
+          </div>
+        </div>
+        <div className="space-y-3 text-xs font-semibold text-[#636363]">
+          <div><p className={labelMutedClass}>Total Classes</p><p className="text-sm font-extrabold text-[#0c0407]">{total}</p></div>
+          <div><p className={labelMutedClass}>Present</p><p className="text-sm font-extrabold text-[#059669]">{present}</p></div>
+          <div><p className={labelMutedClass}>Absent</p><p className="text-sm font-extrabold text-[#b91c1c]">{absent}</p></div>
+        </div>
+      </div>
+      {displayPct < 75 && total > 0 && (
+        <p className="text-[10px] text-[#b91c1c] font-semibold mt-3 bg-[#fef2f2] rounded-lg px-3 py-2 border border-[#b91c1c]/10">
+          ⚠ Attendance below 75% minimum threshold
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ── ProjectCard ──────────────────────────────────────── */
+function ProjectCard({ project, onSubmit }) {
+  const [link, setLink]   = useState(project.submission?.github_link || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const hasSubmission     = Boolean(project.submission);
+  const isGraded          = hasSubmission && project.submission.marks > 0;
+  const isPastDeadline    = project.deadline && new Date(project.deadline) < new Date();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!link.trim()) return;
+    setSaving(true); setError("");
+    try {
+      await onSubmit(project.id, link);
+      setError("");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to submit");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.05)] space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="text-sm font-extrabold text-[#0c0407] leading-snug">{project.title}</h4>
+          <p className="text-xs text-[#636363] mt-1 leading-relaxed">{project.description}</p>
+        </div>
+        <span className={`shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-lg border ${
+          isGraded ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+          : hasSubmission ? "bg-[#f1f5f9] text-[#475569] border-black/10"
+          : isPastDeadline ? "bg-[#fef2f2] text-[#b91c1c] border-[#b91c1c]/20"
+          : "bg-amber-50 text-amber-700 border-amber-200"
+        }`}>
+          {isGraded ? "Graded" : hasSubmission ? "Submitted" : isPastDeadline ? "Overdue" : "Pending"}
+        </span>
+      </div>
+
+      {project.deadline && (
+        <p className="text-[10px] text-[#94a3b8] font-semibold">
+          Deadline: <strong className={isPastDeadline && !hasSubmission ? "text-[#b91c1c]" : "text-[#475569]"}>{fmt(project.deadline)}</strong>
+        </p>
+      )}
+
+      {isGraded && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-1">
+          <p className="text-xs font-bold text-emerald-700">Score: {project.submission.marks}/100</p>
+          {project.submission.feedback && (
+            <p className="text-[11px] text-[#636363]">"{project.submission.feedback}"</p>
+          )}
+          {project.submission.github_link && (
+            <a href={project.submission.github_link} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-[#475569] hover:text-[#fc362d]">
+              <FiExternalLink className="w-3 h-3" /> View Repository
+            </a>
+          )}
+        </div>
+      )}
+
+      {!isGraded && (
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <label className={`${labelMutedClass} block`}>GitHub Repository Link</label>
+          <div className="flex gap-2">
+            <input type="url" required value={link} onChange={e => setLink(e.target.value)}
+              placeholder="https://github.com/username/repo"
+              className={`${inputClass} flex-1`} />
+            <button type="submit" disabled={saving}
+              className={`${primaryBtnClass} px-4 shrink-0 disabled:opacity-50`}>
+              {saving ? "…" : hasSubmission ? "Update" : "Submit"}
+            </button>
+          </div>
+          {error && <p className="text-[10px] text-[#b91c1c] font-semibold">{error}</p>}
+          {hasSubmission && (
+            <p className="text-[10px] text-[#94a3b8] flex items-center gap-1">
+              <FiCheckCircle className="w-3 h-3 text-emerald-500" /> Submitted · awaiting grade
+            </p>
+          )}
+        </form>
+      )}
+    </div>
+  );
+}
+
+/* ── Main StudentDashboard ────────────────────────────── */
 export const StudentDashboard = ({ user }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
-  const [activeTab, setActiveTab] = useState("workspace"); // "workspace" or "fees"
-  const [githubUrl, setGithubUrl] = useState("");
-  const [projectSubmitted, setProjectSubmitted] = useState(false);
+  const [activeTab, setActiveTab]     = useState("workspace");
+  const [dashData, setDashData]       = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [feeData, setFeeData]         = useState(null);
   const [toastMessage, setToastMessage] = useState("");
-  const [checkedSyllabus, setCheckedSyllabus] = useState([true, true, true, false, false]);
 
-  // Financial & Student metadata status tracking
-  const [paymentStatus, setPaymentStatus] = useState("PENDING_FIRST_PAYMENT");
-  const [feeBalance, setFeeBalance] = useState(0);
-  const [paymentScheme, setPaymentScheme] = useState("FULL");
-  const [student, setStudent] = useState(null);
+  const showToast = (msg) => { setToastMessage(msg); setTimeout(() => setToastMessage(""), 4000); };
 
-  // Check URL query parameters for tab selection
+  /* Sync tab from URL */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
-    if (tab === "fees") {
-      setActiveTab("fees");
-    } else {
-      setActiveTab("workspace");
-      if (tab === "syllabus") {
-        setTimeout(() => {
-          document.getElementById("syllabus-section")?.scrollIntoView({ behavior: "smooth" });
-        }, 150);
-      } else if (tab === "projects") {
-        setTimeout(() => {
-          document.getElementById("projects-section")?.scrollIntoView({ behavior: "smooth" });
-        }, 150);
-      }
-    }
+    if (tab === "fees") setActiveTab("fees");
+    else setActiveTab("workspace");
   }, [location.search]);
 
-  const studentId = user?.Student?.id || null;
+  /* Fetch dashboard data */
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get("/api/students/me/dashboard");
+      setDashData(data);
+    } catch { setDashData(null); }
+    finally { setLoading(false); }
+  }, []);
 
-  const fetchStatus = async () => {
+  /* Fetch fee status */
+  const fetchFeeStatus = useCallback(async () => {
     try {
       const { data } = await axios.get("/api/students/me/fees");
-      setStudent(data);
-      const fee = data?.Fees?.[0];
-      setPaymentStatus(fee?.payment_status || "PENDING_FIRST_PAYMENT");
-      setFeeBalance(Number(fee?.due_amount || 0));
-      setPaymentScheme(fee?.payment_scheme_mode || "FULL");
-    } catch (err) {
-      console.warn("Failed to load student fee status:", err);
-      setPaymentStatus("PENDING_FIRST_PAYMENT");
-      setFeeBalance(0);
-      setStudent(null);
-    }
+      setFeeData(data);
+    } catch { setFeeData(null); }
+  }, []);
+
+  useEffect(() => { fetchDashboard(); fetchFeeStatus(); }, [fetchDashboard, fetchFeeStatus]);
+
+  /* Project submission handler */
+  const handleProjectSubmit = async (projectId, githubLink) => {
+    await axios.post(`/api/students/me/projects/${projectId}/submit`, { github_link: githubLink });
+    showToast("Project submitted successfully!");
+    fetchDashboard();
   };
 
-  useEffect(() => {
-    if (user?.role === "STUDENT") {
-      fetchStatus();
-    }
-  }, [user?.role]);
+  /* Derived data */
+  const fee = feeData?.Fees?.[0];
+  const paymentStatus  = fee?.payment_status || "NONE";
+  const feeBalance     = Number(fee?.due_amount || 0);
+  const isPendingFirst = ["PENDING_FIRST_PAYMENT", "NONE"].includes(paymentStatus);
+  const paymentScheme  = fee?.payment_scheme_mode || "FULL";
+  const isFullPlan     = paymentScheme === "FULL";
 
+  const attendance     = dashData?.attendance || { total: 0, present: 0, absent: 0, pct: 0 };
+  const projects       = dashData?.projects   || [];
+  const materials      = dashData?.materials  || [];
+  const batchInfo      = dashData?.batch;
+  const courseInfo     = dashData?.course;
+  const trainerInfo    = dashData?.trainer;
+  const studentInfo    = dashData?.student;
 
-  const toggleSyllabus = (idx) => {
-    if (paymentStatus === "PENDING_FIRST_PAYMENT") return; // Locked
-    setCheckedSyllabus((prev) =>
-      prev.map((val, i) => (i === idx ? !val : val))
-    );
-  };
+  const submittedCount = projects.filter(p => p.submission).length;
+  const gradedCount    = projects.filter(p => p.submission?.marks > 0).length;
+  const isEligible     = attendance.pct >= 85 && feeBalance === 0 && !isPendingFirst;
 
-  const handleProjectSubmit = (e) => {
-    e.preventDefault();
-    if (paymentStatus === "PENDING_FIRST_PAYMENT") return; // Locked
-    if (!githubUrl || !githubUrl.includes("github.com")) {
-      alert("Please enter a valid GitHub repository link!");
-      return;
-    }
-    setProjectSubmitted(true);
-    setToastMessage("Successfully submitted project repository to Dr. Marcus Vance!");
-    setTimeout(() => setToastMessage(""), 4000);
-  };
-
-  const attendances = student?.Attendances || [];
-  const totalClasses = attendances.length;
-  const classesMet = student ? attendances.filter(a => String(a.status).toUpperCase() === "PRESENT" || String(a.status).toUpperCase() === "LATE").length : 44;
-  const absentLogs = student ? attendances.filter(a => String(a.status).toUpperCase() === "ABSENT").length : 6;
-  const attendancePct = student ? (totalClasses > 0 ? Math.round((classesMet / totalClasses) * 100) : 100) : 88;
-
-  const courseTitle = student?.Enrollments?.[0]?.Batch?.Course?.title || "Full Stack MERN Dev";
-  const batchName = student?.Enrollments?.[0]?.Batch?.batch_name || "Unassigned Batch";
-  const studentCode = student?.student_code || "STU-2026-001";
-  const collegeName = student?.college_name || "VIT University";
-
-  const isPendingFirst = paymentStatus === "PENDING_FIRST_PAYMENT" || paymentStatus === "NONE";
-  const isFullPaymentPlan = paymentScheme === "FULL";
-  const isEligibleForGraduation = attendancePct >= 85 && feeBalance === 0;
-
-  if (user?.role === "STUDENT" && !studentId) {
-    return (
-      <div className={pageWrapClass}>
-        <div className="py-12 text-center text-sm font-semibold text-[#94a3b8]">
-          Loading student workspace...
-        </div>
-      </div>
-    );
-  }
-
+  if (loading) return (
+    <div className={pageWrapClass}>
+      <div className="py-16 text-center text-sm font-semibold text-[#94a3b8]">Loading student workspace…</div>
+    </div>
+  );
 
   return (
     <div className={pageWrapClass}>
       <Toast message={toastMessage} />
 
-      {/* Tabs Selector Navigation */}
-      <div className="flex border-b border-black/[0.08] text-xs font-bold text-gray-500 gap-6 pb-0.5">
-        <button
-          onClick={() => navigate("/dashboard")}
-          className={`pb-2.5 transition-all relative cursor-pointer ${
-            activeTab === "workspace"
-              ? "text-rose-500 font-extrabold"
-              : "hover:text-[#0c0407]"
-          }`}
-        >
-          My Workspace
-          {activeTab === "workspace" && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-rose-500 rounded-full"></span>
-          )}
-        </button>
-        <button
-          onClick={() => navigate("/dashboard?tab=fees")}
-          className={`pb-2.5 transition-all relative cursor-pointer ${
-            activeTab === "fees"
-              ? "text-rose-500 font-extrabold"
-              : "hover:text-[#0c0407]"
-          }`}
-        >
-          My Fees & Access Desk
-          {activeTab === "fees" && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-rose-500 rounded-full"></span>
-          )}
-        </button>
+      {/* Tab nav */}
+      <div className="flex border-b border-black/[0.08] text-xs font-bold text-[#94a3b8] gap-6 pb-0">
+        {[
+          { key: "workspace", label: "My Workspace",       path: "/dashboard" },
+          { key: "fees",      label: "Fees & Access Desk", path: "/dashboard?tab=fees" },
+        ].map(t => (
+          <button key={t.key} onClick={() => navigate(t.path)}
+            className={`pb-3 transition-all relative cursor-pointer ${activeTab === t.key ? "text-[#fc362d] font-extrabold" : "hover:text-[#0c0407]"}`}>
+            {t.label}
+            {activeTab === t.key && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#fc362d] rounded-full" />}
+          </button>
+        ))}
       </div>
 
       {activeTab === "workspace" ? (
         <div className="relative">
-          {/* Platform Resource Lock Blur Overlay */}
+          {/* Fee lock overlay */}
           {isPendingFirst && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/40 backdrop-blur-[6px] rounded-2xl">
-              <div className="bg-white border border-black/10 p-6 rounded-2xl max-w-sm text-center shadow-xl animate-[fadeIn_0.3s_ease]">
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/50 backdrop-blur-[6px] rounded-2xl">
+              <div className="bg-white border border-black/10 p-6 rounded-2xl max-w-sm text-center shadow-xl">
                 <FiLock className="w-12 h-12 text-[#fc362d] mx-auto mb-3 animate-bounce" />
                 <h3 className="text-base font-extrabold text-[#0c0407]">Access Restricted</h3>
-                <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                  Access Restricted: Complete your {isFullPaymentPlan ? "full course fee" : "initial installment"} payment to unlock your learning resources (Assignments, Content Materials, and Attendance).
+                <p className="text-xs text-[#636363] mt-2 leading-relaxed">
+                  Complete your {isFullPlan ? "full course fee" : "initial installment"} to unlock your workspace.
                 </p>
-                <button
-                  onClick={() => navigate("/dashboard?tab=fees")}
-                  className="mt-4 px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl cursor-pointer shadow-md shadow-rose-500/10 transition-all active:scale-95"
-                >
-                  {isFullPaymentPlan ? "Pay Full Course Fee" : "Pay Initial Installment"}
+                <button onClick={() => navigate("/dashboard?tab=fees")}
+                  className={`mt-4 px-5 py-2.5 ${primaryBtnClass} mx-auto block`}>
+                  {isFullPlan ? "Pay Full Fee" : "Pay Installment"}
                 </button>
               </div>
             </div>
           )}
 
-          <div className={`space-y-6 ${isPendingFirst ? "filter blur-[3px] pointer-events-none select-none" : ""}`}>
+          <div className={isPendingFirst ? "filter blur-[3px] pointer-events-none select-none space-y-6" : "space-y-6"}>
+
             <WelcomeBanner
               badge="Student Workspace"
               title={`Welcome back, ${user?.name || "Student"}!`}
-              description="Track attendance, complete syllabus milestones, and submit projects."
+              description="Track attendance, access materials, and submit your projects."
               actions={
                 <>
-                  <PrimaryButton>Access Resources</PrimaryButton>
-                  <SecondaryButton>Class Roadmap</SecondaryButton>
+                  <PrimaryButton onClick={() => document.getElementById("projects-section")?.scrollIntoView({ behavior: "smooth" })}>
+                    View Projects
+                  </PrimaryButton>
+                  <SecondaryButton onClick={() => document.getElementById("materials-section")?.scrollIntoView({ behavior: "smooth" })}>
+                    Study Materials
+                  </SecondaryButton>
                 </>
               }
             />
 
-            <StatCards
-              stats={[
-                {
-                  label: "Attendance",
-                  value: `${attendancePct}%`,
-                  change: "Target met",
-                  icon: <FiUsers className="w-5 h-5" />,
-                },
-                {
-                  label: "Topics Done",
-                  value: `${checkedSyllabus.filter(Boolean).length}/5`,
-                  change: "Syllabus",
-                  icon: <FiBookOpen className="w-5 h-5" />,
-                },
-                {
-                  label: "Submissions",
-                  value: "100%",
-                  change: "On track",
-                  icon: <FiAward className="w-5 h-5" />,
-                },
-                {
-                  label: "Fees Due",
-                  value: `₹${feeBalance.toLocaleString("en-IN")}`,
-                  change: feeBalance === 0 ? "Cleared" : "Outstanding",
-                  icon: <FiCreditCard className="w-5 h-5" />,
-                },
-              ]}
-            />
+            <StatCards stats={[
+              { label: "Attendance",    value: `${attendance.pct}%`,   change: attendance.pct >= 75 ? "On track" : "Below target", icon: <FiUsers className="w-5 h-5" />, trendType: attendance.pct >= 75 ? "up" : "down" },
+              { label: "Projects",      value: `${submittedCount}/${projects.length}`, change: "Submitted",  icon: <FiAward className="w-5 h-5" /> },
+              { label: "Materials",     value: String(materials.length), change: "Available",               icon: <FiBookOpen className="w-5 h-5" /> },
+              { label: "Fees Due",      value: `₹${feeBalance.toLocaleString("en-IN")}`, change: feeBalance === 0 ? "Cleared" : "Outstanding", icon: <FiCreditCard className="w-5 h-5" />, trendType: feeBalance === 0 ? "up" : "down" },
+            ]} />
 
-            {/* 3. Middle Main Widgets Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Double-Column Panel */}
+
+              {/* ── Left ── */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Term Project & Code Submission Widget */}
-                <div id="projects-section" className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)] scroll-mt-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <span className="text-xs font-bold text-[#9ca3af] uppercase tracking-wider">Evaluation Task</span>
-                      <h3 className="text-lg font-extrabold text-[#0c0407] tracking-tight mt-0.5">Active Program Project</h3>
+
+                {/* Projects */}
+                <div id="projects-section" className="scroll-mt-6">
+                  <h3 className="text-base font-extrabold text-[#0c0407] mb-4">
+                    Active Projects
+                    {projects.length > 0 && <span className="ml-2 text-[#94a3b8] font-semibold text-sm">({projects.length})</span>}
+                  </h3>
+                  {projects.length === 0 ? (
+                    <div className="bg-[#fafafa] border border-dashed border-black/[0.08] rounded-2xl p-8 text-center">
+                      <FiAward className="w-8 h-8 text-[#94a3b8] mx-auto mb-2" />
+                      <p className="text-xs text-[#94a3b8] font-semibold">No projects assigned yet.</p>
                     </div>
-                    <span className="px-2.5 py-1 text-[10px] font-extrabold text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg">
-                      Deadline: 28 May 2026
-                    </span>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-black/[0.08] space-y-4">
-                    <div>
-                      <h4 className="text-base font-extrabold text-[#0c0407]">MSAI-PRJ-004: React E-Commerce Portfolio</h4>
-                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                        Design and build a responsive glassmorphic checkout UI, integrate global user contexts in React, implement simulated payment ledgers, and host files securely. Submit the GitHub repository URL below.
-                      </p>
-                    </div>
-
-                    <div className="h-[1px] bg-slate-200"></div>
-
-                    {projectSubmitted ? (
-                      <div className="p-4 rounded-xl bg-[#475569]/5 border border-[#475569]/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div>
-                          <h5 className="text-xs font-extrabold text-[#475569] flex items-center gap-1.5">
-                            <FiCheckCircle /> Repository Submitted
-                          </h5>
-                          <p className="text-[10px] text-gray-500 mt-1 truncate max-w-xs md:max-w-md font-semibold">
-                            Submitted Link: <span className="font-mono text-gray-700">{githubUrl}</span>
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setProjectSubmitted(false)}
-                          className="px-3 py-1.5 bg-[#475569]/10 hover:bg-[#f1f5f9]/15 text-[#475569] text-[10px] font-extrabold rounded-lg cursor-pointer border border-[#475569]/10"
-                        >
-                          Edit Submission
-                        </button>
-                      </div>
-                    ) : (
-                      <form onSubmit={handleProjectSubmit} className="space-y-3">
-                        <div>
-                          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">
-                            GitHub Code Repository Link
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="url"
-                              placeholder="https://github.com/username/repository-name"
-                              value={githubUrl}
-                              onChange={(e) => setGithubUrl(e.target.value)}
-                              required
-                              className={`flex-1 ${inputClass}`}
-                            />
-                            <button
-                              type="submit"
-                              className={`${primaryBtnClass} px-5`}
-                            >
-                              Submit
-                            </button>
-                          </div>
-                        </div>
-                      </form>
-                    )}
-                  </div>
-                </div>
-
-                {/* Attendance progress wheel and Syllabus Progress checklist */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Attendance Progress Donut Wheel */}
-                  <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                    <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Participation Progress</h3>
-
-                    <div className="flex items-center justify-around gap-4 h-40">
-                      {/* SVG Radial Wheel */}
-                      <div className="relative w-28 h-28 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                          <path
-                            className="text-slate-100"
-                            strokeWidth="3.5"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                          <path
-                            className="text-[#334155]"
-                            strokeDasharray={`${attendancePct}, 100`}
-                            strokeWidth="3.5"
-                            strokeLinecap="round"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                        </svg>
-                        <div className="absolute flex flex-col items-center justify-center">
-                          <span className="text-xl font-extrabold text-[#0c0407]">{attendancePct}%</span>
-                          <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Attendance</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 font-semibold text-xs text-gray-500">
-                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase">Classes Met</p>
-                          <p className="text-sm font-extrabold text-[#0c0407]">{classesMet} Blocks</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase">Absent Logs</p>
-                          <p className="text-sm font-extrabold text-[#0c0407]">{absentLogs} Blocks</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Interactive Syllabus Milestones checklist */}
-                  <div id="syllabus-section" className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)] scroll-mt-6">
-                    <h3 className="text-base font-extrabold text-[#0c0407] border-b border-black/[0.08] pb-3.5 mb-3.5">
-                      Syllabus Topic Milestones
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        "React components & props mapping",
-                        "Redux Toolkit slice configurations",
-                        "Axios routing & endpoint hooks",
-                        "JWT token authorization pipelines",
-                        "Prisma ORM migration validations",
-                      ].map((topic, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <button
-                            onClick={() => toggleSyllabus(i)}
-                            className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer ${
-                              checkedSyllabus[i]
-                                ? "bg-[#334155] border-[#334155] text-white"
-                                : "border-gray-200 bg-slate-50 hover:bg-[#f1f5f9]/10"
-                            }`}
-                          >
-                            {checkedSyllabus[i] && <FiCheck className="w-3.5 h-3.5" />}
-                          </button>
-                          <span className={`text-xs font-semibold ${checkedSyllabus[i] ? "text-gray-400 line-through" : "text-gray-700"}`}>
-                            {topic}
-                          </span>
-                        </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {projects.map(p => (
+                        <ProjectCard key={p.id} project={p} onSubmit={handleProjectSubmit} />
                       ))}
                     </div>
-                  </div>
+                  )}
                 </div>
+
+                {/* Materials */}
+                <div id="materials-section" className="scroll-mt-6">
+                  <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Study Materials</h3>
+                  {materials.length === 0 ? (
+                    <div className="bg-[#fafafa] border border-dashed border-black/[0.08] rounded-2xl p-8 text-center">
+                      <FiBookOpen className="w-8 h-8 text-[#94a3b8] mx-auto mb-2" />
+                      <p className="text-xs text-[#94a3b8] font-semibold">No materials uploaded yet by your trainer.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {materials.map(m => (
+                        <a key={m.id} href={m.file_url} target="_blank" rel="noopener noreferrer"
+                          className="group flex items-center gap-3 p-4 bg-white border border-black/[0.08] rounded-2xl hover:border-[#fc362d]/25 hover:shadow-md transition-all no-underline">
+                          <div className="w-9 h-9 rounded-xl bg-[#fc362d]/10 flex items-center justify-center shrink-0">
+                            <FiBookOpen className="w-4 h-4 text-[#fc362d]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-[#0c0407] truncate group-hover:text-[#fc362d] transition-colors">{m.title}</p>
+                            <p className="text-[10px] text-[#94a3b8] font-semibold mt-0.5">{m.material_type}</p>
+                          </div>
+                          <FiExternalLink className="w-3.5 h-3.5 text-[#94a3b8] group-hover:text-[#fc362d] shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
               </div>
 
-              {/* Right Single-Column Panel */}
-              <div className="space-y-6">
-                {/* Virtual Student Smart ID Card */}
-                <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                  <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Trainee smartcard</h3>
+              {/* ── Right ── */}
+              <div className="space-y-5">
 
+                {/* Smart ID card */}
+                <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
+                  <h3 className="text-sm font-extrabold text-[#0c0407] mb-4">Trainee Smartcard</h3>
                   <div className="relative overflow-hidden aspect-[1.6/1] w-full rounded-2xl bg-gradient-to-br from-[#1a1a1f] via-[#141418] to-[#0c0407] p-5 text-white shadow-[0_8px_28px_rgba(0,0,0,0.2)]">
-                    <div className="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-lg"></div>
-
+                    <div className="absolute top-0 right-0 -mt-6 -mr-6 w-20 h-20 bg-white/10 rounded-full blur-xl" />
+                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full blur-lg" />
                     <div className="h-full flex flex-col justify-between relative z-10">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="text-[8px] font-bold px-2 py-0.5 rounded bg-white/20 uppercase tracking-wider">
-                            Student Access Card
-                          </span>
-                          <h4 className="text-sm font-extrabold tracking-tight mt-1.5">{student?.User?.name || user?.name || "Alex Manda"}</h4>
-                          <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider">{courseTitle}</p>
+                          <span className="text-[8px] font-bold px-2 py-0.5 rounded bg-white/20 uppercase tracking-wider">Student Access Card</span>
+                          <h4 className="text-sm font-extrabold tracking-tight mt-1.5">{studentInfo?.user?.name || user?.name || "—"}</h4>
+                          <p className="text-[9px] text-white/70 font-bold uppercase tracking-wider">{courseInfo?.title || "Unassigned"}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center font-extrabold text-white text-sm shadow-sm select-none">
-                          {(student?.User?.name || user?.name || "ST").slice(0, 2).toUpperCase()}
+                        <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center font-extrabold text-sm">
+                          {(studentInfo?.user?.name || user?.name || "ST").slice(0, 2).toUpperCase()}
                         </div>
                       </div>
-
                       <div className="flex justify-between items-end">
                         <div>
-                          <p className="text-[7px] font-bold text-white/40 uppercase">Deterministic Code</p>
-                          <p className="text-xs font-bold font-mono">{studentCode}</p>
+                          <p className="text-[7px] font-bold text-white/40 uppercase">Student Code</p>
+                          <p className="text-xs font-bold font-mono">{studentInfo?.student_code || "—"}</p>
                         </div>
-                        <div>
-                          <p className="text-[7px] font-bold text-white/40 uppercase text-right">Academic Sponsor</p>
-                          <p className="text-[9px] font-bold tracking-tight">{collegeName}</p>
+                        <div className="text-right">
+                          <p className="text-[7px] font-bold text-white/40 uppercase">Batch</p>
+                          <p className="text-[9px] font-bold">{batchInfo?.batch_name || "Unassigned"}</p>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Graduation Certificate Locker */}
-                <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                  <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Milestone Certificates</h3>
+                {/* Attendance donut */}
+                <AttendanceDonut
+                  pct={attendance.pct}
+                  present={attendance.present}
+                  absent={attendance.absent}
+                  total={attendance.total}
+                />
 
-                  <div className="bg-slate-50 border border-black/[0.08] rounded-2xl p-4 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-[#475569]/10 border border-[#475569]/20 flex items-center justify-center text-[#475569]">
-                          {isEligibleForGraduation ? <FiUnlock /> : <FiLock />}
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-extrabold text-[#0c0407]">Graduation Credential</h4>
-                          <p className="text-[9px] text-gray-400 font-bold mt-0.5">TIMS verifiable certificate</p>
-                        </div>
+                {/* Trainer info */}
+                {trainerInfo && (
+                  <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
+                    <h3 className="text-sm font-extrabold text-[#0c0407] mb-3">Your Trainer</h3>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={trainerInfo.profile_img || `https://api.dicebear.com/7.x/initials/svg?seed=${trainerInfo.name}`}
+                        alt={trainerInfo.name}
+                        className="w-10 h-10 rounded-xl object-cover border border-black/[0.08]"
+                        onError={e => { e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${trainerInfo.name}`; }}
+                      />
+                      <div>
+                        <p className="text-sm font-bold text-[#0c0407]">{trainerInfo.name}</p>
+                        <p className="text-[10px] text-[#94a3b8] font-semibold mt-0.5">{trainerInfo.specialization}</p>
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
-                        isEligibleForGraduation 
-                          ? "text-[#05CD99] bg-[#E6FAF5] border-[#05CD99]/20" 
-                          : "text-amber-600 bg-amber-50 border-amber-500/20"
-                      }`}>
-                        {isEligibleForGraduation ? "Ready" : "Locked"}
+                    </div>
+                  </div>
+                )}
+
+                {/* Certificate locker */}
+                <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
+                  <h3 className="text-sm font-extrabold text-[#0c0407] mb-4">Graduation Certificate</h3>
+                  <div className="bg-[#fafafa] border border-black/[0.07] rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isEligible ? "bg-emerald-100 text-emerald-600" : "bg-[#f1f5f9] text-[#94a3b8]"}`}>
+                        {isEligible ? <FiUnlock className="w-4 h-4" /> : <FiLock className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-extrabold text-[#0c0407]">Completion Certificate</p>
+                        <p className="text-[9px] text-[#94a3b8] font-semibold">TIMS verified credential</p>
+                      </div>
+                      <span className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded-lg border ${isEligible ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-amber-600 bg-amber-50 border-amber-200"}`}>
+                        {isEligible ? "Ready" : "Locked"}
                       </span>
                     </div>
 
-                    <div className="space-y-2 border-t border-b border-slate-200/50 py-3 text-[10px] font-bold text-gray-500">
+                    <div className="space-y-1.5 border-t border-black/[0.05] pt-3 text-[10px] font-bold text-[#636363]">
                       <div className="flex justify-between">
-                        <span>Attendance Criteria (&gt;=85%):</span>
-                        <span className={attendancePct >= 85 ? "text-[#05CD99]" : "text-red-500"}>
-                          {attendancePct}% ({attendancePct >= 85 ? "Pass" : "Failed"})
-                        </span>
+                        <span>Attendance ≥75%</span>
+                        <span className={attendance.pct >= 75 ? "text-emerald-600" : "text-[#b91c1c]"}>{attendance.pct}% ({attendance.pct >= 75 ? "Pass" : "Fail"})</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Accounting Ledger Dues (₹0):</span>
-                        <span className={feeBalance === 0 ? "text-[#05CD99]" : "text-red-500"}>
-                          {feeBalance === 0 ? "Cleared (Pass)" : `Outstanding ₹${Number(feeBalance).toLocaleString("en-IN")}`}
-                        </span>
+                        <span>Fee Balance = ₹0</span>
+                        <span className={feeBalance === 0 ? "text-emerald-600" : "text-[#b91c1c]"}>{feeBalance === 0 ? "Cleared" : `₹${feeBalance.toLocaleString("en-IN")} due`}</span>
                       </div>
                     </div>
 
-                    {isEligibleForGraduation ? (
-                      <button
-                        onClick={() => alert(`Simulating PDF Certificate download! Verification Code: CERT-${studentId.slice(0, 8)}`)}
-                        className={`w-full py-2.5 text-center text-xs font-extrabold text-white ${primaryBtnClass} flex items-center justify-center gap-1.5`}
-                      >
-                        <FiDownload />
-                        Download Certificate PDF
+                    {isEligible ? (
+                      <button onClick={() => alert(`Downloading Certificate — CERT-${studentInfo?.id?.slice(0, 8) || "XXXX"}`)}
+                        className={`w-full py-2.5 text-xs font-extrabold flex items-center justify-center gap-1.5 ${primaryBtnClass}`}>
+                        <FiDownload className="w-3.5 h-3.5" /> Download Certificate
                       </button>
                     ) : (
-                      <button
-                        disabled
-                        className="w-full py-2.5 text-center text-xs font-extrabold text-gray-400 bg-slate-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5"
-                      >
-                        <FiLock /> Locked (Dues pending)
+                      <button disabled className="w-full py-2.5 text-xs font-extrabold text-[#94a3b8] bg-[#f1f5f9] rounded-xl flex items-center justify-center gap-1.5 cursor-not-allowed">
+                        <FiLock className="w-3.5 h-3.5" /> Locked
                       </button>
                     )}
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
         </div>
       ) : (
-        <MyFeesDesk onPaymentSuccess={fetchStatus} />
+        <MyFeesDesk onPaymentSuccess={fetchFeeStatus} />
       )}
     </div>
   );

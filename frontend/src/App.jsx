@@ -25,6 +25,8 @@ import { PublicRoutes } from "./Routes/PublicRoutes";
 import CoursePage from "./pages/CoursePage";
 import AboutPage from "./pages/AboutPage";
 import AllCoursesPage from "./pages/AllCoursesPage";
+import { TrainerBatches } from "./components/dashboard/trainer/TrainerBatches";
+import { TrainerAttendance } from "./components/dashboard/trainer/TrainerAttendance";
 
 export const App = () => {
   return (
@@ -48,6 +50,11 @@ export const App = () => {
           <Route element={<PrivateRoutes />}>
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardIndex />} />
+
+              {/* ── Trainer routes ── */}
+              <Route path="trainer/batches" element={<TrainerBatches />} />
+              <Route path="trainer/batches/:batchId" element={<TrainerBatches />} />
+              <Route path="trainer/attendance" element={<TrainerAttendance />} />
               <Route
                 path="users"
                 element={
