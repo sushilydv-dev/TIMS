@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { Op } from "sequelize";
+import { Op, literal } from "sequelize";
 import User from "../models/user.js";
 import Role from "../models/role.js";
 import InviteToken from "../models/inviteToken.js";
@@ -260,7 +260,10 @@ export const listTrainersBrowse = asyncHandler(async (req, res) => {
   const { search, page, limit, offset } = req.query;
   const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
-  const offsetNum = offset !== undefined ? Math.max(0, parseInt(offset, 10) || 0) : (pageNum - 1) * limitNum;
+  const offsetNum =
+    offset !== undefined
+      ? Math.max(0, parseInt(offset, 10) || 0)
+      : (pageNum - 1) * limitNum;
 
   const term = String(search || "").trim();
   const userWhere = {};
@@ -276,7 +279,7 @@ export const listTrainersBrowse = asyncHandler(async (req, res) => {
       {
         model: User,
         attributes: ["id", "name", "email", "status"],
-        where: userWhere,
+        where: Object.keys(userWhere).length ? userWhere : undefined,
         required: true,
       },
       {
@@ -285,11 +288,31 @@ export const listTrainersBrowse = asyncHandler(async (req, res) => {
         required: false,
       },
     ],
-    order: [[User, "name", "ASC"]],
+    order: [[literal('"User.name"'), "ASC"]],
     limit: limitNum,
     offset: offsetNum,
     distinct: true,
   });
+
+  // Compute stats from the full unfiltered set for accuracy
+  const allTrainers = await Trainer.findAll({
+    include: [
+      {
+        model: User,
+        attributes: ["status"],
+        required: true,
+      },
+    ],
+  });
+
+  const totalActive = allTrainers.filter((t) => t.User?.status === "active").length;
+  const avgExp =
+    allTrainers.length > 0
+      ? Math.round(
+          allTrainers.reduce((sum, t) => sum + (Number(t.experience_year) || 0), 0) /
+            allTrainers.length,
+        )
+      : 0;
 
   const totalPages = Math.max(Math.ceil(count / limitNum), 1);
 
@@ -307,6 +330,11 @@ export const listTrainersBrowse = asyncHandler(async (req, res) => {
     totalPages,
     page: pageNum,
     limit: limitNum,
+    stats: {
+      totalCount: allTrainers.length,
+      activeCount: totalActive,
+      avgExp,
+    },
   });
 });
 
@@ -368,23 +396,14 @@ export const updateTrainerProfile = asyncHandler(async (req, res) => {
 
     if (batch_ids !== undefined) {
       const cleanBatchIds = Array.isArray(batch_ids) ? batch_ids.filter(Boolean) : [];
-      
-      await Batch.update(
-        { trainer_id: null },
-        {
-          where: {
-            trainer_id: trainer.id,
-            id: { [Op.notIn]: cleanBatchIds },
-          },
-          transaction: t,
-        }
-      );
 
+      // Only assign batches to this trainer — never null out trainer_id
+      // (trainer_id is NOT NULL; unassigning a batch must be done via batch management)
       if (cleanBatchIds.length > 0) {
         await Batch.update(
           { trainer_id: trainer.id },
           {
-            where: { id: cleanBatchIds },
+            where: { id: { [Op.in]: cleanBatchIds } },
             transaction: t,
           }
         );
@@ -430,11 +449,11 @@ export const listHrDetailed = asyncHandler(async (req, res) => {
       {
         model: User,
         attributes: ["id", "name", "email", "status"],
-        where: userWhere,
+        where: Object.keys(userWhere).length ? userWhere : undefined,
         required: true,
       },
     ],
-    order: [[User, "name", "ASC"]],
+    order: [[literal('"User.name"'), "ASC"]],
     limit: limitNum,
     offset: offsetNum,
     distinct: true,

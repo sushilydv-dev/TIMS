@@ -1,0 +1,289 @@
+import express from "express";
+import protect from "../middlewares/authmiddleware.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import Trainer from "../models/trainer.js";
+import Batch from "../models/batch.js";
+import Enrollment from "../models/enrollment.js";
+import Student from "../models/student.js";
+import User from "../models/user.js";
+import Course from "../models/course.js";
+import Attendance from "../models/attendance.js";
+import ProjectSubmission from "../models/projectSubmission.js";
+import Project from "../models/project.js";
+import StudyMaterial from "../models/studyMaterial.js";
+import Notification from "../models/notification.js";
+import { Op } from "sequelize";
+
+const router = express.Router();
+router.use(protect);
+
+/* ── Guard: only trainers ─────────────────────────── */
+router.use((req, res, next) => {
+  if (!req.user) { res.status(401); throw new Error("Not authenticated"); }
+  next();
+});
+
+async function getTrainerRecord(userId) {
+  return Trainer.findOne({ where: { user_id: userId } });
+}
+
+/* ── GET /api/trainer/me ───────────────────────────── */
+router.get("/me", asyncHandler(async (req, res) => {
+  const trainer = await Trainer.findOne({
+    where: { user_id: req.user.id },
+    include: [{ model: User, attributes: ["id", "name", "email", "status"] }],
+  });
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batches = await Batch.findAll({
+    where: { trainer_id: trainer.id },
+    include: [
+      { model: Course, attributes: ["id", "title", "duration_month"] },
+      { model: Enrollment, attributes: ["id"], include: [{ model: Student, attributes: ["id"] }] },
+    ],
+    order: [["start_date", "DESC"]],
+  });
+
+  res.json({
+    id: trainer.id,
+    specialization: trainer.specialization,
+    experience_year: trainer.experience_year,
+    profile_img: trainer.profile_img || "",
+    user: trainer.User,
+    batch_count: batches.length,
+    total_students: batches.reduce((s, b) => s + (b.Enrollments?.length ?? 0), 0),
+    batches: batches.map(b => ({
+      id: b.id,
+      batch_name: b.batch_name,
+      start_date: b.start_date,
+      end_date: b.end_date,
+      course: b.Course ? { id: b.Course.id, title: b.Course.title, duration_month: b.Course.duration_month } : null,
+      student_count: b.Enrollments?.length ?? 0,
+    })),
+  });
+}));
+
+/* ── GET /api/trainer/batches/:batchId ─────────────── */
+router.get("/batches/:batchId", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({
+    where: { id: req.params.batchId, trainer_id: trainer.id },
+    include: [
+      { model: Course, attributes: ["id", "title", "duration_month"] },
+      {
+        model: Enrollment,
+        include: [{
+          model: Student,
+          include: [{ model: User, attributes: ["id", "name", "email"] }],
+        }],
+      },
+    ],
+  });
+
+  if (!batch) { res.status(404); throw new Error("Batch not found or not assigned to you"); }
+
+  res.json({
+    id: batch.id,
+    batch_name: batch.batch_name,
+    start_date: batch.start_date,
+    end_date: batch.end_date,
+    course: batch.Course,
+    students: (batch.Enrollments || []).map(e => ({
+      enrollment_id: e.id,
+      enrollment_status: e.status,
+      student: {
+        id: e.Student?.id,
+        name: e.Student?.User?.name || "",
+        email: e.Student?.User?.email || "",
+      },
+    })),
+  });
+}));
+
+/* ── GET /api/trainer/batches/:batchId/attendance ──── */
+router.get("/batches/:batchId/attendance", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({ where: { id: req.params.batchId, trainer_id: trainer.id } });
+  if (!batch) { res.status(404); throw new Error("Batch not found"); }
+
+  const { date } = req.query;
+  const where = { batch_id: req.params.batchId };
+  if (date) where.attendance_date = date;
+
+  const records = await Attendance.findAll({
+    where,
+    include: [{
+      model: Student,
+      include: [{ model: User, attributes: ["id", "name"] }],
+    }],
+    order: [["attendance_date", "DESC"]],
+  });
+
+  // Also return all enrolled students for this batch
+  const enrollments = await Enrollment.findAll({
+    where: { batch_id: req.params.batchId },
+    include: [{ model: Student, include: [{ model: User, attributes: ["id", "name"] }] }],
+  });
+
+  const students = enrollments.map(e => ({
+    student_id: e.Student?.id,
+    name: e.Student?.User?.name || "",
+  }));
+
+  res.json({ records, students });
+}));
+
+/* ── POST /api/trainer/batches/:batchId/attendance ─── */
+router.post("/batches/:batchId/attendance", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({ where: { id: req.params.batchId, trainer_id: trainer.id } });
+  if (!batch) { res.status(404); throw new Error("Batch not found"); }
+
+  const { date, entries } = req.body;
+  // entries: [{ student_id, status }]
+  if (!date || !Array.isArray(entries) || entries.length === 0) {
+    res.status(400); throw new Error("date and entries[] are required");
+  }
+
+  const VALID_STATUSES = ["PRESENT", "ABSENT", "LATE", "LEAVE"];
+  const toUpsert = entries
+    .filter(e => e.student_id && VALID_STATUSES.includes(String(e.status).toUpperCase()))
+    .map(e => ({
+      batch_id: req.params.batchId,
+      student_id: e.student_id,
+      attendance_date: date,
+      status: String(e.status).toUpperCase(),
+      marked_by: String(req.user.id),
+    }));
+
+  if (toUpsert.length === 0) { res.status(400); throw new Error("No valid entries"); }
+
+  // Delete existing records for this date+batch, then re-insert
+  await Attendance.destroy({ where: { batch_id: req.params.batchId, attendance_date: date } });
+  await Attendance.bulkCreate(toUpsert);
+
+  res.json({ message: "Attendance marked", count: toUpsert.length });
+}));
+
+/* ── GET /api/trainer/batches/:batchId/submissions ─── */
+router.get("/batches/:batchId/submissions", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({
+    where: { id: req.params.batchId, trainer_id: trainer.id },
+    include: [{ model: Course, attributes: ["id"] }],
+  });
+  if (!batch) { res.status(404); throw new Error("Batch not found"); }
+
+  // Get projects for this batch's course
+  const projects = await Project.findAll({ where: { course_id: batch.course_id } });
+  const projectIds = projects.map(p => p.id);
+
+  const submissions = await ProjectSubmission.findAll({
+    where: projectIds.length > 0 ? { project_id: { [Op.in]: projectIds } } : { project_id: null },
+    include: [
+      { model: Project, attributes: ["id", "title", "deadline"] },
+      { model: Student, include: [{ model: User, attributes: ["id", "name"] }] },
+    ],
+    order: [["submitted_at", "DESC"]],
+  });
+
+  res.json(submissions.map(s => ({
+    id: s.id,
+    project: s.Project,
+    student: { id: s.Student?.id, name: s.Student?.User?.name || "" },
+    github_link: s.GitHub_link,
+    file_url: s.file_url,
+    submitted_at: s.submitted_at,
+    marks: s.marks,
+    feedback: s.feedback,
+    graded: s.marks > 0 || !!s.feedback,
+  })));
+}));
+
+/* ── PUT /api/trainer/submissions/:id/grade ──────────*/
+router.put("/submissions/:id/grade", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const submission = await ProjectSubmission.findByPk(req.params.id);
+  if (!submission) { res.status(404); throw new Error("Submission not found"); }
+
+  const { marks, feedback } = req.body;
+  if (marks === undefined) { res.status(400); throw new Error("marks is required"); }
+
+  submission.marks = Number(marks) || 0;
+  submission.feedback = String(feedback || "").trim();
+  await submission.save();
+
+  res.json({ message: "Graded", submission });
+}));
+
+/* ── GET /api/trainer/batches/:batchId/materials ───── */
+router.get("/batches/:batchId/materials", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({
+    where: { id: req.params.batchId, trainer_id: trainer.id },
+  });
+  if (!batch) { res.status(404); throw new Error("Batch not found"); }
+
+  const materials = await StudyMaterial.findAll({
+    where: { course_id: batch.course_id },
+    order: [["id", "ASC"]],   // study_material has no createdAt column
+  });
+
+  res.json(materials);
+}));
+
+/* ── POST /api/trainer/batches/:batchId/materials ──── */
+router.post("/batches/:batchId/materials", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const batch = await Batch.findOne({
+    where: { id: req.params.batchId, trainer_id: trainer.id },
+  });
+  if (!batch) { res.status(404); throw new Error("Batch not found"); }
+
+  const { title, file_url, material_type } = req.body;
+  if (!title?.trim() || !file_url?.trim() || !material_type?.trim()) {
+    res.status(400); throw new Error("title, file_url, and material_type are required");
+  }
+
+  const material = await StudyMaterial.create({
+    course_id: batch.course_id,
+    title: title.trim(),
+    file_url: file_url.trim(),
+    material_type: material_type.trim(),
+    uploaded_by: String(req.user.id),
+  });
+
+  res.status(201).json(material);
+}));
+
+/* ── DELETE /api/trainer/materials/:id ──────────────── */
+router.delete("/materials/:id", asyncHandler(async (req, res) => {
+  const trainer = await getTrainerRecord(req.user.id);
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const material = await StudyMaterial.findByPk(req.params.id);
+  if (!material) { res.status(404); throw new Error("Material not found"); }
+
+  // Verify this trainer owns the batch for this course
+  const batch = await Batch.findOne({ where: { course_id: material.course_id, trainer_id: trainer.id } });
+  if (!batch) { res.status(403); throw new Error("Not authorized to delete this material"); }
+
+  await material.destroy();
+  res.json({ message: "Material deleted" });
+}));
+
+export default router;

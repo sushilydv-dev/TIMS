@@ -1,321 +1,605 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FiUsers,
-  FiBookOpen,
-  FiAward,
-  FiLayers,
-  FiPlus,
-  FiCheck,
-  FiExternalLink,
-  FiCheckCircle,
+  FiUsers, FiBookOpen, FiAward, FiLayers, FiPlus, FiCheck,
+  FiExternalLink, FiCheckCircle, FiAlertCircle, FiTrash2,
+  FiUpload, FiCalendar, FiChevronDown, FiX, FiLoader,
 } from "react-icons/fi";
+import axios from "axios";
 import {
-  WelcomeBanner,
-  StatCards,
-  PrimaryButton,
-  SecondaryButton,
-  Toast,
+  WelcomeBanner, StatCards, Panel, PanelHeader,
+  PrimaryButton, SecondaryButton, Toast, StatusBadge,
 } from "../DashboardUI";
-import { pageWrapClass, inputClass, primaryBtnClass } from "../dashboardTheme";
+import {
+  pageWrapClass, inputClass, primaryBtnClass, secondaryBtnClass,
+  cardClass, labelMutedClass,
+} from "../dashboardTheme";
 
-export const TrainerDashboard = ({ user }) => {
-  
-  const [submissions, setSubmissions] = useState([
-    { id: 1, name: "Rohit Sharma", pg: "React E-Commerce UI", batch: "MERN-2026-B1", link: "https://github.com/rohit/ecommerce", date: "Today, 10:24", graded: false, marks: "", feedback: "" },
-    { id: 2, name: "Aishwarya Rai", pg: "Docker-Compose deployment", batch: "DEVOPS-26-B2", link: "https://github.com/aish/docker-deploy", date: "Yesterday, 14:15", graded: true, marks: "95", feedback: "Excellent compose script!" },
-    { id: 3, name: "Vikram Malhotra", pg: "SQL Index Tuning Plan", batch: "DATA-2026-B3", link: "https://github.com/vikram/pg-tuning", date: "24 May, 19:30", graded: false, marks: "", feedback: "" },
-  ]);
+/* ── helpers ─────────────────────────────────────────── */
+const today = () => new Date().toISOString().slice(0, 10);
+const fmt   = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+const statusColor = {
+  PRESENT: "bg-emerald-100 text-emerald-700",
+  ABSENT:  "bg-red-100 text-red-600",
+  LATE:    "bg-amber-100 text-amber-700",
+  LEAVE:   "bg-blue-100 text-blue-600",
+};
 
-  const [toastMessage, setToastMessage] = useState("");
+/* ── SubmissionRow ────────────────────────────────────── */
+function SubmissionRow({ sub, onGrade }) {
+  const [marks, setMarks]       = useState(String(sub.marks || ""));
+  const [feedback, setFeedback] = useState(sub.feedback || "");
+  const [saving, setSaving]     = useState(false);
 
-  const handleGrade = (id, marks, feedback) => {
-    if (!marks) {
-      alert("Please enter numerical marks!");
-      return;
-    }
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.id === id
-          ? { ...sub, graded: true, marks, feedback: feedback || "Well done." }
-          : sub
-      )
-    );
-    setToastMessage(`Successfully logged score for submission ID #${id}!`);
-    setTimeout(() => setToastMessage(""), 4000);
+  const handleSubmit = async () => {
+    if (!marks) return;
+    setSaving(true);
+    await onGrade(sub.id, marks, feedback);
+    setSaving(false);
   };
 
   return (
-    <div className={pageWrapClass}>
-      <Toast message={toastMessage} />
-
-      <WelcomeBanner
-        badge="Trainer Workstation"
-        title={`Welcome back, ${user?.name || "Trainer"}!`}
-        description="Mark attendance, upload resources, assign projects, and grade submissions."
-        actions={
-          <>
-            <PrimaryButton className="flex items-center gap-1.5">
-              <FiPlus className="w-3.5 h-3.5" />
-              Publish Assignment
-            </PrimaryButton>
-            <SecondaryButton>Curriculum Map</SecondaryButton>
-          </>
-        }
-      />
-
-      <StatCards
-        stats={[
-          {
-            label: "Batches",
-            value: "3",
-            change: "Active cohorts",
-            icon: <FiLayers className="w-5 h-5" />,
-          },
-          {
-            label: "Attendance",
-            value: "92.5%",
-            change: "+1.2% MoM",
-            icon: <FiUsers className="w-5 h-5" />,
-          },
-          {
-            label: "To Grade",
-            value: `${submissions.filter((s) => !s.graded).length}`,
-            change: "Pending",
-            icon: <FiAward className="w-5 h-5" />,
-          },
-          {
-            label: "Resources",
-            value: "48",
-            change: "Shared files",
-            icon: <FiBookOpen className="w-5 h-5" />,
-          },
-        ]}
-      />
-
-      {/* 3. Middle Main Widgets Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Double-Column Panel */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Submissions Grading Console Table */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <span className="text-xs font-bold text-[#9ca3af] uppercase tracking-wider">Evaluation Hub</span>
-                <h3 className="text-lg font-extrabold text-[#0c0407] tracking-tight mt-0.5">Trainee Coding Submissions</h3>
-              </div>
-              <span className="px-3 py-1.5 text-xs font-extrabold text-[#475569] bg-[#475569]/10 border border-[#475569]/20 rounded-xl">
-                Awaiting Grade: {submissions.filter((s) => !s.graded).length}
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {submissions.map((sub) => {
-                // local state for grading form inputs on the row
-                return <SubmissionRow key={sub.id} sub={sub} onGrade={handleGrade} />;
-              })}
-            </div>
-          </div>
-
-          {/* Attendance Engagement & Syllabus Milestones Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Weekly Attendance Line Chart */}
-            <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Batch Attendance Trends</h3>
-              
-              {/* Custom Line Sparkline SVG */}
-              <div className="h-44 bg-slate-50/50 rounded-2xl border border-gray-50/50 p-3 relative">
-                <svg viewBox="0 0 300 120" className="w-full h-full overflow-visible">
-                  {/* Grid Lines */}
-                  <line x1="0" y1="30" x2="300" y2="30" stroke="#e2e8f0" strokeWidth="0.8" strokeDasharray="3" />
-                  <line x1="0" y1="75" x2="300" y2="75" stroke="#e2e8f0" strokeWidth="0.8" strokeDasharray="3" />
-                  
-                  {/* Primary Teal Line */}
-                  <path
-                    d="M 10 90 Q 70 20 130 65 T 250 40"
-                    fill="none"
-                    stroke="#334155"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  {/* Glowing Dots */}
-                  <circle cx="130" cy="65" r="3.5" fill="#334155" stroke="white" strokeWidth="1.5" />
-                  <circle cx="250" cy="40" r="3.5" fill="#334155" stroke="white" strokeWidth="1.5" />
-                  
-                  {/* X Axis */}
-                  <text x="10" y="115" fill="#9ca3af" fontSize="9" fontWeight="bold">Week 1</text>
-                  <text x="90" y="115" fill="#9ca3af" fontSize="9" fontWeight="bold">Week 2</text>
-                  <text x="170" y="115" fill="#9ca3af" fontSize="9" fontWeight="bold">Week 3</text>
-                  <text x="250" y="115" fill="#9ca3af" fontSize="9" fontWeight="bold">Week 4</text>
-                </svg>
-              </div>
-              <p className="text-[10px] text-gray-400 font-semibold mt-3 text-center">
-                MERN-2026-B1 weekly average participation rate.
-              </p>
-            </div>
-
-            {/* Curriculum Progress Checklist */}
-            <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-base font-extrabold text-[#0c0407] border-b border-black/[0.08] pb-3.5 mb-3.5">
-                MERN syllabus checklist
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { topic: "React Components & Hooks State", done: true },
-                  { topic: "Redux Toolkit central store", done: true },
-                  { topic: "Axios API Interceptors Integration", done: false },
-                  { topic: "JSON Web Tokens cookie storage", done: false },
-                ].map((top, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
-                      top.done 
-                        ? "bg-[#475569] border-[#475569] text-white" 
-                        : "border-gray-200 bg-slate-50"
-                    }`}>
-                      {top.done && <FiCheck className="w-3.5 h-3.5" />}
-                    </div>
-                    <span className={`text-xs font-semibold ${top.done ? "text-gray-400 line-through" : "text-gray-700"}`}>
-                      {top.topic}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Right Single-Column Panel */}
-        <div className="space-y-6">
-          
-          {/* Active Cohorts Timing Grid */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Daily Training Blocks</h3>
-            <div className="space-y-3.5">
-              {[
-                { name: "MERN Stack - B1", time: "09:00 AM - 11:00 AM", students: "34 Registered" },
-                { name: "PostgreSQL DB - B3", time: "11:30 AM - 01:30 PM", students: "28 Registered" },
-                { name: "DevOps Deploy - B2", time: "02:30 PM - 04:30 PM", students: "32 Registered" },
-              ].map((co, i) => (
-                <div key={i} className="bg-slate-50 border border-black/[0.08] p-4 rounded-2xl hover:scale-[1.01] transition-transform">
-                  <span className="text-[10px] font-bold text-[#475569] uppercase tracking-wider block">Cohort Active</span>
-                  <h4 className="text-sm font-extrabold mt-0.5">{co.name}</h4>
-                  <div className="h-[1px] bg-slate-100 my-2"></div>
-                  <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold">
-                    <span>{co.time}</span>
-                    <span>{co.students}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Classroom Commands Card */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Instructor Actions</h3>
-            <div className="grid grid-cols-1 gap-2.5">
-              {[
-                { label: "Mark Attendance Grid", icon: "☑" },
-                { label: "Upload Syllabus Topic", icon: "⎋" },
-                { label: "Share Study Material", icon: "⇪" },
-                { label: "Issue Class Link", icon: "⌨" },
-              ].map((act, i) => (
-                <button
-                  key={i}
-                  className="flex items-center justify-between text-left p-3 rounded-2xl hover:bg-[#f1f5f9]/5 hover:border-[#475569]/20 border border-slate-50/50 bg-slate-50/30 transition-all cursor-pointer font-bold text-xs"
-                >
-                  <span className="text-gray-600 font-semibold">{act.label}</span>
-                  <span className="text-sm font-bold text-[#475569]">{act.icon}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-  );
-};
-
-// Row component for grading student submissions locally
-const SubmissionRow = ({ sub, onGrade }) => {
-  const [marks, setMarks] = useState(sub.marks);
-  const [feedback, setFeedback] = useState(sub.feedback);
-
-  return (
-    <div className="p-4 rounded-2xl bg-slate-50/50 border border-black/[0.08]/80 space-y-3">
+    <div className="p-4 rounded-2xl bg-[#fafafa] border border-black/[0.07] space-y-3">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
-          <h4 className="font-extrabold text-sm text-[#0c0407]">{sub.name}</h4>
-          <p className="text-[10px] text-gray-400 font-bold mt-0.5">
-            Assignment: <span className="text-[#475569] font-extrabold">{sub.pg}</span> • {sub.batch}
+          <h4 className="font-bold text-sm text-[#0c0407]">{sub.student?.name}</h4>
+          <p className="text-[10px] text-[#94a3b8] font-semibold mt-0.5">
+            {sub.project?.title} · Submitted {fmt(sub.submitted_at)}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href={sub.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[10px] font-extrabold text-[#475569] hover:underline"
-          >
-            <FiExternalLink />
-            Code Repository
-          </a>
-          <span className="text-[10px] font-bold text-[#9ca3af]">{sub.date}</span>
+          {sub.github_link && (
+            <a href={sub.github_link} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-[#475569] hover:text-[#fc362d]">
+              <FiExternalLink className="w-3.5 h-3.5" /> GitHub
+            </a>
+          )}
         </div>
       </div>
 
-      <div className="h-[1px] bg-slate-100"></div>
+      <div className="h-px bg-black/[0.05]" />
 
       {sub.graded ? (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 bg-[#475569]/5 border border-[#475569]/10 p-3 rounded-xl">
-          <div className="text-xs">
-            <span className="font-bold text-[#9ca3af]">Score:</span>{" "}
-            <span className="font-extrabold text-[#475569]">{sub.marks}/100</span>
-            <span className="mx-2 text-gray-300">|</span>
-            <span className="font-bold text-[#9ca3af]">Review:</span>{" "}
-            <span className="text-gray-600 font-semibold">{sub.feedback}</span>
-          </div>
-          <span className="px-2.5 py-0.5 bg-[#475569] text-white text-[9px] font-bold rounded-lg uppercase tracking-wider flex items-center gap-1 select-none">
-            <FiCheck /> Graded
+        <div className="flex items-center justify-between bg-[#475569]/5 border border-[#475569]/10 p-3 rounded-xl text-xs">
+          <span className="text-[#475569] font-semibold">
+            Score: <strong>{sub.marks}/100</strong>
+            {sub.feedback && <> · <span className="text-[#636363]">{sub.feedback}</span></>}
+          </span>
+          <span className="px-2 py-0.5 bg-[#475569] text-white text-[9px] font-bold rounded-lg flex items-center gap-1">
+            <FiCheck className="w-3 h-3" /> Graded
           </span>
         </div>
       ) : (
-        <div className="flex flex-col md:flex-row items-end md:items-center gap-3 bg-white border border-black/[0.08] p-3 rounded-xl shadow-inner">
-          <div className="w-24">
-            <label className="block text-[9px] font-bold text-gray-400 uppercase mb-1">Marks (100)</label>
-            <input
-              type="number"
-              placeholder="e.g. 90"
-              value={marks}
-              onChange={(e) => setMarks(e.target.value)}
-              className={`${inputClass} !py-2 !rounded-xl text-xs`}
-            />
+        <div className="flex flex-col md:flex-row gap-2 items-end bg-white border border-black/[0.07] p-3 rounded-xl">
+          <div className="w-24 shrink-0">
+            <label className={`${labelMutedClass} block mb-1`}>Marks /100</label>
+            <input type="number" min={0} max={100} value={marks}
+              onChange={e => setMarks(e.target.value)}
+              className={`${inputClass} !py-1.5 text-xs`} placeholder="90" />
           </div>
           <div className="flex-1 w-full">
-            <label className="block text-[9px] font-bold text-gray-400 uppercase mb-1">Feedback</label>
-            <input
-              type="text"
-              placeholder="Provide student feedback..."
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              className={`${inputClass} !py-2 !rounded-xl text-xs`}
-            />
+            <label className={`${labelMutedClass} block mb-1`}>Feedback</label>
+            <input type="text" value={feedback}
+              onChange={e => setFeedback(e.target.value)}
+              className={`${inputClass} !py-1.5 text-xs`} placeholder="Great work…" />
           </div>
-          <button
-            onClick={() => onGrade(sub.id, marks, feedback)}
-            className={`${primaryBtnClass} px-4 py-2 text-xs w-full md:w-auto`}
-          >
-            Submit Score
+          <button onClick={handleSubmit} disabled={saving || !marks}
+            className={`${primaryBtnClass} py-2 px-4 text-xs whitespace-nowrap disabled:opacity-50`}>
+            {saving ? "Saving…" : "Submit Grade"}
           </button>
         </div>
       )}
     </div>
   );
+}
+
+/* ── AttendancePanel ──────────────────────────────────── */
+function AttendancePanel({ batchId, students, onClose }) {
+  const [date, setDate]       = useState(today());
+  const [entries, setEntries] = useState({});
+  const [saving, setSaving]   = useState(false);
+  const [toast, setToast]     = useState("");
+  const [existing, setExisting] = useState([]);
+
+  const STATUSES = ["PRESENT", "ABSENT", "LATE", "LEAVE"];
+
+  useEffect(() => {
+    if (!batchId || !date) return;
+    axios.get(`/api/trainer/batches/${batchId}/attendance`, { params: { date } })
+      .then(({ data }) => {
+        const map = {};
+        data.records.forEach(r => { map[r.student_id] = r.status; });
+        setExisting(data.records);
+        setEntries(prev => {
+          // pre-fill with existing, keep manual changes
+          const next = { ...prev };
+          students.forEach(s => {
+            if (map[s.student_id] && !next[s.student_id]) next[s.student_id] = map[s.student_id];
+          });
+          return next;
+        });
+      })
+      .catch(() => {});
+  }, [batchId, date, students]);
+
+  const markAll = (status) => {
+    const next = {};
+    students.forEach(s => { next[s.student_id] = status; });
+    setEntries(next);
+  };
+
+  const handleSave = async () => {
+    const payload = students
+      .filter(s => entries[s.student_id])
+      .map(s => ({ student_id: s.student_id, status: entries[s.student_id] }));
+    if (!payload.length) { setToast("Mark at least one student"); return; }
+    setSaving(true);
+    try {
+      await axios.post(`/api/trainer/batches/${batchId}/attendance`, { date, entries: payload });
+      setToast(`Attendance saved for ${date}`);
+      setTimeout(() => setToast(""), 3500);
+    } catch (e) {
+      setToast(e.response?.data?.message || "Failed to save");
+      setTimeout(() => setToast(""), 3500);
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" role="dialog">
+      <div className="absolute inset-0 bg-[#0c0407]/40 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative w-full max-w-lg max-h-[85vh] flex flex-col ${cardClass} overflow-hidden`}>
+        <div className="flex items-center justify-between p-5 border-b border-black/[0.07] shrink-0">
+          <div>
+            <span className={labelMutedClass}>Mark Attendance</span>
+            <h2 className="text-base font-bold text-[#0c0407] mt-0.5">Daily Register</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl border border-black/10 flex items-center justify-center text-[#94a3b8] hover:text-[#0c0407] cursor-pointer">
+            <FiX className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 shrink-0 space-y-3 border-b border-black/[0.06]">
+          <div>
+            <label className={`${labelMutedClass} block mb-1`}>Session Date</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              max={today()} className={`${inputClass} w-full`} />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {STATUSES.map(s => (
+              <button key={s} onClick={() => markAll(s)}
+                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border cursor-pointer transition-colors ${statusColor[s]} border-current/20`}>
+                All {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-2">
+          {students.length === 0 && (
+            <p className="text-xs text-[#94a3b8] text-center py-8">No students enrolled</p>
+          )}
+          {students.map(s => (
+            <div key={s.student_id} className="flex items-center justify-between gap-3 py-2.5 border-b border-black/[0.04]">
+              <span className="text-sm font-semibold text-[#0c0407] truncate">{s.name}</span>
+              <div className="flex gap-1.5 shrink-0">
+                {STATUSES.map(st => (
+                  <button key={st} onClick={() => setEntries(prev => ({ ...prev, [s.student_id]: st }))}
+                    className={`px-2.5 py-1 text-[9px] font-bold rounded-lg border cursor-pointer transition-all ${
+                      entries[s.student_id] === st
+                        ? `${statusColor[st]} border-current/30 shadow-sm`
+                        : "bg-[#f1f5f9] text-[#94a3b8] border-transparent"
+                    }`}>
+                    {st[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-5 border-t border-black/[0.07] shrink-0 flex gap-3">
+          <button onClick={handleSave} disabled={saving}
+            className={`${primaryBtnClass} flex-1 disabled:opacity-50`}>
+            {saving ? "Saving…" : "Save Attendance"}
+          </button>
+          <button onClick={onClose} className={secondaryBtnClass}>Cancel</button>
+        </div>
+
+        {toast && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-[#0c0407] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg">
+            {toast}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── MaterialsPanel ───────────────────────────────────── */
+function MaterialsPanel({ batchId, materials, onRefresh }) {
+  const [form, setForm]     = useState({ title: "", file_url: "", material_type: "PDF" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  const TYPES = ["PDF", "VIDEO", "PPT", "ASSIGNMENT", "LINK"];
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    setSaving(true); setError("");
+    try {
+      await axios.post(`/api/trainer/batches/${batchId}/materials`, form);
+      setForm({ title: "", file_url: "", material_type: "PDF" });
+      onRefresh();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to upload");
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this material?")) return;
+    try { await axios.delete(`/api/trainer/materials/${id}`); onRefresh(); }
+    catch { /* ignore */ }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
+        <input required value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+          placeholder="Material title" className={`${inputClass} flex-1`} />
+        <input required value={form.file_url} onChange={e => setForm(p => ({ ...p, file_url: e.target.value }))}
+          placeholder="URL or link" className={`${inputClass} flex-1`} />
+        <select value={form.material_type} onChange={e => setForm(p => ({ ...p, material_type: e.target.value }))}
+          className={`${inputClass} w-32 shrink-0`}>
+          {TYPES.map(t => <option key={t}>{t}</option>)}
+        </select>
+        <button type="submit" disabled={saving} className={`${primaryBtnClass} shrink-0 disabled:opacity-50`}>
+          <FiUpload className="w-3.5 h-3.5 mr-1 inline" />{saving ? "Uploading…" : "Upload"}
+        </button>
+      </form>
+      {error && <p className="text-xs text-[#b91c1c] font-semibold">{error}</p>}
+
+      {materials.length === 0 ? (
+        <p className="text-xs text-[#94a3b8] text-center py-6 bg-[#fafafa] rounded-xl border border-dashed border-black/[0.07]">
+          No materials uploaded yet.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {materials.map(m => (
+            <div key={m.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#fafafa] border border-black/[0.07]">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#0c0407] truncate">{m.title}</p>
+                <p className="text-[10px] text-[#94a3b8] font-semibold truncate">{m.file_url}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-[#f1f5f9] text-[#475569] border border-black/[0.06]">
+                  {m.material_type}
+                </span>
+                <a href={m.file_url} target="_blank" rel="noopener noreferrer"
+                  className="w-7 h-7 rounded-lg border border-black/10 flex items-center justify-center text-[#475569] hover:text-[#fc362d]">
+                  <FiExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <button onClick={() => handleDelete(m.id)}
+                  className="w-7 h-7 rounded-lg border border-black/10 flex items-center justify-center text-[#94a3b8] hover:text-[#b91c1c] hover:border-[#b91c1c]/30 cursor-pointer">
+                  <FiTrash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main TrainerDashboard ────────────────────────────── */
+export const TrainerDashboard = ({ user }) => {
+  const [profile, setProfile]           = useState(null);
+  const [loading, setLoading]           = useState(true);
+  const [activeBatchId, setActiveBatchId] = useState(null);
+  const [batchDetail, setBatchDetail]   = useState(null);
+  const [submissions, setSubmissions]   = useState([]);
+  const [materials, setMaterials]       = useState([]);
+  const [loadingBatch, setLoadingBatch] = useState(false);
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const [activeTab, setActiveTab]       = useState("submissions"); // submissions | materials | students
+  const [toast, setToast]               = useState("");
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
+
+  /* Fetch trainer profile + batches */
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get("/api/trainer/me");
+      setProfile(data);
+      if (data.batches?.length > 0 && !activeBatchId) {
+        setActiveBatchId(data.batches[0].id);
+      }
+    } catch { setProfile(null); }
+    finally { setLoading(false); }
+  }, [activeBatchId]);
+
+  useEffect(() => { fetchProfile(); }, []);
+
+  /* Fetch batch detail + submissions + materials when activeBatchId changes */
+  const fetchBatchData = useCallback(async (batchId) => {
+    if (!batchId) return;
+    setLoadingBatch(true);
+    try {
+      const [detailRes, subRes, matRes] = await Promise.all([
+        axios.get(`/api/trainer/batches/${batchId}`),
+        axios.get(`/api/trainer/batches/${batchId}/submissions`),
+        axios.get(`/api/trainer/batches/${batchId}/materials`),
+      ]);
+      setBatchDetail(detailRes.data);
+      setSubmissions(subRes.data);
+      setMaterials(matRes.data);
+    } catch { setBatchDetail(null); setSubmissions([]); setMaterials([]); }
+    finally { setLoadingBatch(false); }
+  }, []);
+
+  useEffect(() => { if (activeBatchId) fetchBatchData(activeBatchId); }, [activeBatchId, fetchBatchData]);
+
+  const handleGrade = async (subId, marks, feedback) => {
+    try {
+      await axios.put(`/api/trainer/submissions/${subId}/grade`, { marks: Number(marks), feedback });
+      showToast("Grade saved");
+      const { data } = await axios.get(`/api/trainer/batches/${activeBatchId}/submissions`);
+      setSubmissions(data);
+    } catch (e) {
+      showToast(e.response?.data?.message || "Failed to grade");
+    }
+  };
+
+  const pendingCount = submissions.filter(s => !s.graded).length;
+  const presentPct   = batchDetail ? (() => {
+    // compute attendance pct across all students for today-ish context
+    return "—";
+  })() : "—";
+
+  if (loading) return (
+    <div className={pageWrapClass}>
+      <div className="py-16 text-center text-sm font-semibold text-[#94a3b8]">Loading trainer workspace…</div>
+    </div>
+  );
+
+  if (!profile) return (
+    <div className={pageWrapClass}>
+      <div className="py-16 text-center">
+        <FiAlertCircle className="w-10 h-10 text-[#fc362d] mx-auto mb-3" />
+        <p className="text-sm font-semibold text-[#636363]">Trainer profile not found. Contact admin.</p>
+      </div>
+    </div>
+  );
+
+  const activeBatch = profile.batches?.find(b => b.id === activeBatchId);
+
+  return (
+    <div className={pageWrapClass}>
+      <Toast message={toast} />
+
+      {attendanceOpen && batchDetail && (
+        <AttendancePanel
+          batchId={activeBatchId}
+          students={batchDetail.students?.map(s => ({ student_id: s.student?.id, name: s.student?.name })) || []}
+          onClose={() => setAttendanceOpen(false)}
+        />
+      )}
+
+      <WelcomeBanner
+        badge="Trainer Workstation"
+        title={`Welcome, ${user?.name || "Trainer"}!`}
+        description="Mark attendance, upload resources, review submissions and grade your students."
+        actions={
+          <>
+            <PrimaryButton onClick={() => setAttendanceOpen(true)} className="flex items-center gap-1.5">
+              <FiCalendar className="w-3.5 h-3.5" /> Mark Attendance
+            </PrimaryButton>
+            <SecondaryButton onClick={() => { setActiveTab("materials"); }}>
+              Upload Material
+            </SecondaryButton>
+          </>
+        }
+      />
+
+      <StatCards stats={[
+        { label: "Assigned Batches",  value: String(profile.batch_count || 0), change: "Active cohorts",          icon: <FiLayers className="w-5 h-5" /> },
+        { label: "Total Students",    value: String(profile.total_students || 0), change: "Enrolled learners",    icon: <FiUsers  className="w-5 h-5" /> },
+        { label: "Pending Reviews",   value: String(pendingCount),             change: "Submissions to grade",     icon: <FiAward  className="w-5 h-5" /> },
+        { label: "Study Materials",   value: String(materials.length),          change: "Uploaded this batch",     icon: <FiBookOpen className="w-5 h-5" /> },
+      ]} />
+
+      {/* Batch selector */}
+      {profile.batches?.length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          {profile.batches.map(b => (
+            <button key={b.id} onClick={() => setActiveBatchId(b.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                activeBatchId === b.id
+                  ? "bg-[#fc362d] text-white border-[#fc362d] shadow-[0_2px_12px_rgba(252,54,45,0.3)]"
+                  : "bg-white text-[#475569] border-black/10 hover:border-[#fc362d]/30"
+              }`}>
+              {b.batch_name}
+              <span className={`ml-2 text-[9px] font-extrabold ${activeBatchId === b.id ? "text-white/70" : "text-[#94a3b8]"}`}>
+                {b.student_count} students
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {profile.batches?.length === 0 && (
+        <Panel>
+          <p className="text-sm text-[#94a3b8] font-semibold text-center py-8">
+            No batches assigned yet. Contact your admin to get assigned to a cohort.
+          </p>
+        </Panel>
+      )}
+
+      {activeBatch && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ── Left 2/3 ── */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Tab nav */}
+            <div className="flex border-b border-black/[0.08] gap-5">
+              {[
+                { key: "submissions", label: "Submissions", badge: pendingCount > 0 ? pendingCount : null },
+                { key: "materials",   label: "Study Materials" },
+                { key: "students",    label: "Students" },
+              ].map(tab => (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                  className={`pb-2.5 text-xs font-bold relative cursor-pointer transition-colors flex items-center gap-1.5 ${
+                    activeTab === tab.key ? "text-[#fc362d]" : "text-[#94a3b8] hover:text-[#0c0407]"
+                  }`}>
+                  {tab.label}
+                  {tab.badge && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#fc362d] text-white text-[9px] font-extrabold">
+                      {tab.badge}
+                    </span>
+                  )}
+                  {activeTab === tab.key && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#fc362d] rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {loadingBatch ? (
+              <div className="py-12 text-center text-sm text-[#94a3b8]">Loading batch data…</div>
+            ) : (
+              <>
+                {/* Submissions tab */}
+                {activeTab === "submissions" && (
+                  <Panel>
+                    <PanelHeader eyebrow="Evaluation Hub" title="Student Submissions"
+                      action={<span className="text-xs font-bold text-[#475569] bg-[#f1f5f9] px-3 py-1 rounded-lg border border-black/[0.06]">
+                        {pendingCount} Pending
+                      </span>} />
+                    {submissions.length === 0 ? (
+                      <p className="text-xs text-[#94a3b8] text-center py-10 bg-[#fafafa] rounded-xl border border-dashed border-black/[0.07]">
+                        No submissions yet for this batch.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {submissions.map(sub => (
+                          <SubmissionRow key={sub.id} sub={sub} onGrade={handleGrade} />
+                        ))}
+                      </div>
+                    )}
+                  </Panel>
+                )}
+
+                {/* Materials tab */}
+                {activeTab === "materials" && (
+                  <Panel>
+                    <PanelHeader eyebrow="Resources" title="Study Materials" />
+                    <MaterialsPanel
+                      batchId={activeBatchId}
+                      materials={materials}
+                      onRefresh={() => fetchBatchData(activeBatchId)}
+                    />
+                  </Panel>
+                )}
+
+                {/* Students tab */}
+                {activeTab === "students" && (
+                  <Panel>
+                    <PanelHeader eyebrow="Roster" title={`Enrolled Students (${batchDetail?.students?.length || 0})`} />
+                    {!batchDetail?.students?.length ? (
+                      <p className="text-xs text-[#94a3b8] text-center py-8">No students enrolled.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-black/[0.07] text-[#94a3b8] uppercase tracking-wider">
+                              <th className="pb-3 px-2 font-bold text-left">Student</th>
+                              <th className="pb-3 px-2 font-bold text-left">Email</th>
+                              <th className="pb-3 px-2 font-bold text-left">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {batchDetail.students.map((s, i) => (
+                              <tr key={i} className="border-b border-black/[0.04] hover:bg-[#fafafa]">
+                                <td className="py-3 px-2 font-bold text-[#0c0407]">{s.student?.name}</td>
+                                <td className="py-3 px-2 text-[#636363]">{s.student?.email}</td>
+                                <td className="py-3 px-2">
+                                  <StatusBadge variant={s.enrollment_status === "ACTIVE" ? "ok" : "info"}>
+                                    {s.enrollment_status}
+                                  </StatusBadge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </Panel>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* ── Right 1/3 ── */}
+          <div className="space-y-5">
+
+            {/* Active batch card */}
+            <Panel>
+              <h3 className="text-sm font-bold text-[#0c0407] mb-4">Active Batch</h3>
+              <div className="space-y-3">
+                <div>
+                  <span className={labelMutedClass}>Cohort</span>
+                  <p className="text-base font-extrabold text-[#0c0407] mt-0.5">{activeBatch.batch_name}</p>
+                </div>
+                {activeBatch.course && (
+                  <div>
+                    <span className={labelMutedClass}>Course</span>
+                    <p className="text-sm font-semibold text-[#475569] mt-0.5">{activeBatch.course.title}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className={labelMutedClass}>Start</span>
+                    <p className="text-xs font-bold text-[#0c0407] mt-0.5">{fmt(activeBatch.start_date)}</p>
+                  </div>
+                  <div>
+                    <span className={labelMutedClass}>End</span>
+                    <p className="text-xs font-bold text-[#0c0407] mt-0.5">{fmt(activeBatch.end_date)}</p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-black/[0.06]">
+                  <span className={labelMutedClass}>Students</span>
+                  <p className="text-2xl font-extrabold text-[#0c0407] mt-0.5">{activeBatch.student_count}</p>
+                </div>
+              </div>
+            </Panel>
+
+            {/* Quick actions */}
+            <Panel>
+              <h3 className="text-sm font-bold text-[#0c0407] mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                {[
+                  { label: "Mark Today's Attendance", icon: <FiCalendar className="w-4 h-4" />, action: () => setAttendanceOpen(true) },
+                  { label: "Upload Study Material",    icon: <FiUpload className="w-4 h-4" />,   action: () => setActiveTab("materials") },
+                  { label: "Review Submissions",       icon: <FiAward className="w-4 h-4" />,    action: () => setActiveTab("submissions") },
+                  { label: "View Student Roster",      icon: <FiUsers className="w-4 h-4" />,    action: () => setActiveTab("students") },
+                ].map((a, i) => (
+                  <button key={i} onClick={a.action}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-black/[0.07] bg-[#fafafa] hover:bg-white hover:border-[#fc362d]/20 hover:shadow-sm transition-all cursor-pointer text-left">
+                    <span className="w-7 h-7 rounded-lg bg-[#fc362d]/10 flex items-center justify-center text-[#fc362d] shrink-0">
+                      {a.icon}
+                    </span>
+                    <span className="text-xs font-semibold text-[#475569]">{a.label}</span>
+                  </button>
+                ))}
+              </div>
+            </Panel>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
+
 export default TrainerDashboard;
