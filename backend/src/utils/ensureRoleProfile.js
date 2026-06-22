@@ -15,23 +15,24 @@ async function resolveRoleName(user, roleNameOverride) {
 }
 
 async function generateStudentCode() {
-  const year = new Date().getFullYear();
-  const prefix = `STU-${year}-`;
+  // Format: stu-YEAR-NNN  (all lowercase prefix)
+  const year   = new Date().getFullYear();
+  const prefix = `stu-${year}-`;
+
   const students = await Student.findAll({
     where: {
-      student_code: { [Op.like]: `${prefix}%` },
+      student_code: { [Op.like]: `%${year}%` },   // catch both old STU- and new stu- formats
     },
     attributes: ["student_code"],
   });
 
   let maxNum = 0;
   for (const s of students) {
-    if (s.student_code && s.student_code.startsWith(prefix)) {
-      const suffixStr = s.student_code.slice(prefix.length);
-      const suffixNum = parseInt(suffixStr, 10);
-      if (!isNaN(suffixNum) && suffixNum > maxNum) {
-        maxNum = suffixNum;
-      }
+    const code = (s.student_code || "").toLowerCase();
+    const match = code.match(/\d{4}-(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (!isNaN(n) && n > maxNum) maxNum = n;
     }
   }
   return `${prefix}${String(maxNum + 1).padStart(3, "0")}`;

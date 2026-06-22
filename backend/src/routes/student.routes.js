@@ -19,6 +19,100 @@ router.use(protect);
 
 router.get("/me/fees", getMyFeeProfile);
 
+/* ── GET /api/students/me/profile ────────────────────── */
+router.get("/me/profile", asyncHandler(async (req, res) => {
+  const student = await Student.findOne({
+    where: { user_id: req.user.id },
+    include: [
+      { model: User, attributes: ["id", "name", "email"] },
+      {
+        model: Enrollment,
+        include: [{
+          model: Batch,
+          include: [{ model: Course, attributes: ["id", "title", "duration_month"] }],
+        }],
+      },
+    ],
+  });
+  if (!student) { res.status(404); throw new Error("Student profile not found"); }
+
+  const enrollment = student.Enrollments?.[0] || null;
+  const batch      = enrollment?.Batch  || null;
+  const course     = batch?.Course      || null;
+
+  res.json({
+    id:             student.id,
+    student_code:   student.student_code,
+    phone:          student.phone,
+    address:        student.address,
+    college_name:   student.college_name,
+    qualification:  student.qualification,
+    joining_date:   student.joining_date,
+    profile_img:    student.profile_img || "",
+    user: {
+      id:    student.User?.id,
+      name:  student.User?.name,
+      email: student.User?.email,
+    },
+    enrollment: enrollment ? {
+      id:              enrollment.id,
+      enrollment_date: enrollment.enrollment_date,
+      status:          enrollment.status,
+    } : null,
+    batch:  batch  ? { id: batch.id,   batch_name: batch.batch_name, start_date: batch.start_date, end_date: batch.end_date } : null,
+    course: course ? { id: course.id,  title: course.title, duration_month: course.duration_month } : null,
+  });
+}));
+
+/* ── PUT /api/students/me/profile ────────────────────── */
+router.put("/me/profile", asyncHandler(async (req, res) => {
+  const student = await Student.findOne({
+    where: { user_id: req.user.id },
+    include: [{ model: User }],
+  });
+  if (!student) { res.status(404); throw new Error("Student profile not found"); }
+
+  const { phone, address, college_name, qualification, profile_img } = req.body;
+
+  if (phone       !== undefined) student.phone        = String(phone || "").trim();
+  if (address     !== undefined) student.address      = String(address || "").trim();
+  if (college_name!== undefined) student.college_name = String(college_name || "").trim();
+  if (qualification !== undefined) student.qualification = String(qualification || "").trim();
+  if (profile_img !== undefined) student.profile_img  = profile_img || "";
+
+  await student.save();
+  res.json({ message: "Profile updated", student_code: student.student_code });
+}));
+
+/* ── POST /api/students/backfill-codes (admin util) ──── */
+// One-time endpoint to assign stu- codes to legacy students that have placeholder codes
+router.post("/backfill-codes", asyncHandler(async (req, res) => {
+  const all = await Student.findAll({ attributes: ["id", "student_code"] });
+  let updated = 0;
+  for (const s of all) {
+    const code = (s.student_code || "").trim();
+    const needsBackfill = !code || code === "0" || code.startsWith("STU-") || !code.startsWith("stu-");
+    if (needsBackfill) {
+      // Generate new code
+      const year   = new Date().getFullYear();
+      const prefix = `stu-${year}-`;
+      const existing = await Student.findAll({
+        where: { student_code: { [Op.like]: `%${year}%` } },
+        attributes: ["student_code"],
+      });
+      let maxNum = 0;
+      existing.forEach(e => {
+        const m = (e.student_code || "").toLowerCase().match(/\d{4}-(\d+)$/);
+        if (m) { const n = parseInt(m[1], 10); if (!isNaN(n) && n > maxNum) maxNum = n; }
+      });
+      s.student_code = `${prefix}${String(maxNum + 1).padStart(3, "0")}`;
+      await s.save();
+      updated++;
+    }
+  }
+  res.json({ message: `Backfilled ${updated} student codes` });
+}));
+
 /* ── GET /api/students/me/dashboard ─────────────────── */
 router.get("/me/dashboard", asyncHandler(async (req, res) => {
   const student = await Student.findOne({
@@ -53,14 +147,31 @@ router.get("/me/dashboard", asyncHandler(async (req, res) => {
   const total   = attendances.length;
   const pct     = total > 0 ? Math.round((present / total) * 100) : 0;
 
-  // Study materials for their course
+  // Study materials for their course — include uploader name
   let materials = [];
   if (course?.id) {
-    materials = await StudyMaterial.findAll({
+    const rawMaterials = await StudyMaterial.findAll({
       where: { course_id: course.id },
       order: [["id", "ASC"]],
-      limit: 20,
     });
+
+    // Resolve uploaded_by user IDs to names in one query
+    const uploaderIds = [...new Set(rawMaterials.map(m => m.uploaded_by).filter(Boolean))];
+    const uploaderUsers = uploaderIds.length > 0
+      ? await User.findAll({ where: { id: uploaderIds }, attributes: ["id", "name"] })
+      : [];
+    const uploaderMap = {};
+    uploaderUsers.forEach(u => { uploaderMap[u.id] = u.name; });
+
+    materials = rawMaterials.map(m => ({
+      id:            m.id,
+      title:         m.title,
+      topic_name:    m.topic_name || "General",
+      file_url:      m.file_url,
+      material_type: m.material_type,
+      uploaded_by:   m.uploaded_by,
+      uploader_name: uploaderMap[m.uploaded_by] || trainer?.User?.name || "Trainer",
+    }));
   }
 
   // Projects + submissions with trainer info
@@ -128,6 +239,46 @@ router.get("/me/dashboard", asyncHandler(async (req, res) => {
     attendance: { total, present, absent, pct, records: attendances.slice(0, 30) },
     materials,
     projects,
+  });
+}));
+
+/* ── GET /api/students/me/materials ─────────────────── */
+router.get("/me/materials", asyncHandler(async (req, res) => {
+  const student = await Student.findOne({
+    where: { user_id: req.user.id },
+    include: [{
+      model: Enrollment,
+      include: [{ model: Batch, include: [{ model: Course, attributes: ["id", "title"] }] }],
+    }],
+  });
+
+  if (!student) { res.status(404); throw new Error("Student profile not found"); }
+
+  const course = student.Enrollments?.[0]?.Batch?.Course || null;
+  if (!course) return res.json({ materials: [], course: null });
+
+  const rawMaterials = await StudyMaterial.findAll({
+    where: { course_id: course.id },
+    order: [["id", "ASC"]],
+  });
+
+  const uploaderIds = [...new Set(rawMaterials.map(m => m.uploaded_by).filter(Boolean))];
+  const uploaderUsers = uploaderIds.length > 0
+    ? await User.findAll({ where: { id: uploaderIds }, attributes: ["id", "name"] })
+    : [];
+  const uploaderMap = {};
+  uploaderUsers.forEach(u => { uploaderMap[u.id] = u.name; });
+
+  res.json({
+    course: { id: course.id, title: course.title },
+    materials: rawMaterials.map(m => ({
+      id:            m.id,
+      title:         m.title,
+      topic_name:    m.topic_name || "General",
+      file_url:      m.file_url,
+      material_type: m.material_type,
+      uploader_name: uploaderMap[m.uploaded_by] || "Trainer",
+    })),
   });
 }));
 

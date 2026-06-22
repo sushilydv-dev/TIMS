@@ -43,7 +43,7 @@ const Student = sequelize.define(
       allowNull: false,
     },
     profile_img: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,     // TEXT to support base64 avatar images
       allowNull: false,
       defaultValue: "",
     },

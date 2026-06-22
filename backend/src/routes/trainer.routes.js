@@ -370,17 +370,24 @@ router.post("/batches/:batchId/materials", asyncHandler(async (req, res) => {
   });
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
-  const { title, file_url, material_type } = req.body;
-  if (!title?.trim() || !file_url?.trim() || !material_type?.trim()) {
-    res.status(400); throw new Error("title, file_url, and material_type are required");
+  const { title, topic_name, file_url, file_data, material_type } = req.body;
+  if (!title?.trim() || !material_type?.trim()) {
+    res.status(400); throw new Error("title and material_type are required");
+  }
+
+  // Accept either a base64 data URL (file_data) or a plain URL (file_url)
+  const storedUrl = (file_data?.trim() || file_url?.trim() || "");
+  if (!storedUrl) {
+    res.status(400); throw new Error("Either file_data or file_url is required");
   }
 
   const material = await StudyMaterial.create({
-    course_id: batch.course_id,
-    title: title.trim(),
-    file_url: file_url.trim(),
+    course_id:     batch.course_id,
+    title:         title.trim(),
+    topic_name:    (topic_name?.trim() || "General"),
+    file_url:      storedUrl,
     material_type: material_type.trim(),
-    uploaded_by: String(req.user.id),
+    uploaded_by:   String(req.user.id),
   });
 
   res.status(201).json(material);
