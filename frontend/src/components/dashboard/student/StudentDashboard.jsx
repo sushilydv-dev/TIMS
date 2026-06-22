@@ -305,23 +305,74 @@ export const StudentDashboard = ({ user }) => {
                       <FiBookOpen className="w-8 h-8 text-[#94a3b8] mx-auto mb-2" />
                       <p className="text-xs text-[#94a3b8] font-semibold">No materials uploaded yet by your trainer.</p>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {materials.map(m => (
-                        <a key={m.id} href={m.file_url} target="_blank" rel="noopener noreferrer"
-                          className="group flex items-center gap-3 p-4 bg-white border border-black/[0.08] rounded-2xl hover:border-[#fc362d]/25 hover:shadow-md transition-all no-underline">
-                          <div className="w-9 h-9 rounded-xl bg-[#fc362d]/10 flex items-center justify-center shrink-0">
-                            <FiBookOpen className="w-4 h-4 text-[#fc362d]" />
+                  ) : (() => {
+                    // Group by topic_name
+                    const grouped = materials.reduce((acc, m) => {
+                      const t = m.topic_name || "General";
+                      if (!acc[t]) acc[t] = [];
+                      acc[t].push(m);
+                      return acc;
+                    }, {});
+                    const topics = Object.keys(grouped).sort();
+                    const getIcon = (type) => {
+                      const t = (type || "").toUpperCase();
+                      if (t === "PDF")   return { bg: "bg-red-50 text-red-600 border-red-200",    label: "PDF" };
+                      if (t === "DOC")   return { bg: "bg-blue-50 text-blue-600 border-blue-200",  label: "DOC" };
+                      if (t === "PPT")   return { bg: "bg-orange-50 text-orange-600 border-orange-200", label: "PPT" };
+                      if (t === "VIDEO") return { bg: "bg-purple-50 text-purple-600 border-purple-200", label: "VID" };
+                      return               { bg: "bg-[#f1f5f9] text-[#475569] border-black/10",   label: type };
+                    };
+                    return (
+                      <div className="space-y-5">
+                        {topics.map(topic => (
+                          <div key={topic} className="bg-white border border-black/[0.07] rounded-2xl overflow-hidden">
+                            {/* Topic header */}
+                            <div className="flex items-center gap-2.5 px-4 py-3 bg-[#fafafa] border-b border-black/[0.06]">
+                              <div className="w-6 h-6 rounded-lg bg-[#fc362d]/10 flex items-center justify-center shrink-0">
+                                <FiBookOpen className="w-3.5 h-3.5 text-[#fc362d]" />
+                              </div>
+                              <h4 className="text-xs font-extrabold text-[#0c0407] uppercase tracking-wider flex-1">{topic}</h4>
+                              <span className="text-[10px] font-bold text-[#94a3b8]">
+                                {grouped[topic].length} file{grouped[topic].length !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                            {/* Files */}
+                            <div className="divide-y divide-black/[0.04]">
+                              {grouped[topic].map(m => {
+                                const icon  = getIcon(m.material_type);
+                                const isB64 = m.file_url?.startsWith("data:");
+                                const ext   = m.material_type === "PDF" ? ".pdf" : m.material_type === "DOC" ? ".docx" : m.material_type === "PPT" ? ".pptx" : ".file";
+                                const dlName = `${m.title.replace(/\s+/g, "_")}${ext}`;
+                                return (
+                                  <div key={m.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#fafafa] transition-colors group">
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      <span className={`shrink-0 text-[9px] font-extrabold px-2 py-0.5 rounded-lg border ${icon.bg}`}>
+                                        {icon.label}
+                                      </span>
+                                      <p className="text-xs font-semibold text-[#0c0407] truncate group-hover:text-[#fc362d] transition-colors">
+                                        {m.title}
+                                      </p>
+                                    </div>
+                                    {isB64 ? (
+                                      <a href={m.file_url} download={dlName}
+                                        className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg border border-black/[0.08] text-[10px] font-bold text-[#475569] hover:text-[#fc362d] hover:border-[#fc362d]/30 transition-all no-underline">
+                                        <FiDownload className="w-3 h-3" /> Download
+                                      </a>
+                                    ) : (
+                                      <a href={m.file_url} target="_blank" rel="noopener noreferrer"
+                                        className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg border border-black/[0.08] text-[10px] font-bold text-[#475569] hover:text-[#fc362d] hover:border-[#fc362d]/30 transition-all no-underline">
+                                        <FiExternalLink className="w-3 h-3" /> Open
+                                      </a>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-[#0c0407] truncate group-hover:text-[#fc362d] transition-colors">{m.title}</p>
-                            <p className="text-[10px] text-[#94a3b8] font-semibold mt-0.5">{m.material_type}</p>
-                          </div>
-                          <FiExternalLink className="w-3.5 h-3.5 text-[#94a3b8] group-hover:text-[#fc362d] shrink-0" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
               </div>

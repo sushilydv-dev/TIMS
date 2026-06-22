@@ -28,6 +28,8 @@ import AllCoursesPage from "./pages/AllCoursesPage";
 import { TrainerBatches } from "./components/dashboard/trainer/TrainerBatches";
 import { TrainerAttendance } from "./components/dashboard/trainer/TrainerAttendance";
 import StudentProjects from "./components/dashboard/student/StudentProjects";
+import StudentMaterials from "./components/dashboard/student/StudentMaterials";
+import StudentProfile from "./components/dashboard/student/StudentProfile";
 
 export const App = () => {
   return (
@@ -58,7 +60,9 @@ export const App = () => {
               <Route path="trainer/attendance" element={<TrainerAttendance />} />
 
               {/* ── Student routes ── */}
-              <Route path="student/projects" element={<StudentProjects />} />
+              <Route path="student/profile"   element={<StudentProfile />} />
+              <Route path="student/projects"  element={<StudentProjects />} />
+              <Route path="student/materials" element={<StudentMaterials />} />
               <Route
                 path="users"
                 element={

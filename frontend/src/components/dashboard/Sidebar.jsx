@@ -83,8 +83,9 @@ export const Sidebar = ({ activeRole }) => {
       case "STUDENT":
         return [
           ...baseLinks,
+          { label: "My Profile",      icon: <FiUsers    className="w-5 h-5" />, path: "/dashboard/student/profile" },
           { label: "Projects",        icon: <FiAward    className="w-5 h-5" />, path: "/dashboard/student/projects" },
-          { label: "Syllabus Track",  icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard?tab=syllabus" },
+          { label: "Study Materials", icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard/student/materials" },
           { label: "Receipts Locker", icon: <FiDollarSign className="w-5 h-5" />, path: "/dashboard?tab=fees" },
         ];
       default:

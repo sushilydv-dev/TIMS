@@ -18,8 +18,13 @@ const StudyMaterial = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    file_url: {
+    topic_name: {
       type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "General",
+    },
+    file_url: {
+      type: DataTypes.TEXT,        // base64 files need TEXT not VARCHAR(255)
       allowNull: false,
     },
     material_type: {
