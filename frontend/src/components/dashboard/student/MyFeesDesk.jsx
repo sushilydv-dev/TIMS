@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { FiDollarSign, FiCalendar, FiCreditCard, FiCheckCircle, FiAlertCircle, FiPercent } from "react-icons/fi";
+import { FiDollarSign, FiCalendar, FiCreditCard, FiCheckCircle, FiAlertCircle, FiPercent, FiDownload } from "react-icons/fi";
 import axios from "axios";
 import { Toast } from "../DashboardUI";
 import { cardClass, labelMutedClass, trendUpClass, trendDownClass } from "../dashboardTheme";
+import { generatePaymentReceipt } from "../../../utils/generatePaymentReceipt";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -114,10 +115,27 @@ export function MyFeesDesk({ onPaymentSuccess }) {
     }
   };
 
-  const handleDownloadReceipt = (payment) => {
-    alert(
-      `Downloading Invoice TIMS-INV-${payment.id.slice(0, 8)}.pdf\nTransaction: ${payment.transaction_id}\nMethod: ${payment.payment_methhod}\nAmount: ${formatInr(payment.amount)}`
-    );
+  const handleDownloadReceipt = async (payment) => {
+    try {
+      // Build student + course info from what we have in state
+      const enrollment = student?.Enrollments?.[0] || null;
+      const batch  = enrollment?.Batch  || null;
+      const course = batch?.Course      || null;
+      await generatePaymentReceipt({
+        studentName:   student?.User?.name   || "—",
+        studentCode:   student?.student_code || "—",
+        studentEmail:  student?.User?.email  || "—",
+        courseName:    course?.title          || "—",
+        batchName:     batch?.batch_name      || "—",
+        amount:        payment.amount,
+        paymentDate:   payment.payment_date,
+        paymentMethod: payment.payment_methhod || "—",
+        transactionId: payment.transaction_id  || "—",
+        status:        payment.status || "SUCCESS",
+      });
+    } catch (err) {
+      showToast("Receipt generation failed: " + err.message);
+    }
   };
 
   if (loading) {
@@ -329,14 +347,14 @@ export function MyFeesDesk({ onPaymentSuccess }) {
                         {isPaid ? (
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               const match = payments.find((p) => p.installment_id === inst.id);
-                              if (match) handleDownloadReceipt(match);
-                              else alert("Receipt metadata syncing. Check transaction logs.");
+                              if (match) await handleDownloadReceipt(match);
+                              else showToast("Receipt metadata syncing. Check transaction logs.");
                             }}
                             className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/10 text-[10px] font-extrabold text-[#059669] rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
                           >
-                            Invoice PDF
+                            <FiDownload className="w-3 h-3" /> Receipt
                           </button>
                         ) : isCurrentUnpaid ? (
                           <button
