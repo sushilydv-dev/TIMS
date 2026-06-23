@@ -3,6 +3,7 @@ import {
   FiUser, FiMail, FiPhone, FiMapPin, FiBook,
   FiAward, FiCalendar, FiCamera, FiSave,
   FiAlertCircle, FiCheckCircle, FiLayers,
+  FiDownload, FiFileText, FiCreditCard,
 } from "react-icons/fi";
 import axios from "axios";
 import { WelcomeBanner, Toast } from "../DashboardUI";
@@ -10,6 +11,7 @@ import {
   pageWrapClass, cardClass, labelMutedClass, inputClass,
   primaryBtnClass, secondaryBtnClass,
 } from "../dashboardTheme";
+import logoSrc from "../../../assets/logo.png";
 
 /* ── helpers ─────────────────────────────────────────── */
 const fmt = (d) =>
@@ -46,6 +48,235 @@ function compressAvatar(file) {
   });
 }
 
+/* ── generateInvoicePDF — canvas-based PDF invoice ──── */
+function generateInvoicePDF({ profile, feeData }) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const fee          = feeData?.Fees?.[0] || null;
+      const installments = [...(fee?.installments || [])].sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0));
+      const payments     = fee?.payments || [];
+
+  const W = 794, H = 1123; // A4 at 96dpi
+  const canvas = document.createElement("canvas");
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+  const fmtD = (d) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+  /* ── Background ── */
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, W, H);
+
+  /* ── Header band ── */
+  ctx.fillStyle = "#0c0407";
+  ctx.fillRect(0, 0, W, 110);
+
+  /* ── Logo ── */
+  await new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 32, 18, 72, 72);
+      resolve();
+    };
+    img.onerror = resolve;
+    img.src = logoSrc;
+  });
+
+  /* ── TIMS title in header ── */
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 26px Inter, system-ui, sans-serif";
+  ctx.fillText("TIMS", 116, 52);
+  ctx.font = "13px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.fillText("Training & Internship Management System", 116, 74);
+
+  /* ── Invoice title (right side of header) ── */
+  ctx.font = "bold 22px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "#fc362d";
+  ctx.textAlign = "right";
+  ctx.fillText("INVOICE", W - 36, 52);
+  ctx.font = "11px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  const invoiceNo = `INV-${(profile.student_code || "STU").toUpperCase()}-${new Date().getFullYear()}`;
+  ctx.fillText(invoiceNo, W - 36, 70);
+  ctx.fillText(`Date: ${new Date().toLocaleDateString("en-IN")}`, W - 36, 88);
+  ctx.textAlign = "left";
+
+  /* ── Red accent line ── */
+  ctx.fillStyle = "#fc362d";
+  ctx.fillRect(0, 110, W, 4);
+
+  let y = 142;
+
+  /* ── Bill To / From section ── */
+  const col1 = 36, col2 = W / 2 + 20;
+
+  ctx.font = "bold 10px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("BILLED TO", col1, y);
+  ctx.fillText("FROM", col2, y);
+
+  y += 18;
+  ctx.font = "bold 15px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "#0c0407";
+  ctx.fillText(profile.user?.name || "—", col1, y);
+  ctx.fillText("TIMS Academy", col2, y);
+
+  y += 18;
+  ctx.font = "12px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "#636363";
+  ctx.fillText(profile.student_code || "—", col1, y);
+  ctx.fillText("India", col2, y);
+  y += 16;
+  ctx.fillText(profile.user?.email || "—", col1, y);
+  ctx.fillText("support@tims.in", col2, y);
+  y += 16;
+  if (profile.phone && profile.phone !== "0") ctx.fillText(profile.phone, col1, y);
+  ctx.fillText("www.tims.in", col2, y);
+  y += 16;
+  ctx.fillText(`Course: ${profile.course?.title || "—"}`, col1, y);
+  y += 16;
+  ctx.fillText(`Batch: ${profile.batch?.batch_name || "—"}`, col1, y);
+
+  y += 30;
+
+  /* ── Divider ── */
+  ctx.strokeStyle = "#e2e8f0";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(36, y); ctx.lineTo(W - 36, y); ctx.stroke();
+  y += 24;
+
+  /* ── Fee summary table ── */
+  const tableW = W - 72;
+  const colWidths = [280, 120, 120, tableW - 520];
+  const headers = ["Description", "Amount Due", "Settled", "Status"];
+
+  // Table header bg
+  ctx.fillStyle = "#f8f7fb";
+  ctx.fillRect(36, y, tableW, 30);
+  ctx.strokeStyle = "#e2e8f0";
+  ctx.strokeRect(36, y, tableW, 30);
+
+  ctx.font = "bold 10px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "#475569";
+  let cx = 46;
+  headers.forEach((h, i) => {
+    ctx.fillText(h, cx, y + 19);
+    cx += colWidths[i];
+  });
+  y += 30;
+
+  // Installment rows
+  const rowH = 34;
+  (installments.length > 0 ? installments : [{ installment_label: "Full Payment", amount_due: fee?.total_amount, amount_settled: fee?.paid_ammount, status: fee?.payment_status }])
+    .forEach((inst, idx) => {
+      ctx.fillStyle = idx % 2 === 0 ? "#ffffff" : "#fafafa";
+      ctx.fillRect(36, y, tableW, rowH);
+      ctx.strokeStyle = "#f1f5f9";
+      ctx.strokeRect(36, y, tableW, rowH);
+
+      ctx.font = "12px Inter, system-ui, sans-serif";
+      ctx.fillStyle = "#0c0407";
+      cx = 46;
+      ctx.fillText(inst.installment_label || "Payment", cx, y + 14);
+      if (inst.due_date) { ctx.font = "10px Inter, system-ui, sans-serif"; ctx.fillStyle = "#94a3b8"; ctx.fillText(`Due: ${fmtD(inst.due_date)}`, cx, y + 27); ctx.font = "12px Inter, system-ui, sans-serif"; ctx.fillStyle = "#0c0407"; }
+      cx += colWidths[0];
+      ctx.fillText(inr(inst.amount_due), cx, y + 20);
+      cx += colWidths[1];
+      ctx.fillText(inr(inst.amount_settled || inst.paid_ammount || 0), cx, y + 20);
+      cx += colWidths[2];
+      const st = (inst.status || "").toUpperCase();
+      ctx.fillStyle = st === "PAID" || st === "COMPLETED" ? "#059669" : st === "OVERDUE" ? "#b91c1c" : "#d97706";
+      ctx.font = "bold 10px Inter, system-ui, sans-serif";
+      ctx.fillText(st === "PENDING_FIRST_PAYMENT" ? "UNPAID" : st || "PENDING", cx, y + 20);
+      y += rowH;
+    });
+
+  y += 10;
+
+  /* ── Totals box ── */
+  const totalsX = W - 36 - 220;
+  const totals = [
+    ["Subtotal",   inr(fee?.base_amount || fee?.total_amount)],
+    ["Discount",   inr(fee?.discount_amount || 0)],
+    ["Total Fee",  inr(fee?.total_amount)],
+    ["Amount Paid",inr(fee?.paid_ammount)],
+    ["Balance Due",inr(fee?.due_amount)],
+  ];
+
+  totals.forEach(([lbl, val], i) => {
+    const isLast = i === totals.length - 1;
+    if (isLast) {
+      ctx.fillStyle = "#0c0407";
+      ctx.fillRect(totalsX, y, 220, 30);
+    }
+    ctx.font = isLast ? "bold 13px Inter, system-ui, sans-serif" : "12px Inter, system-ui, sans-serif";
+    ctx.fillStyle = isLast ? "#ffffff" : (lbl === "Balance Due" && Number(fee?.due_amount) > 0 ? "#b91c1c" : "#475569");
+    ctx.fillText(lbl, totalsX + 10, y + (isLast ? 20 : 16));
+    ctx.textAlign = "right";
+    ctx.fillStyle = isLast ? "#fc362d" : ctx.fillStyle;
+    ctx.fillText(val, totalsX + 210, y + (isLast ? 20 : 16));
+    ctx.textAlign = "left";
+    y += isLast ? 30 : 22;
+  });
+
+  y += 24;
+
+  /* ── Payment history ── */
+  if (payments.length > 0) {
+    ctx.font = "bold 12px Inter, system-ui, sans-serif";
+    ctx.fillStyle = "#0c0407";
+    ctx.fillText("Payment History", 36, y);
+    y += 16;
+    ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(36, y); ctx.lineTo(W - 36, y); ctx.stroke();
+    y += 14;
+
+    payments.slice(0, 6).forEach(p => {
+      ctx.font = "11px Inter, system-ui, sans-serif";
+      ctx.fillStyle = "#0c0407";
+      ctx.fillText(`${fmtD(p.payment_date)} — ${p.payment_methhod || "—"}`, 36, y);
+      ctx.fillStyle = "#059669";
+      ctx.font = "bold 11px Inter, system-ui, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(`+${inr(p.amount)}`, W - 36, y);
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#94a3b8"; ctx.font = "10px Inter, system-ui, sans-serif";
+      ctx.fillText(p.transaction_id || "", 36, y + 12);
+      y += 26;
+    });
+  }
+
+  /* ── Footer ── */
+  ctx.fillStyle = "#f8f7fb";
+  ctx.fillRect(0, H - 64, W, 64);
+  ctx.fillStyle = "#fc362d";
+  ctx.fillRect(0, H - 64, W, 3);
+  ctx.font = "11px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "#94a3b8";
+  ctx.textAlign = "center";
+  ctx.fillText("TIMS — Training & Internship Management System", W / 2, H - 38);
+  ctx.fillText("This is a computer-generated invoice and does not require a signature.", W / 2, H - 20);
+  ctx.textAlign = "left";
+
+  /* ── Download — use blob URL for cross-browser support ── */
+  canvas.toBlob((blob) => {
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `TIMS-Invoice-${profile.student_code || "STU"}.png`;
+    link.href     = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    resolve();
+  }, "image/png");
+    } catch (err) { reject(err); }
+  });
+}
+
 /* ── InfoRow ─────────────────────────────────────────── */
 function InfoRow({ icon: Icon, label, value, editing, inputProps }) {
   return (
@@ -76,6 +307,9 @@ export default function StudentProfile() {
   const [toast, setToast]       = useState("");
   const [imgPreview, setImgPreview] = useState(null); // base64 preview
   const [imgData, setImgData]       = useState(null); // base64 to save
+  const [feeData, setFeeData]       = useState(null);
+  const [feeLoading, setFeeLoading] = useState(true);
+  const [genInvoice, setGenInvoice] = useState(false);
 
   // Editable fields
   const [form, setForm] = useState({
@@ -102,7 +336,13 @@ export default function StudentProfile() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  useEffect(() => {
+    fetchProfile();
+    // Also fetch fee data for invoice
+    axios.get("/api/students/me/fees")
+      .then(({ data }) => { setFeeData(data); setFeeLoading(false); })
+      .catch(() => setFeeLoading(false));
+  }, [fetchProfile]);
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
@@ -328,6 +568,71 @@ export default function StudentProfile() {
             <InfoRow icon={FiCalendar} label="Course Start Date"   value={fmt(profile.batch?.start_date)} />
             <InfoRow icon={FiCalendar} label="Course End Date"     value={fmt(profile.batch?.end_date)} />
             <InfoRow icon={FiCheckCircle} label="Enrolment Status" value={profile.enrollment?.status || "—"} />
+          </div>
+
+          {/* Invoice card */}
+          <div className={`${cardClass} p-6`}>
+            <h3 className="text-sm font-extrabold text-[#0c0407] mb-1">Billing Invoice</h3>
+            <p className={`${labelMutedClass} mb-5`}>Download a PDF invoice for your TIMS fee transactions</p>
+
+            {feeLoading ? (
+              <div className="text-center py-8 text-sm text-[#94a3b8] font-semibold">Loading fee data…</div>
+            ) : feeData?.Fees?.[0] ? (
+              <div className="space-y-4">
+                {/* Fee summary */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Total Fee",  value: `₹${Number(feeData.Fees[0].total_amount || 0).toLocaleString("en-IN")}`, color: "text-[#0c0407]" },
+                    { label: "Paid",       value: `₹${Number(feeData.Fees[0].paid_ammount || 0).toLocaleString("en-IN")}`, color: "text-emerald-600" },
+                    { label: "Balance",    value: `₹${Number(feeData.Fees[0].due_amount   || 0).toLocaleString("en-IN")}`, color: Number(feeData.Fees[0].due_amount) > 0 ? "text-[#b91c1c]" : "text-emerald-600" },
+                  ].map(s => (
+                    <div key={s.label} className="bg-[#fafafa] rounded-xl border border-black/[0.06] p-3 text-center">
+                      <p className={labelMutedClass}>{s.label}</p>
+                      <p className={`text-sm font-extrabold mt-1 ${s.color}`}>{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${
+                    (feeData.Fees[0].payment_status || "").toUpperCase() === "COMPLETED"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : (feeData.Fees[0].payment_status || "").toUpperCase() === "OVERDUE"
+                        ? "bg-[#fef2f2] text-[#b91c1c] border-[#b91c1c]/20"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                  }`}>
+                    {feeData.Fees[0].payment_status?.replace(/_/g, " ") || "—"}
+                  </span>
+                  <span className="text-[10px] text-[#94a3b8] font-medium">
+                    {feeData.Fees[0].payment_scheme_mode === "FULL" ? "Full payment plan" : "Instalment plan"}
+                  </span>
+                </div>
+
+                <button
+                  disabled={genInvoice}
+                  onClick={async () => {
+                    setGenInvoice(true);
+                    try {
+                      await generateInvoicePDF({ profile, feeData });
+                    } catch (err) {
+                      showToast("Invoice generation failed: " + err.message);
+                    } finally {
+                      setGenInvoice(false);
+                    }
+                  }}
+                  className={`${primaryBtnClass} w-full flex items-center justify-center gap-2 disabled:opacity-50`}
+                >
+                  <FiDownload className="w-4 h-4" />
+                  {genInvoice ? "Generating invoice…" : "Download Invoice (PNG)"}
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-[#fafafa] rounded-xl border border-dashed border-black/[0.07]">
+                <FiFileText className="w-8 h-8 text-[#94a3b8] mx-auto mb-2" />
+                <p className="text-xs text-[#94a3b8] font-semibold">No fee record found.</p>
+                <p className="text-[10px] text-[#94a3b8] mt-1">Contact admin to set up your fee schedule.</p>
+              </div>
+            )}
           </div>
 
           {/* Save bar when editing */}
