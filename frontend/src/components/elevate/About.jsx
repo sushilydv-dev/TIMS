@@ -129,19 +129,24 @@ export const About = () => {
           className="lg:col-span-6 grid grid-cols-2 gap-5"
         >
           {STATS.map(({ value, suffix, label, desc, glow }) => (
-            <motion.div
-              key={label}
-              variants={item}
-              className={`relative overflow-hidden group bg-white border border-black/[0.06] hover:border-[#fc362d]/20 rounded-3xl p-6 md:p-7 flex flex-col items-start shadow-sm hover:shadow-md transition-all duration-300`}
-            >
-              <div className={`absolute -right-6 -top-6 w-20 h-20 rounded-full ${glow} blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-              <span className="text-4xl md:text-5xl font-extrabold text-[#0c0407] tracking-tight leading-none mb-2">
-                <Counter value={value} suffix={suffix} />
-              </span>
-              <span className="text-sm font-bold text-[#0c0407] mb-1">{label}</span>
-              <span className="text-xs text-[#94a3b8] font-medium leading-snug">{desc}</span>
-            </motion.div>
-          ))}
+  <motion.div
+    key={label}
+    variants={item}
+    className="relative overflow-hidden group bg-white border border-black/[0.06] hover:border-[#fc362d]/20 rounded-3xl p-6 md:p-7 flex flex-col items-start shadow-sm hover:shadow-md transition-all duration-300"
+  >
+    <div className={`absolute -right-6 -top-6 w-20 h-20 rounded-full ${glow} blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+    
+    {/* Wrapped in a moving container */}
+    <div className="transform group-hover:-translate-y-2 transition-transform duration-300 ease-[0.25,1,0.5,1] mb-2">
+      <span className="text-4xl md:text-5xl font-extrabold text-[#0c0407] tracking-tight leading-none">
+        <Counter value={value} suffix={suffix} />
+      </span>
+    </div>
+
+    <span className="text-sm font-bold text-[#0c0407] mb-1">{label}</span>
+    <span className="text-xs text-[#94a3b8] font-medium leading-snug">{desc}</span>
+  </motion.div>
+))}
         </motion.div>
 
       </div>

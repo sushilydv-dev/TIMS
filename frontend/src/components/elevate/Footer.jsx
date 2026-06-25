@@ -26,7 +26,7 @@ export const Footer = () => {
                           <img
                             src={productlogo}
                             alt="MSAI India Logo"
-                            className="h-[52px] w-[70px] "
+                            className="h-[30px] w-[40px] "
                           />
                         </div>
                         

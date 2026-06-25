@@ -27,6 +27,111 @@ async function getTrainerRecord(userId) {
   return Trainer.findOne({ where: { user_id: userId } });
 }
 
+/* ── GET /api/trainer/profile ────────────────────────── */
+router.get("/profile", asyncHandler(async (req, res) => {
+  const trainer = await Trainer.findOne({
+    where: { user_id: req.user.id },
+    include: [{ model: User, attributes: ["id", "name", "email", "status"] }],
+  });
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  res.json({
+    id:               trainer.id,
+    specialization:   trainer.specialization,
+    experience_year:  trainer.experience_year,
+    salary:           trainer.salary,
+    profile_img:      trainer.profile_img || "",
+    profile_completed: trainer.profile_completed,
+    user: {
+      id:    trainer.User?.id,
+      name:  trainer.User?.name,
+      email: trainer.User?.email,
+    },
+  });
+}));
+
+/* ── PUT /api/trainer/complete-profile ─────────────────── */
+router.put("/complete-profile", asyncHandler(async (req, res) => {
+  const { name, specialization, experience_year, profile_img } = req.body;
+  
+  const trainer = await Trainer.findOne({
+    where: { user_id: req.user.id },
+    include: [{ model: User }],
+  });
+  
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+  
+  // Update trainer fields
+  trainer.specialization = specialization || trainer.specialization;
+  trainer.experience_year = experience_year || trainer.experience_year;
+  trainer.profile_img = profile_img || trainer.profile_img;
+  trainer.profile_completed = true;
+  
+  // Update user name if provided
+  if (name && trainer.User) {
+    trainer.User.name = name;
+    await trainer.User.save();
+  }
+  
+  await trainer.save();
+  
+  res.json({
+    message: "Profile completed successfully",
+    trainer: {
+      id: trainer.id,
+      specialization: trainer.specialization,
+      experience_year: trainer.experience_year,
+      profile_img: trainer.profile_img,
+      profile_completed: trainer.profile_completed,
+    },
+  });
+}));
+
+/* ── PUT /api/trainer/profile ────────────────────────── */
+router.put("/profile", asyncHandler(async (req, res) => {
+  const trainer = await Trainer.findOne({
+    where: { user_id: req.user.id },
+    include: [{ model: User }],
+  });
+  if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
+
+  const { name, specialization, experience_year, profile_img } = req.body;
+
+  if (name !== undefined)            trainer.User.name           = String(name).trim();
+  if (specialization !== undefined)  trainer.specialization      = String(specialization).trim();
+  if (experience_year !== undefined) trainer.experience_year     = parseInt(experience_year, 10) || 0;
+  if (profile_img !== undefined)     trainer.profile_img         = profile_img || "";
+
+  await trainer.User.save();
+  await trainer.save();
+
+  res.json({ message: "Profile updated" });
+}));
+
+/* ── PUT /api/trainer/change-password ───────────────── */
+router.put("/change-password", asyncHandler(async (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) {
+    res.status(400); throw new Error("Both current and new password are required");
+  }
+  if (String(new_password).length < 6) {
+    res.status(400); throw new Error("New password must be at least 6 characters");
+  }
+
+  const userRecord = await User.findByPk(req.user.id);
+  if (!userRecord) { res.status(404); throw new Error("User not found"); }
+
+  const bcrypt = await import("bcryptjs");
+  const isMatch = await bcrypt.default.compare(String(current_password), userRecord.password);
+  if (!isMatch) { res.status(400); throw new Error("Current password is incorrect"); }
+
+  const salt = await bcrypt.default.genSalt(10);
+  userRecord.password = await bcrypt.default.hash(String(new_password), salt);
+  await userRecord.save();
+
+  res.json({ message: "Password changed successfully" });
+}));
+
 /* ── GET /api/trainer/me ───────────────────────────── */
 router.get("/me", asyncHandler(async (req, res) => {
   const trainer = await Trainer.findOne({

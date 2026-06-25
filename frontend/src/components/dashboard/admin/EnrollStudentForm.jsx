@@ -185,7 +185,7 @@ export function EnrollStudentForm({ onBack, onSuccess }) {
 
   const validateStep2And3 = () => {
     if (!formData.course_id) return "Please select a Course";
-    if (!formData.batch_id) return "Please select a Batch";
+    // batch_id is optional — student can be enrolled without a batch
     if (formData.discount_amount < 0) return "Discount amount cannot be negative";
     if (formData.discount_amount > baseFee) return "Discount cannot exceed base course fee";
     return null;
@@ -510,23 +510,34 @@ export function EnrollStudentForm({ onBack, onSuccess }) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">Select Batch</label>
+                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">
+                    Select Batch <span className="text-[#94a3b8] font-normal normal-case">(optional)</span>
+                  </label>
                   <select
                     name="batch_id"
                     value={formData.batch_id}
                     onChange={handleInputChange}
                     disabled={!formData.course_id || loadingBatches}
-                    required
                     className={inputClass}
                   >
-                    <option value="">-- Choose Batch --</option>
+                    <option value="">— Skip for now —</option>
                     {batches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.batch_name} ({b.start_date} to {b.end_date})
                       </option>
                     ))}
                   </select>
-                  {loadingBatches && <span className="text-[10px] text-gray-400">Loading batches...</span>}
+                  {loadingBatches && <span className="text-[10px] text-[#94a3b8]">Loading batches…</span>}
+                  {!loadingBatches && formData.course_id && batches.length === 0 && (
+                    <p className="text-[10px] text-amber-600 font-semibold mt-1">
+                      No batches exist for this course yet. You can assign one later from the Student panel.
+                    </p>
+                  )}
+                  {!formData.batch_id && (
+                    <p className="text-[10px] text-[#94a3b8] font-medium mt-1">
+                      Student will be enrolled without a batch. You can assign one later.
+                    </p>
+                  )}
                 </div>
               </div>
 
