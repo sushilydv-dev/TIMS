@@ -238,7 +238,7 @@ export const Navbar = () => {
             <img
               src={logo}
               alt="MSAI India Logo"
-              className="h-[36px] w-[50px] "
+              className="h-[30px] w-[40px] px-1 "
             />
             <span className="text-[1.05rem] font-bold text-[#0d463e] ">
               TIMS

@@ -1,32 +1,25 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  FiLayers,
-  FiSearch,
-  FiEdit2,
-  FiUsers,
-  FiCalendar,
-  FiBookOpen,
+  FiLayers, FiSearch, FiEdit2, FiUsers, FiCalendar, FiPlus,
 } from "react-icons/fi";
 import axios from "axios";
 import {
-  WelcomeBanner,
-  StatCards,
-  Panel,
-  PanelHeader,
-  Toast,
+  WelcomeBanner, StatCards, Panel, PanelHeader, Toast, PrimaryButton,
 } from "../DashboardUI";
 import { pageWrapClass, inputClass } from "../dashboardTheme";
 import { BatchEditPanel } from "./BatchEditPanel";
+import { BatchFormModal } from "./BatchFormModal";
 
 export const BatchesList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [batches, setBatches] = useState([]);
-  const [stats, setStats] = useState({ batches: 0, totalStudents: 0, avgStudents: 0 });
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [batches, setBatches]     = useState([]);
+  const [stats, setStats]         = useState({ batches: 0, totalStudents: 0, avgStudents: 0 });
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState("");
   const [editBatch, setEditBatch] = useState(null);
-  const [toast, setToast] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [toast, setToast]         = useState("");
 
   const batchIdParam = searchParams.get("batchId");
 
@@ -99,6 +92,12 @@ export const BatchesList = () => {
     window.setTimeout(() => setToast(""), 4000);
   };
 
+  const handleBatchCreateSuccess = () => {
+    setToast("Batch created successfully!");
+    fetchBatches();
+    window.setTimeout(() => setToast(""), 4000);
+  };
+
   const filteredBatches = batches.filter((b) => {
     const term = search.toLowerCase();
     return (
@@ -110,6 +109,13 @@ export const BatchesList = () => {
 
   return (
     <div className={pageWrapClass}>
+      {/* Create batch modal — standalone (picks course internally) */}
+      <BatchFormModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSuccess={handleBatchCreateSuccess}
+      />
+
       {editBatch && (
         <BatchEditPanel
           open={Boolean(editBatch)}
@@ -124,6 +130,13 @@ export const BatchesList = () => {
         badge="Batches Setup"
         title="Master Cohorts"
         description="View and manage active student batches, assign trainers, and track schedules."
+        actions={
+          <PrimaryButton onClick={() => setCreateOpen(true)}>
+            <span className="inline-flex items-center gap-1.5">
+              <FiPlus className="w-3.5 h-3.5" /> New Batch
+            </span>
+          </PrimaryButton>
+        }
       />
 
       <StatCards

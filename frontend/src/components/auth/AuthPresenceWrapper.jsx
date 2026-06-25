@@ -1,21 +1,15 @@
 import React, { useLayoutEffect, useRef } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAuth } from "../../app/AuthContext";
+import { PageLoader } from "../PageLoader";
 
 const slideTransition = { duration: 0.5, ease: [0.32, 0.72, 0, 1] };
 
 const pageVariants = {
-  initial: (direction) => ({
-    x: direction > 0 ? "100%" : "-100%",
-  }),
-  animate: {
-    x: 0,
-    transition: slideTransition,
-  },
-  exit: (direction) => ({
-    x: direction > 0 ? "-100%" : "100%",
-    transition: slideTransition,
-  }),
+  initial: (direction) => ({ x: direction > 0 ? "100%" : "-100%" }),
+  animate: { x: 0, transition: slideTransition },
+  exit:    (direction) => ({ x: direction > 0 ? "-100%" : "100%", transition: slideTransition }),
 };
 
 function getSlideDirection(fromPath, toPath) {
@@ -25,20 +19,24 @@ function getSlideDirection(fromPath, toPath) {
 }
 
 export function AuthPresenceWrapper() {
+  const { user, loading } = useAuth();
   const location = useLocation();
-  const prevPathRef = useRef(location.pathname);
-  const directionRef = useRef(1);
+  const prevPathRef   = useRef(location.pathname);
+  const directionRef  = useRef(1);
 
   if (location.pathname !== prevPathRef.current) {
-    directionRef.current = getSlideDirection(
-      prevPathRef.current,
-      location.pathname,
-    );
+    directionRef.current = getSlideDirection(prevPathRef.current, location.pathname);
   }
 
   useLayoutEffect(() => {
     prevPathRef.current = location.pathname;
   }, [location.pathname]);
+
+  // While auth is still resolving, show the loader only for these gated pages
+  if (loading) return <PageLoader label="Loading" />;
+
+  // Already logged in — send to dashboard
+  if (user) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="relative min-h-screen min-h-[100dvh] overflow-hidden bg-white">

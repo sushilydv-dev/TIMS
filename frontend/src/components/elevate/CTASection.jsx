@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import consultationImage from "../../assets/consultation.jpg";
 import { useConsultation } from "../../context/ConsultationContext";
 
 export const CTASection = () => {
@@ -12,12 +11,14 @@ export const CTASection = () => {
     target: sectionRef,
     offset: ["start end", "end start"],
   });
-  // The background image moves slightly on scroll for depth
-  const bgY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
+
+  // Smoothly subtle parallax movement for the internal glow blobs
+  const glowY = useTransform(scrollYProgress, [0, 1], ["-15%", "15%"]);
 
   return (
     <section ref={sectionRef} className="relative py-20 md:py-24 px-4 md:px-8 lg:px-16 overflow-hidden bg-white">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-red-100/60 blur-[150px] pointer-events-none" />
+      {/* Light background subtle decorative ambient blur */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-red-100/40 blur-[150px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto">
         <motion.div
@@ -25,27 +26,30 @@ export const CTASection = () => {
           whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[36px] md:rounded-[48px] shadow-2xl border border-white/[0.08]"
+          className="relative overflow-hidden rounded-[36px] md:rounded-[48px] shadow-2xl bg-[#0c0509] border border-white/5"
           style={{ minHeight: "420px" }}
         >
-          {/* Parallax background image */}
+          {/* Obsidian Style Glow Layers instead of a photo */}
           <motion.div
-            style={{ y: bgY }}
-            className="absolute inset-[-10%] bg-cover bg-center"
+            style={{ y: glowY }}
+            className="absolute inset-0 pointer-events-none overflow-hidden"
             aria-hidden="true"
           >
-            <div
-              className="w-full h-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${consultationImage})` }}
-            />
+            {/* Top-left ambient glow */}
+            <div className="absolute -top-32 -left-32 w-96 h-96 bg-rose-500/10 rounded-full blur-[100px]" />
+            {/* Bottom-right ambient glow */}
+            <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#fc362d]/10 rounded-full blur-[100px]" />
           </motion.div>
 
-          {/* Dark overlay for legibility */}
-          <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" />
-
-          {/* Glows */}
-          <div className="absolute -left-20 -bottom-20 w-64 h-64 rounded-full bg-indigo-500/15 blur-[80px] pointer-events-none" />
-          <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-[#fc362d]/15 blur-[80px] pointer-events-none" />
+          {/* Premium Fine Grid Mesh Texture Layer */}
+          <div 
+            className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-overlay"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+              backgroundSize: '24px 24px'
+            }}
+            aria-hidden="true"
+          />
 
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center text-center px-6 md:px-16 py-16 md:py-20">
@@ -54,7 +58,7 @@ export const CTASection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="px-3 py-1.5 rounded-full text-xs font-bold tracking-[0.2em] uppercase text-[#fc362d] bg-[#fc362d]/15 border border-[#fc362d]/30 mb-6"
+              className="px-3 py-1.5 rounded-full text-xs font-bold tracking-[0.2em] uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 mb-6"
             >
               Get Started
             </motion.span>
@@ -67,7 +71,7 @@ export const CTASection = () => {
               className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight mb-6 max-w-2xl"
             >
               Ready to launch your{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-300 to-indigo-300">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-[#fc362d] to-rose-600">
                 next career chapter?
               </span>
             </motion.h2>
@@ -77,7 +81,7 @@ export const CTASection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.22 }}
-              className="text-white/70 text-sm md:text-base lg:text-lg max-w-xl mb-10 leading-relaxed font-medium"
+              className="text-zinc-400 text-sm md:text-base lg:text-lg max-w-xl mb-10 leading-relaxed font-medium"
             >
               Explore registered apprenticeships, live project programs, or schedule a one-on-one consultation with our team today.
             </motion.p>
@@ -94,7 +98,7 @@ export const CTASection = () => {
                 whileTap={{ scale: 0.97 }}
                 type="button"
                 onClick={openConsultation}
-                className="relative group px-8 py-4 rounded-full font-bold text-white bg-[#fc362d] hover:bg-[#e02d25] transition-all duration-300 shadow-[0_4px_28px_rgba(252,54,45,0.4)] hover:shadow-[0_4px_38px_rgba(252,54,45,0.6)] cursor-pointer flex items-center gap-2"
+                className="relative group px-8 py-4 rounded-full font-bold text-white bg-[#fc362d] hover:bg-[#e02d25] transition-all duration-300 shadow-[0_4px_28px_rgba(252,54,45,0.3)] hover:shadow-[0_4px_38px_rgba(252,54,45,0.5)] cursor-pointer flex items-center gap-2 text-sm"
               >
                 Schedule a Consultation
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -103,7 +107,7 @@ export const CTASection = () => {
               <motion.a
                 whileHover={{ scale: 1.02 }}
                 href="/all-courses"
-                className="px-8 py-4 rounded-full font-bold text-white border border-white/25 hover:border-white/60 hover:bg-white/10 transition-all duration-300 no-underline text-sm"
+                className="px-8 py-4 rounded-full font-bold text-zinc-300 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all duration-300 no-underline text-sm"
               >
                 Browse Programs
               </motion.a>

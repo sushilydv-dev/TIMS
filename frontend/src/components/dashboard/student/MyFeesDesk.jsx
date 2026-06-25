@@ -391,20 +391,32 @@ export function MyFeesDesk({ onPaymentSuccess }) {
                 payments.map((p) => (
                   <div
                     key={p.id}
-                    onClick={() => handleDownloadReceipt(p)}
-                    className="flex justify-between items-center text-xs p-3 rounded-xl bg-slate-50/50 hover:bg-slate-50 border border-gray-100 transition-all cursor-pointer group"
+                    className="flex justify-between items-center text-xs p-3 rounded-xl bg-slate-50/50 hover:bg-slate-50 border border-gray-100 transition-all"
                   >
                     <div>
-                      <h4 className="font-extrabold text-[#0c0407] group-hover:text-rose-500 transition-colors">
+                      <h4 className="font-extrabold text-[#0c0407]">
                         Settle: {formatInr(p.amount)}
                       </h4>
                       <span className="text-[9px] text-[#9ca3af] font-bold block mt-0.5">
                         {p.payment_date} • {p.payment_methhod}
                       </span>
+                      {p.transaction_id && (
+                        <span className="text-[9px] text-[#9ca3af] font-mono block">{p.transaction_id}</span>
+                      )}
                     </div>
-                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
-                      SUCCESS
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                        SUCCESS
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadReceipt(p)}
+                        className="flex items-center gap-1 text-[9px] font-bold text-[#475569] hover:text-[#fc362d] cursor-pointer px-2 py-1 rounded-lg border border-gray-200 hover:border-[#fc362d]/30 bg-white transition-all"
+                        title="Download Receipt"
+                      >
+                        <FiDownload className="w-3 h-3" /> Receipt
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

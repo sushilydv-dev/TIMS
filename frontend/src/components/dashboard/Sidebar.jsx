@@ -76,6 +76,7 @@ export const Sidebar = ({ activeRole }) => {
       case "TRAINER":
         return [
           ...baseLinks,
+          { label: "My Profile",  icon: <FiUsers    className="w-5 h-5" />, path: "/dashboard/trainer/profile" },
           { label: "My Batches",  icon: <FiLayers   className="w-5 h-5" />, path: "/dashboard/trainer/batches" },
           { label: "Attendance",  icon: <FiCalendar className="w-5 h-5" />, path: "/dashboard/trainer/attendance" },
           { label: "Submissions", icon: <FiAward    className="w-5 h-5" />, path: "/dashboard/trainer/batches" },

@@ -1,19 +1,14 @@
 import React from "react";
-import { Navigate, Outlet } from "react-router-dom";
-import { PageLoader } from "../components/PageLoader";
-import { useAuth } from "../app/AuthContext";
+import { Outlet } from "react-router-dom";
 
+/**
+ * Public routes — no auth gate here.
+ * Login/Signup blocking is handled by AuthPresenceWrapper.
+ * Removing the auth loading check means About Us, All Courses etc.
+ * render instantly without waiting for the auth API call.
+ */
 export const PublicRoutes = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <PageLoader label="Loading" />;
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return <Outlet />;
 };
+
 export default PublicRoutes;

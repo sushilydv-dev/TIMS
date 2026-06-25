@@ -388,7 +388,7 @@ export const TrainerDashboard = ({ user }) => {
       <WelcomeBanner
         badge="Trainer Workstation"
         title={`Welcome, ${user?.name || "Trainer"}!`}
-        description="Mark attendance, upload resources, review submissions and grade your students."
+        description="Your overview — batches assigned, submissions to review, and quick access to all your tools."
         actions={
           <>
             <PrimaryButton onClick={() => setAttendanceOpen(true)} className="flex items-center gap-1.5">
@@ -402,10 +402,10 @@ export const TrainerDashboard = ({ user }) => {
       />
 
       <StatCards stats={[
-        { label: "Assigned Batches",  value: String(profile.batch_count || 0), change: "Active cohorts",          icon: <FiLayers className="w-5 h-5" /> },
-        { label: "Total Students",    value: String(profile.total_students || 0), change: "Enrolled learners",    icon: <FiUsers  className="w-5 h-5" /> },
-        { label: "Pending Reviews",   value: String(pendingCount),             change: "Submissions to grade",     icon: <FiAward  className="w-5 h-5" /> },
-        { label: "Study Materials",   value: String(materials.length),          change: "Uploaded this batch",     icon: <FiBookOpen className="w-5 h-5" /> },
+        { label: "Assigned Batches",  value: String(profile.batch_count || 0),    change: "Active cohorts",      icon: <FiLayers   className="w-5 h-5" /> },
+        { label: "Total Students",    value: String(profile.total_students || 0),  change: "Enrolled learners",   icon: <FiUsers    className="w-5 h-5" /> },
+        { label: "Pending Reviews",   value: String(pendingCount),                 change: "Submissions to grade", icon: <FiAward    className="w-5 h-5" /> },
+        { label: "Study Materials",   value: String(materials.length),             change: "Uploaded this batch",  icon: <FiBookOpen className="w-5 h-5" /> },
       ]} />
 
       {/* Batch selector */}
@@ -580,9 +580,9 @@ export const TrainerDashboard = ({ user }) => {
               <div className="space-y-2">
                 {[
                   { label: "Mark Today's Attendance", icon: <FiCalendar className="w-4 h-4" />, action: () => setAttendanceOpen(true) },
-                  { label: "Upload Study Material",    icon: <FiUpload className="w-4 h-4" />,   action: () => setActiveTab("materials") },
-                  { label: "Review Submissions",       icon: <FiAward className="w-4 h-4" />,    action: () => setActiveTab("submissions") },
-                  { label: "View Student Roster",      icon: <FiUsers className="w-4 h-4" />,    action: () => setActiveTab("students") },
+                  { label: "Upload Study Material",    icon: <FiUpload   className="w-4 h-4" />, action: () => setActiveTab("materials") },
+                  { label: "Review Submissions",       icon: <FiAward    className="w-4 h-4" />, action: () => setActiveTab("submissions") },
+                  { label: "View Student Roster",      icon: <FiUsers    className="w-4 h-4" />, action: () => setActiveTab("students") },
                 ].map((a, i) => (
                   <button key={i} onClick={a.action}
                     className="w-full flex items-center gap-3 p-3 rounded-xl border border-black/[0.07] bg-[#fafafa] hover:bg-white hover:border-[#fc362d]/20 hover:shadow-sm transition-all cursor-pointer text-left">
@@ -594,6 +594,33 @@ export const TrainerDashboard = ({ user }) => {
                 ))}
               </div>
             </Panel>
+
+            {/* All batches summary */}
+            {profile.batches?.length > 0 && (
+              <Panel>
+                <h3 className="text-sm font-bold text-[#0c0407] mb-3">All My Batches</h3>
+                <div className="space-y-2">
+                  {profile.batches.map(b => {
+                    const now    = new Date().toISOString().slice(0, 10);
+                    const active = now >= (b.start_date || "") && now <= (b.end_date || "");
+                    return (
+                      <div key={b.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#fafafa] border border-black/[0.06]">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#0c0407] truncate">{b.batch_name}</p>
+                          <p className="text-[10px] text-[#94a3b8] font-medium truncate">{b.course?.title}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[9px] font-bold text-[#94a3b8]">{b.student_count}s</span>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-lg border ${
+                            active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-[#f1f5f9] text-[#94a3b8] border-black/[0.06]"
+                          }`}>{active ? "Active" : "Inactive"}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
+            )}
 
           </div>
         </div>

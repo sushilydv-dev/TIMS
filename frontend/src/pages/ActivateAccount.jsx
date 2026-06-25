@@ -79,7 +79,13 @@ const ActivateAccount = () => {
 
       const { token: jwt, message: _msg, ...userData } = data;
       establishSession(jwt, userData);
-      navigate("/dashboard", { replace: true });
+      
+      // Redirect trainers to profile completion
+      if (userData.role === "TRAINER") {
+        navigate("/complete-trainer-profile", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Activation failed. Please try again.");
     } finally {

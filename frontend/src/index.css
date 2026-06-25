@@ -1,5 +1,7 @@
 @import "tailwindcss";
-
+html {
+  scroll-behavior: smooth;
+}
 /* TIMS hash loader — continuous animation (react-spinners–compatible look) */
 .tims-hash-loader {
   display: inline-block;

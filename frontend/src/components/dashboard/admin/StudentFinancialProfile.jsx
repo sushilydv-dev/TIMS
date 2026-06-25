@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { FiX, FiMail, FiPhone, FiCalendar, FiMapPin, FiAward, FiBook, FiShield, FiDollarSign } from "react-icons/fi";
+import { FiX, FiMail, FiPhone, FiCalendar, FiMapPin, FiAward, FiBook, FiShield, FiDollarSign, FiAlertCircle, FiLayers } from "react-icons/fi";
 import axios from "axios";
 import { StatusBadge, Toast } from "../DashboardUI";
-import { inputClass, secondaryBtnClass, primaryBtnClass } from "../dashboardTheme";
+import { inputClass, secondaryBtnClass, primaryBtnClass, labelMutedClass } from "../dashboardTheme";
 import studentPlaceholder from "../../../assets/student_placeholder.png";
 
 function formatInr(amount) {
@@ -15,6 +15,12 @@ export function StudentFinancialProfile({ open, studentId, onClose, onUpdate }) 
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [editMode, setEditMode] = useState(false);
+  
+  // Batch assignment state
+  const [batchAssignOpen, setBatchAssignOpen]   = useState(false);
+  const [allBatches, setAllBatches]             = useState([]);
+  const [selectedBatchId, setSelectedBatchId]   = useState("");
+  const [assigningBatch, setAssigningBatch]     = useState(false);
   
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -69,6 +75,40 @@ export function StudentFinancialProfile({ open, studentId, onClose, onUpdate }) 
   const showToastMsg = (msg) => {
     setToast(msg);
     window.setTimeout(() => setToast(""), 4000);
+  };
+
+  /* Load all batches for the assignment picker */
+  const loadBatches = async () => {
+    try {
+      const { data } = await axios.get("/api/admin/batches");
+      setAllBatches(Array.isArray(data) ? data : []);
+    } catch { setAllBatches([]); }
+  };
+
+  const handleOpenBatchAssign = () => {
+    setBatchAssignOpen(true);
+    setSelectedBatchId("");
+    loadBatches();
+  };
+
+  const handleAssignBatch = async () => {
+    if (!selectedBatchId || !student?.id) return;
+    setAssigningBatch(true);
+    try {
+      // Add student to the chosen batch via updateBatch (append to existing student list)
+      const batchRes = await axios.get(`/api/admin/batches/${selectedBatchId}`);
+      const existingStudentIds = (batchRes.data?.students || []).map(s => s.id).filter(Boolean);
+      // student.id here is the Student table id
+      const updatedIds = [...new Set([...existingStudentIds, student.id])];
+      await axios.put(`/api/admin/batches/${selectedBatchId}`, { student_ids: updatedIds });
+      showToastMsg("Batch assigned successfully!");
+      setBatchAssignOpen(false);
+      setSelectedBatchId("");
+      fetchDetails();
+      if (onUpdate) onUpdate();
+    } catch (err) {
+      showToastMsg(err.response?.data?.message || "Failed to assign batch");
+    } finally { setAssigningBatch(false); }
   };
 
   const handleUpdateProfile = async (e) => {
@@ -366,17 +406,96 @@ export function StudentFinancialProfile({ open, studentId, onClose, onUpdate }) 
                   <h4 className="text-xs font-bold text-[#475569] uppercase tracking-wider">
                     Academic Info
                   </h4>
+
+                  {/* Batch not assigned alert */}
+                  {!student?.Enrollments?.[0]?.Batch && (
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                      <FiAlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-amber-800">Batch not assigned</p>
+                        <p className="text-[10px] text-amber-700 font-medium mt-0.5">
+                          This student is enrolled but has not been assigned to any batch yet.
+                        </p>
+                      </div>
+                      {!batchAssignOpen && (
+                        <button
+                          type="button"
+                          onClick={handleOpenBatchAssign}
+                          className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 cursor-pointer transition-colors"
+                        >
+                          <FiLayers className="w-3 h-3" /> Assign Batch
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Batch assignment picker */}
+                  {batchAssignOpen && (
+                    <div className="border border-[#fc362d]/20 rounded-xl p-4 bg-[#fff8f7] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-[#0c0407]">Assign to a Batch</p>
+                        <button onClick={() => setBatchAssignOpen(false)}
+                          className="w-6 h-6 rounded-lg border border-black/10 flex items-center justify-center text-[#94a3b8] hover:text-[#0c0407] cursor-pointer">
+                          <FiX className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <select
+                        value={selectedBatchId}
+                        onChange={e => setSelectedBatchId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">Select a batch…</option>
+                        {allBatches.map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.batch_name}
+                            {b.course_title ? ` — ${b.course_title}` : ""}
+                            {b.trainer?.name ? ` (${b.trainer.name})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {allBatches.length === 0 && (
+                        <p className="text-[10px] text-amber-600 font-semibold">No batches found. Create one first.</p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={!selectedBatchId || assigningBatch}
+                          onClick={handleAssignBatch}
+                          className={`${primaryBtnClass} text-xs py-2 flex items-center gap-1.5 disabled:opacity-50`}
+                        >
+                          <FiLayers className="w-3.5 h-3.5" />
+                          {assigningBatch ? "Assigning…" : "Confirm Assignment"}
+                        </button>
+                        <button type="button" onClick={() => setBatchAssignOpen(false)}
+                          className={`${secondaryBtnClass} text-xs py-2`}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Also allow re-assigning when batch is already set */}
+                  {student?.Enrollments?.[0]?.Batch && !batchAssignOpen && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleOpenBatchAssign}
+                        className="flex items-center gap-1 text-[10px] font-bold text-[#475569] hover:text-[#fc362d] cursor-pointer border border-black/[0.08] px-2.5 py-1.5 rounded-lg hover:border-[#fc362d]/30 transition-all"
+                      >
+                        <FiLayers className="w-3 h-3" /> Change Batch
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-[#fafafa] border border-black/[0.04] rounded-2xl p-4">
                     <div>
                       <span className="text-[9px] text-[#94a3b8] font-bold uppercase tracking-wider">Course Title</span>
                       <p className="text-xs font-bold text-[#0c0407] mt-1">
-                        {student?.Enrollments?.[0]?.Batch?.Course?.title || "Unassigned"}
+                        {student?.Enrollments?.[0]?.Batch?.Course?.title || "—"}
                       </p>
                     </div>
                     <div>
                       <span className="text-[9px] text-[#94a3b8] font-bold uppercase tracking-wider">Batch Name</span>
-                      <p className="text-xs font-bold text-[#0c0407] mt-1">
-                        {student?.Enrollments?.[0]?.Batch?.batch_name || "Unassigned"}
+                      <p className={`text-xs font-bold mt-1 ${student?.Enrollments?.[0]?.Batch ? "text-[#0c0407]" : "text-amber-600"}`}>
+                        {student?.Enrollments?.[0]?.Batch?.batch_name || "Not assigned"}
                       </p>
                     </div>
                     <div>
