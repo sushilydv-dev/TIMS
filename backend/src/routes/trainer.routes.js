@@ -195,6 +195,7 @@ router.get("/batches/:batchId", asyncHandler(async (req, res) => {
     start_date: batch.start_date,
     end_date: batch.end_date,
     course: batch.Course,
+    student_count: (batch.Enrollments || []).length,
     students: (batch.Enrollments || []).map(e => ({
       enrollment_id: e.id,
       enrollment_status: e.status,
@@ -304,7 +305,7 @@ router.get("/batches/:batchId/submissions", asyncHandler(async (req, res) => {
     id: s.id,
     project: s.Project,
     student: { id: s.Student?.id, name: s.Student?.User?.name || "" },
-    github_link: s.GitHub_link,
+    github_link: s.github_link,
     file_url: s.file_url,
     submitted_at: s.submitted_at,
     marks: s.marks,
@@ -355,7 +356,7 @@ router.get("/batches/:batchId/projects", asyncHandler(async (req, res) => {
     submissions: (subMap[p.id] || []).map(s => ({
       id: s.id,
       student: { id: s.Student?.id, name: s.Student?.User?.name || "" },
-      github_link: s.GitHub_link,
+      github_link: s.github_link,
       file_url: s.file_url,
       submitted_at: s.submitted_at,
       marks: s.marks,

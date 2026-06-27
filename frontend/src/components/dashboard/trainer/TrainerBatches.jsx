@@ -5,7 +5,7 @@ import {
 } from "react-icons/fi";
 import axios from "axios";
 import { WelcomeBanner, StatCards, Panel, Toast } from "../DashboardUI";
-import { pageWrapClass, cardClass, badgeClass } from "../dashboardTheme";
+import { pageWrapClass, cardClass, cardLightClass, badgeClass } from "../dashboardTheme";
 import { fmt } from "./trainerUtils";
 
 // Four tab components
@@ -52,7 +52,10 @@ function BatchDetail({ batchId, onBack }) {
       <button onClick={onBack} className="flex items-center gap-2 text-xs font-bold text-[#64748b] hover:text-[#fc362d] mb-4">
         <FiArrowLeft className="w-4 h-4" /> Back to batches
       </button>
-      <p className="text-sm text-[#94a3b8] text-center py-16">Loading batch…</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-12 h-12 border-4 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-[#94a3b8]">Loading batch…</p>
+      </div>
     </div>
   );
 
@@ -61,7 +64,10 @@ function BatchDetail({ batchId, onBack }) {
       <button onClick={onBack} className="flex items-center gap-2 text-xs font-bold text-[#64748b] hover:text-[#fc362d]">
         <FiArrowLeft className="w-4 h-4" /> Back
       </button>
-      <p className="text-sm text-red-600 font-semibold mt-6 text-center">Batch not found.</p>
+      <div className={`${cardLightClass} flex flex-col items-center justify-center py-12 gap-3 mt-4`}>
+        <FiLayers className="w-12 h-12 text-[#fc362d]/40" />
+        <p className="text-sm font-semibold text-[#475569]">Batch not found</p>
+      </div>
     </div>
   );
 
@@ -159,7 +165,10 @@ export function TrainerBatches() {
 
   if (loading) return (
     <div className={pageWrapClass}>
-      <p className="text-sm text-[#94a3b8] text-center py-16">Loading batches…</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-12 h-12 border-4 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-[#94a3b8]">Loading batches…</p>
+      </div>
     </div>
   );
 

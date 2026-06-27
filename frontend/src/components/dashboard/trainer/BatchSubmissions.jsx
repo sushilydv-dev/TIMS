@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { FiCheckCircle } from "react-icons/fi";
+import { FiCheckCircle, FiAward } from "react-icons/fi";
 import { Panel, PanelHeader, StatusBadge, Toast } from "../DashboardUI";
 import { labelMutedClass, primaryBtnClass, secondaryBtnClass, inputClass } from "../dashboardTheme";
 import { fmt } from "./trainerUtils";
@@ -52,9 +52,10 @@ export function BatchSubmissions({ batchId, submissions, onRefresh }) {
         />
 
         {submissions.length === 0 ? (
-          <p className="text-xs text-[#94a3b8] text-center py-10 bg-[#fafafa] rounded-xl border border-dashed border-black/[0.07]">
-            No submissions yet.
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <FiAward className="w-10 h-10 text-[#94a3b8]" />
+            <p className="text-xs text-[#94a3b8] font-semibold">No submissions yet</p>
+          </div>
         ) : (
           <div className="divide-y divide-black/[0.04]">
             {submissions.map(sub => (

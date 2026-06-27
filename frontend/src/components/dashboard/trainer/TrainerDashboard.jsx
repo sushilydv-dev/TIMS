@@ -11,7 +11,7 @@ import {
 } from "../DashboardUI";
 import {
   pageWrapClass, inputClass, primaryBtnClass, secondaryBtnClass,
-  cardClass, labelMutedClass,
+  cardClass, cardLightClass, labelMutedClass,
 } from "../dashboardTheme";
 
 /* ── helpers ─────────────────────────────────────────── */
@@ -314,7 +314,10 @@ export const TrainerDashboard = ({ user }) => {
       if (data.batches?.length > 0 && !activeBatchId) {
         setActiveBatchId(data.batches[0].id);
       }
-    } catch { setProfile(null); }
+    } catch { 
+      console.error("Failed to fetch trainer profile");
+      setProfile(null); 
+    }
     finally { setLoading(false); }
   }, [activeBatchId]);
 
@@ -358,15 +361,20 @@ export const TrainerDashboard = ({ user }) => {
 
   if (loading) return (
     <div className={pageWrapClass}>
-      <div className="py-16 text-center text-sm font-semibold text-[#94a3b8]">Loading trainer workspace…</div>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-12 h-12 border-4 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-[#94a3b8]">Loading trainer workspace…</p>
+      </div>
     </div>
   );
 
   if (!profile) return (
     <div className={pageWrapClass}>
-      <div className="py-16 text-center">
-        <FiAlertCircle className="w-10 h-10 text-[#fc362d] mx-auto mb-3" />
-        <p className="text-sm font-semibold text-[#636363]">Trainer profile not found. Contact admin.</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <FiAlertCircle className="w-12 h-12 text-[#fc362d]" />
+        <p className="text-sm font-semibold text-[#636363]">Trainer profile not found</p>
+        <p className="text-xs text-[#94a3b8]">Please contact your administrator to get assigned to batches.</p>
+        <button onClick={fetchProfile} className={`${primaryBtnClass} mt-2`}>Retry</button>
       </div>
     </div>
   );
@@ -428,10 +436,12 @@ export const TrainerDashboard = ({ user }) => {
       )}
 
       {profile.batches?.length === 0 && (
-        <Panel>
-          <p className="text-sm text-[#94a3b8] font-semibold text-center py-8">
-            No batches assigned yet. Contact your admin to get assigned to a cohort.
-          </p>
+        <Panel className={cardLightClass}>
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <FiLayers className="w-12 h-12 text-[#fc362d]/40" />
+            <p className="text-sm font-semibold text-[#475569]">No batches assigned yet</p>
+            <p className="text-xs text-[#94a3b8]">Contact your administrator to get assigned to a cohort.</p>
+          </div>
         </Panel>
       )}
 
@@ -466,7 +476,10 @@ export const TrainerDashboard = ({ user }) => {
             </div>
 
             {loadingBatch ? (
-              <div className="py-12 text-center text-sm text-[#94a3b8]">Loading batch data…</div>
+              <div className="py-12 flex flex-col items-center justify-center gap-3">
+                <div className="w-8 h-8 border-3 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
+                <p className="text-sm text-[#94a3b8]">Loading batch data…</p>
+              </div>
             ) : (
               <>
                 {/* Submissions tab */}

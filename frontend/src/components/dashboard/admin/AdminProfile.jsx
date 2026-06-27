@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FiUser, FiMail, FiAward, FiCamera, FiSave,
-  FiAlertCircle, FiLock, FiEye, FiEyeOff, FiBriefcase,
+  FiUser, FiMail, FiCamera, FiSave,
+  FiAlertCircle, FiLock, FiEye, FiEyeOff,
 } from "react-icons/fi";
 import axios from "axios";
 import { WelcomeBanner, Toast } from "../DashboardUI";
@@ -69,7 +69,7 @@ function PasswordSection() {
     if (form.next.length < 6) { setMsg({ text: "New password must be at least 6 characters", type: "error" }); return; }
     setSaving(true); setMsg({ text: "", type: "" });
     try {
-      await axios.put("/api/trainer/change-password", {
+      await axios.put("/api/auth/change-password", {
         current_password: form.current,
         new_password:     form.next,
       });
@@ -102,54 +102,40 @@ function PasswordSection() {
 
   return (
     <div className={`${cardClass} p-6`}>
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-[#fc362d]/10 flex items-center justify-center">
-          <FiLock className="w-4 h-4 text-[#fc362d]" />
-        </div>
-        <div>
-          <h3 className="text-sm font-extrabold text-[#0c0407]">Change Password</h3>
-          <p className={`${labelMutedClass} mt-0.5`}>Update your account password</p>
-        </div>
-      </div>
-
+      <h3 className="text-sm font-extrabold text-[#0c0407] mb-1">Change Password</h3>
+      <p className={`${labelMutedClass} mb-4`}>Update your account password</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <PasswordField field="current" label="Current Password" />
-        <PasswordField field="next"    label="New Password" />
+        <PasswordField field="next" label="New Password" />
         <PasswordField field="confirm" label="Confirm New Password" />
-
         {msg.text && (
-          <p className={`text-xs font-semibold px-3 py-2 rounded-xl border ${
-            msg.type === "ok"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-[#fef2f2] text-[#b91c1c] border-[#b91c1c]/20"
-          }`}>{msg.text}</p>
+          <p className={`text-xs font-semibold ${msg.type === "error" ? "text-[#b91c1c]" : "text-[#059669]"}`}>
+            {msg.text}
+          </p>
         )}
-
-        <button type="submit" disabled={saving || !form.current || !form.next || !form.confirm}
-          className={`${primaryBtnClass} w-full flex items-center justify-center gap-2 disabled:opacity-50`}>
-          <FiLock className="w-3.5 h-3.5" />
-          {saving ? "Changing…" : "Change Password"}
+        <button type="submit" disabled={saving}
+          className={`${primaryBtnClass} flex items-center gap-1.5 disabled:opacity-50`}>
+          <FiSave className="w-3.5 h-3.5" />{saving ? "Updating…" : "Update Password"}
         </button>
       </form>
     </div>
   );
 }
 
-/* ── Main TrainerProfile ─────────────────────────────── */
-export default function TrainerProfile() {
-  const fileInputRef = useRef(null);
-  const [profile, setProfile]   = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState("");
-  const [editing, setEditing]   = useState(false);
-  const [saving, setSaving]     = useState(false);
-  const [toast, setToast]       = useState("");
+/* ── AdminProfile ─────────────────────────────────────── */
+export default function AdminProfile() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState("");
+  const [form, setForm] = useState({ name: "", email: "" });
   const [imgPreview, setImgPreview] = useState(null);
-  const [imgData, setImgData]       = useState(null);
   const [showImgModal, setShowImgModal] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
-  const [form, setForm] = useState({ name: "", specialization: "", experience_year: 0 });
+  const fileInputRef = useRef(null);
 
   // Lock body scroll when modals are open
   useEffect(() => {
@@ -163,23 +149,20 @@ export default function TrainerProfile() {
     };
   }, [showImgModal, showCropper]);
 
-  const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 4000); };
-
   const fetchProfile = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
-      const { data } = await axios.get("/api/trainer/profile");
+      const { data } = await axios.get("/api/auth/profile");
       setProfile(data);
-      setForm({
-        name:            data.user?.name      || "",
-        specialization:  data.specialization  || "",
-        experience_year: data.experience_year || 0,
-      });
+      setForm({ name: data.name || "", email: data.email || "" });
       setImgPreview(data.profile_img || null);
-      setImgData(null);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load profile");
-    } finally { setLoading(false); }
+      console.error("Failed to fetch profile:", err);
+      setError("Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
@@ -188,7 +171,8 @@ export default function TrainerProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      showToast("Image must be under 10 MB");
+      setToast("Image must be under 10 MB");
+      setTimeout(() => setToast(""), 3500);
       return;
     }
     const reader = new FileReader();
@@ -197,12 +181,10 @@ export default function TrainerProfile() {
       setShowCropper(true);
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
   };
 
   const handleCropComplete = (croppedDataUrl) => {
     setImgPreview(croppedDataUrl);
-    setImgData(croppedDataUrl);
     setShowCropper(false);
     setImageToCrop(null);
   };
@@ -215,28 +197,31 @@ export default function TrainerProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = { ...form };
-      if (imgData !== null) payload.profile_img = imgData;
-      await axios.put("/api/trainer/profile", payload);
-      showToast("Profile updated!");
-      setEditing(false); setImgData(null);
-      fetchProfile();
+      await axios.put("/api/auth/profile", {
+        name: form.name,
+        email: form.email,
+        profile_img: imgPreview,
+      });
+      setToast("Profile updated successfully!");
+      setEditing(false);
+      await fetchProfile();
     } catch (err) {
-      showToast(err.response?.data?.message || "Failed to save");
-    } finally { setSaving(false); }
+      setToast(err.response?.data?.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setToast(""), 3500);
+    }
   };
 
   const handleCancel = () => {
-    setEditing(false); setImgData(null);
-    if (profile) {
-      setForm({ name: profile.user?.name || "", specialization: profile.specialization || "", experience_year: profile.experience_year || 0 });
-      setImgPreview(profile.profile_img || null);
-    }
+    setForm({ name: profile?.name || "", email: profile?.email || "" });
+    setImgPreview(profile?.profile_img || null);
+    setEditing(false);
   };
 
   if (loading) return (
     <div className={pageWrapClass}>
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className={`${cardClass} flex flex-col items-center justify-center py-16 gap-4`}>
         <div className="w-12 h-12 border-4 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
         <p className="text-sm font-semibold text-[#94a3b8]">Loading profile…</p>
       </div>
@@ -253,7 +238,7 @@ export default function TrainerProfile() {
     </div>
   );
 
-  const initials = (profile.user?.name || "TR").slice(0, 2).toUpperCase();
+  const initials = (profile.name || "AD").slice(0, 2).toUpperCase();
 
   return (
     <div className={pageWrapClass}>
@@ -261,8 +246,8 @@ export default function TrainerProfile() {
 
       <WelcomeBanner
         badge="My Profile"
-        title="Trainer Profile"
-        description="Your professional details, specialization and account settings."
+        title="Admin Profile"
+        description="Your account details and settings."
         actions={
           editing ? (
             <div className="flex gap-2">
@@ -307,29 +292,25 @@ export default function TrainerProfile() {
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
               className="hidden" onChange={handleAvatarChange} />
             <div className="text-center">
-              <h2 className="text-lg font-extrabold text-[#0c0407]">{profile.user?.name}</h2>
-              <p className="text-xs text-[#94a3b8] font-semibold mt-0.5">{profile.specialization || "Trainer"}</p>
+              <h2 className="text-lg font-extrabold text-[#0c0407]">{profile.name}</h2>
+              <p className="text-xs text-[#94a3b8] font-semibold mt-0.5 uppercase tracking-wider">{profile.role?.replace("_", " ")}</p>
             </div>
             {editing && (
               <p className="text-[10px] text-[#94a3b8] text-center">Click the camera icon to upload a photo</p>
             )}
           </div>
 
-          {/* Trainer card */}
+          {/* Admin card */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#fc362d] via-[#f43f5e] to-[#e02d25] p-5 text-white shadow-[0_8px_28px_rgba(252,54,45,0.25)]">
             <div className="absolute top-0 right-0 -mt-6 -mr-6 w-20 h-20 bg-white/20 rounded-full blur-xl" />
             <div className="relative z-10">
-              <span className="text-[8px] font-bold px-2 py-0.5 rounded bg-white/20 uppercase tracking-wider">Trainer ID</span>
-              <h3 className="text-base font-extrabold mt-2 mb-0.5">{profile.user?.name}</h3>
-              <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider mb-4">{profile.specialization}</p>
+              <span className="text-[8px] font-bold px-2 py-0.5 rounded bg-white/20 uppercase tracking-wider">Admin ID</span>
+              <h3 className="text-base font-extrabold mt-2 mb-0.5">{profile.name}</h3>
+              <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider mb-4">{profile.role?.replace("_", " ")}</p>
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-[7px] font-bold text-white/60 uppercase">Experience</p>
-                  <p className="text-sm font-bold">{profile.experience_year} year{profile.experience_year !== 1 ? "s" : ""}</p>
-                </div>
-                <div className="text-right">
                   <p className="text-[7px] font-bold text-white/60 uppercase">Email</p>
-                  <p className="text-[9px] font-bold truncate max-w-[140px]">{profile.user?.email}</p>
+                  <p className="text-[9px] font-bold truncate max-w-[140px]">{profile.email}</p>
                 </div>
               </div>
             </div>
@@ -341,35 +322,17 @@ export default function TrainerProfile() {
 
           {/* Personal details */}
           <div className={`${cardClass} p-6`}>
-            <h3 className="text-sm font-extrabold text-[#0c0407] mb-1">Professional Information</h3>
+            <h3 className="text-sm font-extrabold text-[#0c0407] mb-1">Account Information</h3>
             <p className={`${labelMutedClass} mb-4`}>{editing ? "Edit your details below" : "Your registered profile"}</p>
 
             <InfoRow icon={FiUser}      label="Full Name"
               value={form.name} editing={editing}
               inputProps={{ type: "text", value: form.name, onChange: e => setForm(p => ({ ...p, name: e.target.value })), placeholder: "Your full name" }} />
-            <InfoRow icon={FiMail}      label="Email"        value={profile.user?.email} />
-            <InfoRow icon={FiBriefcase} label="Specialization"
-              value={form.specialization} editing={editing}
-              inputProps={{ type: "text", value: form.specialization, onChange: e => setForm(p => ({ ...p, specialization: e.target.value })), placeholder: "e.g. Full-Stack Development" }} />
-            <InfoRow icon={FiAward}     label="Years of Experience"
-              value={`${form.experience_year} year${form.experience_year !== 1 ? "s" : ""}`} editing={editing}
-              inputProps={{ type: "number", min: 0, value: form.experience_year, onChange: e => setForm(p => ({ ...p, experience_year: e.target.value })), placeholder: "0" }} />
+            <InfoRow icon={FiMail}      label="Email"        value={profile.email} />
           </div>
 
-          {/* Change password */}
+          {/* Password section */}
           <PasswordSection />
-
-          {/* Save bar */}
-          {editing && (
-            <div className="sticky bottom-4 flex items-center justify-end gap-3 bg-white border border-black/[0.08] rounded-2xl px-5 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-              <p className="text-xs text-[#94a3b8] font-semibold flex-1">Unsaved changes</p>
-              <button onClick={handleCancel} className={`${secondaryBtnClass} text-xs py-2`}>Cancel</button>
-              <button onClick={handleSave} disabled={saving}
-                className={`${primaryBtnClass} text-xs py-2 flex items-center gap-1.5 disabled:opacity-50`}>
-                <FiSave className="w-3.5 h-3.5" />{saving ? "Saving…" : "Save Changes"}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 

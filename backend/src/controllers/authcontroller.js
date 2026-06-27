@@ -305,3 +305,53 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
     res.status(200).json({ message: "Password reset successfully" });
 });
+
+export const updateProfile = asyncHandler(async (req, res) => {
+    const { name, email, profile_img } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error("User not found");
+    }
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (profile_img !== undefined) user.profile_img = profile_img;
+
+    await user.save();
+
+    const userRole = await getUserRoleForClient(user);
+    const student = await Student.findOne({ where: { user_id: user.id } });
+
+    res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: userRole,
+        profile_img: user.profile_img,
+        Student: student ? { id: student.id } : null,
+    });
+});
+
+export const changePassword = asyncHandler(async (req, res) => {
+    const { current_password, new_password } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error("User not found");
+    }
+
+    const isMatch = await bcrypt.compare(current_password, user.password);
+    if (!isMatch) {
+        res.status(400);
+        throw new Error("Current password is incorrect");
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(new_password, salt);
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+});

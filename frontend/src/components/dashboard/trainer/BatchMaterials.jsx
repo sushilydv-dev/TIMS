@@ -138,9 +138,10 @@ export function BatchMaterials({ batchId, materials, onRefresh }) {
 
         {/* ── Existing topics ── */}
         {topics.length === 0 ? (
-          <div className="text-center py-12 bg-[#fafafa] rounded-2xl border border-dashed border-black/[0.07]">
-            <FiBookOpen className="w-10 h-10 text-[#94a3b8] mx-auto mb-3" />
-            <p className="text-sm font-semibold text-[#94a3b8]">No materials yet. Add a topic above.</p>
+          <div className="flex flex-col items-center justify-center py-12 gap-3 bg-[#fafafa] rounded-2xl border border-dashed border-black/[0.07]">
+            <FiBookOpen className="w-10 h-10 text-[#94a3b8]" />
+            <p className="text-sm font-semibold text-[#94a3b8]">No materials yet</p>
+            <p className="text-xs text-[#94a3b8]">Add a topic above to upload study materials.</p>
           </div>
         ) : (
           <div className="space-y-4">

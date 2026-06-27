@@ -26,10 +26,10 @@ function Counter({ value, suffix = "" }) {
 }
 
 const STATS = [
-  { value: 50,  suffix: "K+", label: "Students Trained",    desc: "Across all programs since 2014",        glow: "bg-[#fc362d]/5" },
-  { value: 10,  suffix: "+",  label: "Years of Excellence", desc: "A decade of industry-aligned education", glow: "bg-indigo-500/5" },
-  { value: 98,  suffix: "%",  label: "Placement Rate",      desc: "Of graduates enter their chosen field",  glow: "bg-rose-500/5" },
-  { value: 120, suffix: "+",  label: "Industry Partners",   desc: "Companies that hire TIMS graduates",     glow: "bg-emerald-500/5" },
+  { value: 2500,  suffix: "+", label: "Professionals Trained",    desc: "Certified across Tech, HR, and Management programs since 2019.",        glow: "bg-[#fc362d]/5" },
+  { value: 7,  suffix: "+",  label: "Years of Excellence", desc: "A decade of industry-aligned education", glow: "bg-indigo-500/5" },
+  { value: 100,  suffix: "%",  label: "Practical Exposure",      desc: "Empowering careers with industry-driven training",  glow: "bg-rose-500/5" },
+  { value: 60, suffix: "+",  label: "Industry Partners",   desc: "Top-tier companies that actively hire our certified graduates",     glow: "bg-emerald-500/5" },
 ];
 
 const POINTS = [
@@ -143,7 +143,7 @@ export const About = () => {
       </span>
     </div>
 
-    <span className="text-sm font-bold text-[#0c0407] mb-1">{label}</span>
+    <span className="text-[.9rem] font-bold text-[#0c0407] mb-1">{label}</span>
     <span className="text-xs text-[#94a3b8] font-medium leading-snug">{desc}</span>
   </motion.div>
 ))}

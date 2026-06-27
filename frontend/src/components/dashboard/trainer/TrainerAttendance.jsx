@@ -6,7 +6,7 @@ import {
 import axios from "axios";
 import { Panel, WelcomeBanner } from "../DashboardUI";
 import {
-  pageWrapClass, cardClass, labelMutedClass,
+  pageWrapClass, cardClass, cardLightClass, labelMutedClass,
   primaryBtnClass, secondaryBtnClass, inputClass,
 } from "../dashboardTheme";
 
@@ -157,12 +157,16 @@ function AttendanceSheet({ batch, date, onBack, onSaved }) {
 
       {/* Student table */}
       {loading ? (
-        <p className="text-sm text-[#94a3b8] text-center py-12">Loading students…</p>
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <div className="w-8 h-8 border-3 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
+          <p className="text-sm text-[#94a3b8]">Loading students…</p>
+        </div>
       ) : students.length === 0 ? (
         <Panel>
-          <p className="text-xs text-[#94a3b8] text-center py-10">
-            No students enrolled in this batch.
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <FiUsers className="w-10 h-10 text-[#94a3b8]" />
+            <p className="text-xs text-[#94a3b8] font-semibold">No students enrolled in this batch</p>
+          </div>
         </Panel>
       ) : (
         <div className={`${cardClass} overflow-hidden`}>
@@ -493,13 +497,18 @@ export function TrainerAttendance() {
 
       {loading ? (
         <Panel>
-          <p className="text-sm text-[#94a3b8] text-center py-12">Loading your batches…</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-12 h-12 border-4 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
+            <p className="text-sm font-semibold text-[#94a3b8]">Loading your batches…</p>
+          </div>
         </Panel>
       ) : batches.length === 0 ? (
-        <Panel>
-          <p className="text-sm text-[#94a3b8] text-center py-12">
-            No batches assigned yet. Contact your admin.
-          </p>
+        <Panel className={cardLightClass}>
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <FiCalendar className="w-12 h-12 text-[#fc362d]/40" />
+            <p className="text-sm font-semibold text-[#475569]">No batches assigned yet</p>
+            <p className="text-xs text-[#94a3b8]">Contact your administrator to get assigned to a cohort.</p>
+          </div>
         </Panel>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
