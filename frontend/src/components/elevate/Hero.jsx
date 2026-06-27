@@ -42,22 +42,7 @@ export const Hero = () => {
         style={{ opacity: textOpacity, y: textY }}
         className="relative z-10 max-w-4xl mx-auto flex flex-col items-center"
       >
-        {/* Rating badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/[0.03] border border-black/[0.06] shadow-sm mb-8"
-        >
-          <div className="flex gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-3.5 h-3.5 fill-[#fc362d] stroke-[#fc362d]" />
-            ))}
-          </div>
-          <span className="text-black/50 text-xs font-semibold">4.9 / 5</span>
-          <span className="w-px h-3.5 bg-black/10" />
-          <span className="text-black/70 text-xs font-semibold">Trusted by 50,000+ professionals</span>
-        </motion.div>
+       
 
         {/* Headline */}
         <motion.h1

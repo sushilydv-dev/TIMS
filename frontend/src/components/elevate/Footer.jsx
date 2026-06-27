@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   FaFacebook,
   FaInstagram,
@@ -68,14 +69,19 @@ export const Footer = () => {
               Legal
             </h4>
             <ul className="flex flex-col gap-4">
-              {["Terms of Service", "Privacy Policy","Cancellation Policy","Refund Policy"].map((link, idx) => (
+              {[
+                { label: "Terms of Service", href: "#" },
+                { label: "Privacy Policy", href: "/privacy-policy" },
+                { label: "Cancellation Policy", href: "/cancellation-policy" },
+                { label: "Refund Policy", href: "#" },
+              ].map((link, idx) => (
                 <li key={idx}>
-                  <a
-                    href="#"
+                  <Link
+                    to={link.href}
                     className="text-black/50 hover:text-[#fc362d] text-sm md:text-base transition-colors duration-200 font-semibold"
                   >
-                    {link}
-                  </a>
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -107,19 +113,19 @@ export const Footer = () => {
             &copy; {new Date().getFullYear()} TIMS. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <a
-              href="#"
+            <Link
+              to="/privacy-policy"
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors font-medium"
             >
               Privacy Policy
-            </a>
+            </Link>
             <a
               href="#"
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors font-medium"
             >
               Terms of Use
             </a>
-           
+
           </div>
         </div>
       </div>

@@ -3,14 +3,18 @@ export const tims = {
   accent: "#fc362d",
   accentFrom: "#f43f5e", /* rose-500 */
   accentHoverTo: "#e02d25",
+  accentLight: "#fef2f2",
   ink: "#0c0407",
   slate: "#475569",
   slateLight: "#64748b",
   body: "#636363",
   muted: "#94a3b8",
-  pageBg: "#fafafa",
+  pageBg: "#f8fafc",
+  pageBgGradient: "from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0]",
   cardBg: "#ffffff",
+  cardBgLight: "#f8fafc",
   border: "rgba(0, 0, 0, 0.08)",
+  borderLight: "rgba(0, 0, 0, 0.05)",
   success: "#059669",
   successBg: "#ecfdf5",
   warning: "#d97706",
@@ -35,7 +39,10 @@ export const accentGradientHoverClass =
 export const statIconWells = "bg-[#f1f5f9] text-[#475569]";
 
 export const cardClass =
-  "bg-white border border-black/[0.08] rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.05)]";
+  "bg-white border border-black/[0.08] rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-shadow";
+
+export const cardLightClass =
+  "bg-[#f8fafc] border border-black/[0.05] rounded-2xl shadow-[0_2px_16px_rgba(0,0,0,0.03)]";
 
 export const cardPadding = "p-5 sm:p-6";
 

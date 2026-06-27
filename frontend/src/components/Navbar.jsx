@@ -308,28 +308,12 @@ export const Navbar = () => {
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
           {user ? (
-            <>
-              <Link
-                to="/dashboard"
-                className="text-[#4a5553] hover:text-[#cd1a09] text-[0.88rem] font-semibold transition-colors duration-200"
-              >
-                Dashboard
-              </Link>
-              <div className="flex items-center gap-3 pl-2 border-l border-gray-200">
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 uppercase tracking-wider">
-                  {user.role?.replace("_", " ")}
-                </span>
-                <span className="text-gray-600 text-sm font-medium hidden lg:inline">
-                  {user.name}
-                </span>
-                <button
-                  onClick={logout}
-                  className="px-4 py-2 text-sm rounded-xl font-semibold text-white bg-red-600/90 hover:bg-red-700 transition-all duration-300 cursor-pointer"
-                >
-                  Logout
-                </button>
-              </div>
-            </>
+            <button
+              onClick={logout}
+              className="px-4 py-2 text-sm rounded-xl font-semibold text-white bg-red-600/90 hover:bg-red-700 transition-all duration-300 cursor-pointer"
+            >
+              Logout
+            </button>
           ) : (
             <>
               <Link
@@ -445,25 +429,15 @@ export const Navbar = () => {
 
             <div className="mt-8 flex flex-col gap-3 border-t border-[#ebe8f2] pt-5">
               {user ? (
-                <>
-                  <p className="m-0 text-sm font-semibold text-[#4a5553]">{user.name}</p>
-                  <Link
-                    to="/dashboard"
-                    onClick={closeMobileMenu}
-                    className="py-2 text-[#4a5553] font-semibold hover:text-[#cd1a09]"
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={() => {
-                      logout();
-                      closeMobileMenu();
-                    }}
-                    className="w-full py-3 px-4 rounded-[8px] font-semibold text-white bg-red-600 hover:bg-red-700 transition-all cursor-pointer"
-                  >
-                    Logout
-                  </button>
-                </>
+                <button
+                  onClick={() => {
+                    logout();
+                    closeMobileMenu();
+                  }}
+                  className="w-full py-3 px-4 rounded-[8px] font-semibold text-white bg-red-600 hover:bg-red-700 transition-all cursor-pointer"
+                >
+                  Logout
+                </button>
               ) : (
                 <>
                   <Link

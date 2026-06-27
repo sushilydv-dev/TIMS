@@ -12,6 +12,7 @@ import {
   primaryBtnClass, secondaryBtnClass,
 } from "../dashboardTheme";
 import logoSrc from "../../../assets/logo.png";
+import ImageCropper from "../ImageCropper";
 
 /* ── helpers ─────────────────────────────────────────── */
 const fmt = (d) =>
@@ -27,7 +28,7 @@ function compressAvatar(file) {
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      const MAX = 256;
+      const MAX = 1024;
       let { width, height } = img;
       if (width >= height) { height = Math.round((height / width) * MAX); width = MAX; }
       else { width = Math.round((width / height) * MAX); height = MAX; }
@@ -41,7 +42,7 @@ function compressAvatar(file) {
       const offX = (MAX - width) / 2;
       const offY = (MAX - height) / 2;
       ctx.drawImage(img, offX, offY, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.88));
+      resolve(canvas.toDataURL("image/jpeg", 0.95));
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read image")); };
     img.src = url;
@@ -307,9 +308,24 @@ export default function StudentProfile() {
   const [toast, setToast]       = useState("");
   const [imgPreview, setImgPreview] = useState(null); // base64 preview
   const [imgData, setImgData]       = useState(null); // base64 to save
+  const [showImgModal, setShowImgModal] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
   const [feeData, setFeeData]       = useState(null);
   const [feeLoading, setFeeLoading] = useState(true);
   const [genInvoice, setGenInvoice] = useState(false);
+
+  // Lock body scroll when modals are open
+  useEffect(() => {
+    if (showImgModal || showCropper) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showImgModal, showCropper]);
 
   // Editable fields
   const [form, setForm] = useState({
@@ -344,15 +360,32 @@ export default function StudentProfile() {
       .catch(() => setFeeLoading(false));
   }, [fetchProfile]);
 
-  const handleAvatarChange = async (e) => {
+  const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const data = await compressAvatar(file);
-      setImgPreview(data);
-      setImgData(data);
-    } catch (err) { showToast(err.message); }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("Image must be under 10 MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result);
+      setShowCropper(true);
+    };
+    reader.readAsDataURL(file);
     e.target.value = "";
+  };
+
+  const handleCropComplete = (croppedDataUrl) => {
+    setImgPreview(croppedDataUrl);
+    setImgData(croppedDataUrl);
+    setShowCropper(false);
+    setImageToCrop(null);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setImageToCrop(null);
   };
 
   const handleSave = async () => {
@@ -435,7 +468,11 @@ export default function StudentProfile() {
           <div className={`${cardClass} p-6 flex flex-col items-center gap-4`}>
             {/* Circle avatar */}
             <div className="relative">
-              <div className="w-28 h-28 rounded-full overflow-hidden bg-[#f0eef4] border-4 border-white shadow-md flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => imgPreview && setShowImgModal(true)}
+                className="w-28 h-28 rounded-full overflow-hidden bg-[#f0eef4] border-4 border-white shadow-md flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              >
                 {imgPreview ? (
                   <img src={imgPreview} alt="Profile"
                     className="w-full h-full object-cover"
@@ -444,7 +481,7 @@ export default function StudentProfile() {
                 ) : (
                   <span className="text-3xl font-extrabold text-[#94a3b8] select-none">{initials}</span>
                 )}
-              </div>
+              </button>
               {/* Camera button */}
               {editing && (
                 <button
@@ -649,6 +686,38 @@ export default function StudentProfile() {
           )}
         </div>
       </div>
+
+      {/* Profile Picture Modal */}
+      {showImgModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative max-w-2xl w-full">
+            <button
+              type="button"
+              onClick={() => setShowImgModal(false)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={imgPreview}
+              alt="Profile Picture"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-2xl"
+              onClick={() => setShowImgModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Image Cropper Modal */}
+      {showCropper && imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCrop={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }

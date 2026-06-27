@@ -1,17 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  FiSearch,
   FiBell,
-  FiSettings,
-  FiChevronDown,
-  FiLayers,
+  FiUser,
+  FiLogOut,
 } from "react-icons/fi";
 import { useAuth } from "../../app/AuthContext";
-import { accentGradientClass, accentGradientHoverClass } from "./dashboardTheme";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export const Header = ({ activeRole, onRoleChange }) => {
-  const { user } = useAuth();
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
 
   const rolesList = [
     { key: "ADMIN", label: "Admin" },
@@ -23,6 +24,47 @@ export const Header = ({ activeRole, onRoleChange }) => {
 
   const currentRoleLabel =
     rolesList.find((r) => r.key === activeRole)?.label || activeRole;
+
+  // Fetch profile image based on user role
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      if (!user) return;
+      
+      try {
+        let imageUrl = null;
+        
+        if (user.role === "TRAINER") {
+          const { data } = await axios.get("/api/trainer/profile");
+          imageUrl = data.profile_img;
+        } else if (user.role === "STUDENT") {
+          const { data } = await axios.get("/api/student/profile");
+          imageUrl = data.profile_img;
+        }
+        
+        setProfileImage(imageUrl);
+      } catch (err) {
+        console.error("Failed to fetch profile image:", err);
+      }
+    };
+
+    fetchProfileImage();
+  }, [user]);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const handleProfileClick = () => {
+    setShowProfileMenu(!showProfileMenu);
+  };
+
+  const getProfileRoute = () => {
+    if (user?.role === "TRAINER") return "/dashboard/trainer/profile";
+    if (user?.role === "STUDENT") return "/dashboard/student/profile";
+    if (user?.role === "ADMIN") return "/dashboard/users";
+    return "/dashboard";
+  };
 
   return (
     <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
@@ -37,82 +79,88 @@ export const Header = ({ activeRole, onRoleChange }) => {
         </h1>
       </div>
 
-      <div className="flex flex-1 lg:flex-none items-center gap-2 sm:gap-3 bg-white border border-black/[0.08] p-2 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] max-w-full">
-        <div className="relative flex flex-1 items-center bg-[#fafafa] rounded-xl border border-black/[0.06] px-3 py-2.5 min-w-0 focus-within:border-[#cbd5e1] focus-within:ring-2 focus-within:ring-[#e2e8f0] transition-all">
-          <FiSearch className="text-[#94a3b8] mr-2 w-4 h-4 shrink-0" />
-          <input
-            type="text"
-            placeholder="Type in to search..."
-            className="bg-transparent text-[#0c0407] placeholder-[#94a3b8] text-sm font-medium w-full focus:outline-none min-w-0"
-          />
-        </div>
-
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-[#475569] bg-[#f8fafc] hover:bg-[#f1f5f9] border border-black/[0.08] rounded-xl transition-all cursor-pointer"
-          >
-            <FiLayers className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{currentRoleLabel}</span>
-            <FiChevronDown
-              className={`w-3.5 h-3.5 transition-transform ${showRoleMenu ? "rotate-180" : ""}`}
-            />
-          </button>
-
-          {showRoleMenu && (
-            <>
-              <div
-                className="fixed inset-0 z-30"
-                onClick={() => setShowRoleMenu(false)}
-                aria-hidden
-              />
-              <div className="absolute right-0 mt-2 w-52 bg-white border border-black/[0.08] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1)] p-2 z-40">
-                <p className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider px-3 py-2">
-                  Switch view
-                </p>
-                {rolesList.map((role) => (
-                  <button
-                    key={role.key}
-                    type="button"
-                    onClick={() => {
-                      onRoleChange(role.key);
-                      setShowRoleMenu(false);
-                    }}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeRole === role.key
-                        ? `text-white ${accentGradientClass} ${accentGradientHoverClass}`
-                        : "text-[#475569] hover:bg-[#f8fafc]"
-                    }`}
-                  >
-                    {role.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
+      <div className="flex items-center gap-2 sm:gap-3">
         <button
           type="button"
-          className="relative w-10 h-10 rounded-xl flex items-center justify-center text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#0c0407] transition-all cursor-pointer shrink-0"
+          className="hidden lg:flex relative w-10 h-10 rounded-xl items-center justify-center text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#0c0407] transition-all cursor-pointer shrink-0"
         >
           <FiBell className="w-[18px] h-[18px]" />
           <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#fc362d] ring-2 ring-white" />
         </button>
 
-        <button
-          type="button"
-          className="w-10 h-10 rounded-xl hidden sm:flex items-center justify-center text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#0c0407] transition-all cursor-pointer shrink-0"
-        >
-          <FiSettings className="w-[18px] h-[18px]" />
-        </button>
+        <div className="relative shrink-0 hidden lg:block">
+          <button
+            type="button"
+            onClick={handleProfileClick}
+            className="w-10 h-10 rounded-xl overflow-hidden border border-black/[0.08] shrink-0 cursor-pointer hover:border-[#fc362d]/30 transition-all"
+          >
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#f1f5f9] flex items-center justify-center">
+                <span className="text-xs font-bold text-[#475569]">
+                  {(user?.name || "U").slice(0, 2).toUpperCase()}
+                </span>
+              </div>
+            )}
+          </button>
 
-        <img
-          src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || "Demo"}&backgroundColor=f1f5f9`}
-          alt=""
-          className="w-10 h-10 rounded-xl border border-black/[0.08] shrink-0"
-        />
+          {showProfileMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setShowProfileMenu(false)}
+                aria-hidden
+              />
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-black/[0.08] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1)] p-3 z-40">
+                {/* Enlarged profile picture section */}
+                <div className="flex flex-col items-center pb-3 border-b border-black/[0.06] mb-2">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-black/[0.08] mb-2">
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#f1f5f9] flex items-center justify-center">
+                        <span className="text-lg font-bold text-[#475569]">
+                          {(user?.name || "U").slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-[#0c0407]">{user?.name || "User"}</p>
+                  <p className="text-xs text-[#94a3b8]">{user?.email || ""}</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate(getProfileRoute());
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-[#475569] hover:bg-[#f8fafc] transition-all cursor-pointer text-left"
+                >
+                  <FiUser className="w-4 h-4" />
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-[#b91c1c] hover:bg-[#fef2f2] transition-all cursor-pointer text-left"
+                >
+                  <FiLogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

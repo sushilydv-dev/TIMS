@@ -1,4 +1,5 @@
 import { Panel, PanelHeader, StatusBadge } from "../DashboardUI";
+import { FiUsers } from "react-icons/fi";
 
 /**
  * Students tab — enrolled student roster for a batch.
@@ -8,9 +9,10 @@ export function BatchStudents({ students = [] }) {
     <Panel>
       <PanelHeader eyebrow="Roster" title={`Enrolled (${students.length})`} />
       {!students.length ? (
-        <p className="text-xs text-[#94a3b8] text-center py-10 bg-[#fafafa] rounded-xl border border-dashed border-black/[0.07]">
-          No students enrolled.
-        </p>
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <FiUsers className="w-10 h-10 text-[#94a3b8]" />
+          <p className="text-xs text-[#94a3b8] font-semibold">No students enrolled</p>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
