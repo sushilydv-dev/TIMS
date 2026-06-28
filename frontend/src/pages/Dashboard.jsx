@@ -33,7 +33,7 @@ const Dashboard = () => {
           const { data } = await axios.get("/api/trainer/profile");
           imageUrl = data.profile_img;
         } else if (user.role === "STUDENT") {
-          const { data } = await axios.get("/api/student/profile");
+          const { data } = await axios.get("/api/students/me/profile");
           imageUrl = data.profile_img;
         } else if (user.role === "ADMIN") {
           const { data } = await axios.get("/api/auth/profile");

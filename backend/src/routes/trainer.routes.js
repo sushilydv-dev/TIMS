@@ -13,6 +13,7 @@ import Project from "../models/project.js";
 import StudyMaterial from "../models/studyMaterial.js";
 import Notification from "../models/notification.js";
 import { Op } from "sequelize";
+import { sendTrainerProfileComplete } from "../services/notification.service.js";
 
 const router = express.Router();
 router.use(protect);
@@ -74,6 +75,19 @@ router.put("/complete-profile", asyncHandler(async (req, res) => {
   }
   
   await trainer.save();
+  
+  // Send notification to admins about trainer profile completion
+  console.log("=== TRAINER PROFILE COMPLETION NOTIFICATION START ===");
+  console.log("Trainer ID:", trainer.id);
+  console.log("Trainer Name:", trainer.User?.name || "Unknown");
+  try {
+    await sendTrainerProfileComplete(trainer.user_id, trainer.id, trainer.User?.name || "Unknown");
+    console.log("Trainer profile notification sent successfully");
+  } catch (error) {
+    console.error("Error sending trainer profile notification:", error);
+    console.error("Error stack:", error.stack);
+  }
+  console.log("=== TRAINER PROFILE COMPLETION NOTIFICATION END ===");
   
   res.json({
     message: "Profile completed successfully",

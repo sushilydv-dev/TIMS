@@ -6,6 +6,8 @@ import studentControlRoutes from "./studentControl.routes.js"
 import studentRoutes from "./student.routes.js"
 import trainerRoutes from "./trainer.routes.js"
 import publicRoutes from "./public.routes.js"
+import notificationRoutes from "./notification.routes.js"
+import appointmentRoutes from "./appointment.routes.js"
 const router=express.Router()
 router.use("/auth", authRoutes);
 router.use("/public", publicRoutes);
@@ -14,5 +16,7 @@ router.use("/admin/students", studentControlRoutes);
 router.use("/students", studentRoutes);
 router.use("/trainer", trainerRoutes);
 router.use("/v1/payments", paymentRoutes);
+router.use("/notifications", notificationRoutes);
+router.use("/appointments", appointmentRoutes);
 
 export default router;

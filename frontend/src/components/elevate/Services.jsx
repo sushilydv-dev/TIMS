@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Code, Layers, Database, Cpu, BarChart2, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const SERVICES = [
   {
@@ -10,46 +11,52 @@ const SERVICES = [
     accent: "group-hover:bg-[#fc362d]/5",
     border: "group-hover:border-[#fc362d]/25",
     iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    trackId: "full-stack-web-development",
   },
   {
     icon: Layers,
     title: "UI/UX Architecture & Interaction",
     description: "Learn to design modern, intuitive digital layouts focused entirely on driving engagement — from wireframes to pixel-perfect production interfaces.",
-    accent: "group-hover:bg-indigo-500/5",
-    border: "group-hover:border-indigo-500/25",
-    iconHover: "group-hover:bg-indigo-500/10 group-hover:text-indigo-500",
+    accent: "group-hover:bg-[#fc362d]/5",
+    border: "group-hover:border-[#fc362d]/25",
+    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    trackId: "ui-ux-architecture",
   },
   {
     icon: Database,
     title: "Cloud Infrastructure & Database",
     description: "Dive deep into relational database design, efficient backend scaling pipelines, stateful caching layers, and cloud deployment strategies.",
-    accent: "group-hover:bg-rose-500/5",
-    border: "group-hover:border-rose-500/25",
-    iconHover: "group-hover:bg-rose-500/10 group-hover:text-rose-500",
+    accent: "group-hover:bg-[#fc362d]/5",
+    border: "group-hover:border-[#fc362d]/25",
+    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    trackId: "cloud-infrastructure",
   },
   {
     icon: Cpu,
     title: "AI & Machine Learning Fundamentals",
     description: "Understand model building, data pipelines, and practical ML workflows. Build projects that integrate intelligent features into real-world applications.",
-    accent: "group-hover:bg-violet-500/5",
-    border: "group-hover:border-violet-500/25",
-    iconHover: "group-hover:bg-violet-500/10 group-hover:text-violet-500",
+    accent: "group-hover:bg-[#fc362d]/5",
+    border: "group-hover:border-[#fc362d]/25",
+    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    trackId: "ai-machine-learning",
   },
   {
     icon: BarChart2,
     title: "Business & HR Management",
     description: "Structured programs in operations, talent acquisition, and business administration for aspiring management professionals entering corporates.",
-    accent: "group-hover:bg-amber-500/5",
-    border: "group-hover:border-amber-500/25",
-    iconHover: "group-hover:bg-amber-500/10 group-hover:text-amber-500",
+    accent: "group-hover:bg-[#fc362d]/5",
+    border: "group-hover:border-[#fc362d]/25",
+    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    trackId: "business-hr-management",
   },
   {
     icon: ShieldCheck,
     title: "Cybersecurity & DevSecOps",
     description: "Learn security-first development, ethical hacking fundamentals, CI/CD hardening, and compliance practices for modern software teams.",
-    accent: "group-hover:bg-emerald-500/5",
-    border: "group-hover:border-emerald-500/25",
-    iconHover: "group-hover:bg-emerald-500/10 group-hover:text-emerald-500",
+    accent: "group-hover:bg-[#fc362d]/5",
+    border: "group-hover:border-[#fc362d]/25",
+    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    trackId: "cybersecurity-devsecops",
   },
 ];
 
@@ -138,12 +145,15 @@ export const Services = () => {
                   {srv.description}
                 </p>
 
-                <div className="mt-7 flex items-center gap-2 text-black/35 group-hover:text-[#fc362d] text-xs font-bold tracking-wider uppercase transition-all duration-300">
+                <Link
+                  to={`/learn-more/${srv.trackId}`}
+                  className="mt-7 flex items-center gap-2 text-black/35 group-hover:text-[#fc362d] text-xs font-bold tracking-wider uppercase transition-all duration-300 no-underline"
+                >
                   <span>Learn More</span>
                   <svg className="w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
-                </div>
+                </Link>
               </motion.div>
             );
           })}

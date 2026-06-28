@@ -24,50 +24,6 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Check if it is a mock token first
-      if (storedToken.startsWith("mock-token-")) {
-        const role = storedToken.replace("mock-token-", "");
-        let mockUser = {
-          id: "mock-1",
-          email: `${role.toLowerCase()}@tims.com`,
-          name: "Demo User",
-          role: role.toUpperCase(),
-        };
-        if (role === "admin" || role === "super_admin") {
-          mockUser = {
-            id: "admin-123",
-            email: "admin@tims.com",
-            name: "Adela Parkson",
-            role: "ADMIN",
-          };
-        } else if (role === "hr_coordinator") {
-          mockUser = {
-            id: "hr-123",
-            email: "hr@tims.com",
-            name: "Sarah Jenkins",
-            role: "HR_COORDINATOR",
-          };
-        } else if (role === "trainer") {
-          mockUser = {
-            id: "trainer-123",
-            email: "trainer@tims.com",
-            name: "Dr. Marcus Vance",
-            role: "TRAINER",
-          };
-        } else if (role === "student") {
-          mockUser = {
-            id: "student-123",
-            email: "student@tims.com",
-            name: "Alex Manda",
-            role: "STUDENT",
-          };
-        }
-        setUser(mockUser);
-        setToken(storedToken);
-        setLoading(false);
-        return;
-      }
-
       try {
         axios.defaults.headers.common["Authorization"] =
           `Bearer ${storedToken}`;
@@ -81,10 +37,7 @@ export const AuthProvider = ({ children }) => {
         });
         setToken(storedToken);
       } catch (error) {
-        console.error(
-          "Error fetching user profile, falling back to mock or clearing:",
-          error,
-        );
+        console.error("Error fetching user profile:", error);
         // Clear invalid token
         localStorage.removeItem("token");
         setUser(null);
@@ -113,55 +66,7 @@ export const AuthProvider = ({ children }) => {
       setUser(normalizedUser);
       return { token: userToken, ...normalizedUser };
     } catch (error) {
-      console.warn(
-        "Backend API error or server down, trying local mock login...",
-      );
-      // Check for mock users
-      const emailLower = email.toLowerCase();
-      let mockUser = null;
-      let mockRoleToken = null;
-
-      if (emailLower === "admin@tims.com") {
-        mockUser = {
-          id: "admin-123",
-          email: "admin@tims.com",
-          name: "Adela Parkson",
-          role: "ADMIN",
-        };
-        mockRoleToken = "mock-token-admin";
-      } else if (emailLower === "hr@tims.com") {
-        mockUser = {
-          id: "hr-123",
-          email: "hr@tims.com",
-          name: "Sarah Jenkins",
-          role: "HR_COORDINATOR",
-        };
-        mockRoleToken = "mock-token-hr_coordinator";
-      } else if (emailLower === "trainer@tims.com") {
-        mockUser = {
-          id: "trainer-123",
-          email: "trainer@tims.com",
-          name: "Dr. Marcus Vance",
-          role: "TRAINER",
-        };
-        mockRoleToken = "mock-token-trainer";
-      } else if (emailLower === "student@tims.com") {
-        mockUser = {
-          id: "student-123",
-          email: "student@tims.com",
-          name: "Alex Manda",
-          role: "STUDENT",
-        };
-        mockRoleToken = "mock-token-student";
-      }
-
-      if (mockUser) {
-        localStorage.setItem("token", mockRoleToken);
-        setUser(mockUser);
-        setToken(mockRoleToken);
-        return { token: mockRoleToken, ...mockUser };
-      }
-
+      console.error("Login error:", error);
       throw error;
     }
   };
@@ -188,13 +93,8 @@ export const AuthProvider = ({ children }) => {
       setUser(normalizedUser);
       return { token: userToken, ...normalizedUser };
     } catch (error) {
-      console.warn("Backend error, registering user as static mock session...");
-      const mockRoleToken = `mock-token-${role.toLowerCase()}`;
-      const mockUser = { id: "mock-reg", email, name: username, role };
-      localStorage.setItem("token", mockRoleToken);
-      setUser(mockUser);
-      setToken(mockRoleToken);
-      return { token: mockRoleToken, ...mockUser };
+      console.error("Registration error:", error);
+      throw error;
     }
   };
 

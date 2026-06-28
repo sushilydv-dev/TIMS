@@ -1,12 +1,17 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { Op, literal } from "sequelize";
+import { Op, literal, fn, col } from "sequelize";
 import User from "../models/user.js";
 import Role from "../models/role.js";
 import InviteToken from "../models/inviteToken.js";
 import Trainer from "../models/trainer.js";
 import Hr from "../models/hr.js";
 import Batch from "../models/batch.js";
+import Course from "../models/course.js";
+import Department from "../models/department.js";
+import Payment from "../models/payment.js";
+import Enrollment from "../models/enrollment.js";
+import Student from "../models/student.js";
 import sequelize from "../config/db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendTemplateEmail } from "../utils/emailService.js";
@@ -532,3 +537,230 @@ export const updateHrProfile = asyncHandler(async (req, res) => {
     },
   });
 });
+
+export const getDashboardStats = asyncHandler(async (req, res) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  // Total active users
+  const totalActiveUsers = await User.count({
+    where: { status: "active" }
+  });
+
+  // Total courses offered
+  const totalCourses = await Course.count();
+
+  // Total departments
+  const totalDepartments = await Department.count();
+
+  // Month to date revenue
+  const mtdRevenue = await Payment.sum('amount', {
+    where: {
+      status: 'SUCCESS',
+      [Op.and]: [
+        sequelize.where(fn('EXTRACT', literal('YEAR FROM payment_date')), currentYear),
+        sequelize.where(fn('EXTRACT', literal('MONTH FROM payment_date')), currentMonth)
+      ]
+    }
+  }) || 0;
+
+  // Monthly enrollment data for line chart (last 12 months)
+  const monthlyEnrollments = [];
+  for (let i = 11; i >= 0; i--) {
+    const monthDate = new Date(currentYear, currentMonth - i - 1, 1);
+    const monthYear = monthDate.getFullYear();
+    const monthNum = monthDate.getMonth() + 1;
+    
+    const count = await Enrollment.count({
+      where: {
+        [Op.and]: [
+          sequelize.where(
+            fn('EXTRACT', literal('YEAR FROM enrollment_date')),
+            monthYear
+          ),
+          sequelize.where(
+            fn('EXTRACT', literal('MONTH FROM enrollment_date')),
+            monthNum
+          )
+        ]
+      },
+      include: [{
+        model: Student,
+        required: true,
+        include: [{
+          model: User,
+          where: { status: 'active' },
+          required: true
+        }]
+      }]
+    });
+
+    monthlyEnrollments.push({
+      month: monthDate.toLocaleString('default', { month: 'short' }),
+      year: monthYear,
+      monthNum,
+      count: count || 0
+    });
+  }
+
+  // Revenue data for different time periods
+  const yearlyRevenue = [];
+  for (let i = 4; i >= 0; i--) {
+    const year = currentYear - i;
+    const revenue = await Payment.sum('amount', {
+      where: {
+        status: 'SUCCESS',
+        [Op.and]: [
+          sequelize.where(fn('EXTRACT', literal('YEAR FROM payment_date')), year)
+        ]
+      }
+    }) || 0;
+
+    yearlyRevenue.push({
+      year: year.toString(),
+      revenue: revenue || 0
+    });
+  }
+
+  const quarterlyRevenue = [];
+  for (let i = 7; i >= 0; i--) {
+    const quarterDate = new Date(currentYear, currentMonth - (i * 3), 1);
+    const quarterYear = quarterDate.getFullYear();
+    const quarterMonth = quarterDate.getMonth() + 1;
+    const quarter = Math.ceil(quarterMonth / 3);
+    
+    const revenue = await Payment.sum('amount', {
+      where: {
+        status: 'SUCCESS',
+        [Op.and]: [
+          sequelize.where(fn('EXTRACT', literal('YEAR FROM payment_date')), quarterYear),
+          sequelize.where(fn('EXTRACT', literal('QUARTER FROM payment_date')), quarter)
+        ]
+      }
+    }) || 0;
+
+    quarterlyRevenue.push({
+      label: `Q${quarter} ${quarterYear}`,
+      year: quarterYear,
+      quarter,
+      revenue: revenue || 0
+    });
+  }
+
+  const monthlyRevenue = [];
+  for (let i = 11; i >= 0; i--) {
+    const monthDate = new Date(currentYear, currentMonth - i - 1, 1);
+    const monthYear = monthDate.getFullYear();
+    const monthNum = monthDate.getMonth() + 1;
+    
+    const revenue = await Payment.sum('amount', {
+      where: {
+        status: 'SUCCESS',
+        [Op.and]: [
+          sequelize.where(fn('EXTRACT', literal('YEAR FROM payment_date')), monthYear),
+          sequelize.where(fn('EXTRACT', literal('MONTH FROM payment_date')), monthNum)
+        ]
+      }
+    }) || 0;
+
+    monthlyRevenue.push({
+      month: monthDate.toLocaleString('default', { month: 'short' }),
+      year: monthYear,
+      revenue: revenue || 0
+    });
+  }
+
+  // Students by department for donut chart
+  const departments = await Department.findAll({
+    include: [{
+      model: Course,
+      include: [{
+        model: Batch,
+        include: [{
+          model: Enrollment,
+          where: { status: { [Op.in]: ['ACTIVE', 'active'] } },
+          required: true,
+          include: [{
+            model: Student,
+            required: true,
+            include: [{
+              model: User,
+              where: { status: 'active' },
+              required: true
+            }]
+          }]
+        }]
+      }]
+    }]
+  });
+
+  const departmentStats = departments.map(dept => {
+    let studentCount = 0;
+    dept.Courses.forEach(course => {
+      course.Batches.forEach(batch => {
+        studentCount += batch.Enrollments.length;
+      });
+    });
+
+    return {
+      name: dept.name,
+      count: studentCount
+    };
+  }).filter(d => d.count > 0);
+
+  // Course popularity (active student counts per course)
+  const courses = await Course.findAll({
+    include: [{
+      model: Batch,
+      include: [{
+        model: Enrollment,
+        where: { status: { [Op.in]: ['ACTIVE', 'active'] } },
+        required: true
+      }]
+    }]
+  });
+
+  const courseStats = courses.map(course => {
+    let count = 0;
+    course.Batches.forEach(batch => {
+      count += batch.Enrollments.length;
+    });
+    return {
+      name: course.title,
+      count
+    };
+  }).filter(c => c.count > 0);
+
+  // User Role Distribution
+  const rolesList = await Role.findAll({
+    include: [{
+      model: User,
+      where: { status: 'active' },
+      required: false
+    }]
+  });
+  const roleStats = rolesList.map(r => ({
+    name: r.role_name,
+    count: r.Users ? r.Users.length : 0
+  })).filter(r => r.count > 0);
+
+  res.json({
+    stats: {
+      totalActiveUsers,
+      totalCourses,
+      totalDepartments,
+      mtdRevenue
+    },
+    charts: {
+      monthlyEnrollments,
+      yearlyRevenue,
+      quarterlyRevenue,
+      monthlyRevenue,
+      departmentStats,
+      courseStats,
+      roleStats
+    }
+  });
+});
+

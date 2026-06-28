@@ -13,6 +13,7 @@ import ProjectSubmission from "../models/projectSubmission.js";
 import User from "../models/user.js";
 import Trainer from "../models/trainer.js";
 import { Op } from "sequelize";
+import { sendProjectSubmitted } from "../services/notification.service.js";
 
 const router = express.Router();
 router.use(protect);
@@ -125,7 +126,7 @@ router.get("/me/dashboard", asyncHandler(async (req, res) => {
           model: Batch,
           include: [
             { model: Course, attributes: ["id", "title", "duration_month"] },
-            { model: Trainer, include: [{ model: User, attributes: ["id", "name"] }] },
+            { model: Trainer, as: "trainer", include: [{ model: User, attributes: ["id", "name"] }] },
           ],
         }],
       },
@@ -138,7 +139,7 @@ router.get("/me/dashboard", asyncHandler(async (req, res) => {
   const enrollment = student.Enrollments?.[0] || null;
   const batch = enrollment?.Batch || null;
   const course = batch?.Course || null;
-  const trainer = batch?.Trainer || null;
+  const trainer = batch?.trainer || null;
 
   // Attendance summary
   const attendances = student.Attendances || [];
@@ -295,6 +296,11 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
     res.status(400); throw new Error("Either github_link or file_url is required");
   }
 
+  const enrollment = await Enrollment.findOne({
+    where: { student_id: student.id },
+    include: [{ model: Batch }]
+  });
+
   const today = new Date().toISOString().slice(0, 10);
   const existing = await ProjectSubmission.findOne({
     where: { project_id: req.params.projectId, student_id: student.id },
@@ -305,6 +311,24 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
     existing.file_url    = file_url?.trim() || "";
     existing.submitted_at = today;
     await existing.save();
+
+    // Notify trainers about updated project submission
+    try {
+      if (enrollment && enrollment.Batch) {
+        await sendProjectSubmitted(
+          req.user.id,
+          student.id,
+          req.user.name || "A Student",
+          project.id,
+          project.title,
+          enrollment.Batch.id,
+          enrollment.Batch.batch_name
+        );
+      }
+    } catch (err) {
+      console.error("Error sending project submission notification:", err);
+    }
+
     return res.json({ message: "Submission updated", submission: existing });
   }
 
@@ -317,6 +341,23 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
     marks: 0,
     feedback: "",
   });
+
+  // Notify trainers about new project submission
+  try {
+    if (enrollment && enrollment.Batch) {
+      await sendProjectSubmitted(
+        req.user.id,
+        student.id,
+        req.user.name || "A Student",
+        project.id,
+        project.title,
+        enrollment.Batch.id,
+        enrollment.Batch.batch_name
+      );
+    }
+  } catch (err) {
+    console.error("Error sending project submission notification:", err);
+  }
 
   res.status(201).json({ message: "Submitted", submission });
 }));

@@ -26,8 +26,25 @@ export async function syncDatabase() {
         /* table may not exist yet on first boot */
       }
     }
+
+    // Drop NOT NULL constraint from enrollments.batch_id
+    try {
+      await sequelize.query(`
+        ALTER TABLE "enrollments" 
+        ALTER COLUMN "batch_id" DROP NOT NULL
+      `);
+      console.log("Successfully dropped NOT NULL constraint from enrollments.batch_id");
+    } catch (err) {
+      console.warn("enrollments.batch_id NOT NULL constraint warning:", err.message);
+    }
   }
 
-  await sequelize.sync({ alter });
-  console.log(`Database schema synced (alter: ${alter})`);
+  try {
+    await sequelize.sync({ alter });
+    console.log(`Database schema synced (alter: ${alter})`);
+  } catch (err) {
+    console.warn("Database alter sync failed, falling back to sync without alter:", err.message);
+    await sequelize.sync({ alter: false });
+    console.log("Database schema synced successfully without alter.");
+  }
 }

@@ -16,7 +16,7 @@ const Enrollment = sequelize.define(
     },
     batch_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       references: { model: "batches", key: "id" },
     },
     enrollment_date: {

@@ -1,342 +1,669 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiUsers,
   FiBookOpen,
   FiDollarSign,
-  FiSettings,
-  FiShield,
-  FiDatabase,
-  FiTrash2,
-  FiCreditCard,
+  FiLayers,
+  FiTrendingUp,
+  FiPieChart,
+  FiBarChart2,
+  FiActivity
 } from "react-icons/fi";
-import {
-  WelcomeBanner,
-  StatCards,
-  PrimaryButton,
-  SecondaryButton,
-} from "../DashboardUI";
+import axios from "axios";
 import { pageWrapClass } from "../dashboardTheme";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie
+} from "recharts";
+
+// Premium Color Palette
+const COLORS = [
+  "#fc362d", // Primary Red
+  "#6366f1", // Indigo
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#8b5cf6", // Purple
+  "#06b6d4", // Cyan
+  "#ec4899", // Pink
+  "#f97316", // Orange
+];
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+const formatCompactNumber = (num) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toString();
+};
 
 export const AdminDashboard = ({ user }) => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [charts, setCharts] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [revenuePeriod, setRevenuePeriod] = useState("monthly"); // 'monthly', 'quarterly', 'yearly'
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await axios.get("/api/admin/dashboard-stats");
+        setStats(response.data.stats);
+        setCharts(response.data.charts);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const getRevenueData = () => {
+    switch (revenuePeriod) {
+      case "monthly":
+        return charts?.monthlyRevenue || [];
+      case "quarterly":
+        return charts?.quarterlyRevenue || [];
+      case "yearly":
+      default:
+        return charts?.yearlyRevenue || [];
+    }
+  };
+
+  const getRevenueLabel = (item) => {
+    switch (revenuePeriod) {
+      case "monthly":
+        return `${item.month} ${item.year.toString().slice(-2)}`;
+      case "quarterly":
+        return item.label;
+      case "yearly":
+      default:
+        return item.year;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className={pageWrapClass}>
+        <div className="flex items-center justify-center h-96">
+          <div className="relative flex items-center justify-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#fc362d]"></div>
+            <div className="absolute text-xs font-bold text-[#0c0407] animate-pulse">TIMS</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={pageWrapClass}>
-      <WelcomeBanner
-        badge="Control Panel & Audit"
-        title={`Welcome back, ${user?.name || "Administrator"}!`}
-        description="Monitor system health, user access, courses, and financial flows from one console."
-        actions={
-          <>
-            <PrimaryButton onClick={() => navigate("/dashboard/students")}>Enroll Student</PrimaryButton>
-            <SecondaryButton onClick={() => navigate("/dashboard/billing")}>Billing Ledger</SecondaryButton>
-          </>
-        }
-      />
+      {/* Welcome Banner */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-[#0c0407] tracking-tight">
+            Welcome back, {user?.name || "Administrator"}!
+          </h1>
+          <p className="text-[#636363] mt-1.5 text-sm">
+            Monitor system health, user access, courses, and financial flows from one console.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 px-3.5 py-1.5 rounded-full font-bold self-start md:self-center">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          System Online
+        </div>
+      </div>
 
-      <StatCards
-        stats={[
-          {
-            label: "Active Users",
-            value: "2,840",
-            change: "+14.2% MoM",
-            icon: <FiUsers className="w-5 h-5" />,
-          },
-          {
-            label: "Courses Offered",
-            value: "114",
-            change: "+4 this week",
-            icon: <FiBookOpen className="w-5 h-5" />,
-          },
-          {
-            label: "DB Health",
-            value: "99.98%",
-            change: "Latency 8ms",
-            icon: <FiDatabase className="w-5 h-5" />,
-          },
-          {
-            label: "Revenue",
-            value: "₹4.82L",
-            change: "+8.3% MoM",
-            icon: <FiDollarSign className="w-5 h-5" />,
-          },
-        ]}
-      />
+      {/* 4 Stat Tiles */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatTile
+          label="Total Active Users"
+          value={stats?.totalActiveUsers || 0}
+          icon={<FiUsers className="w-5 h-5" />}
+          color="#fc362d"
+        />
+        <StatTile
+          label="Total Courses Offered"
+          value={stats?.totalCourses || 0}
+          icon={<FiBookOpen className="w-5 h-5" />}
+          color="#6366f1"
+        />
+        <StatTile
+          label="Total Departments"
+          value={stats?.totalDepartments || 0}
+          icon={<FiLayers className="w-5 h-5" />}
+          color="#10b981"
+        />
+        <StatTile
+          label="MTD Revenue"
+          value={formatCurrency(stats?.mtdRevenue || 0)}
+          icon={<FiDollarSign className="w-5 h-5" />}
+          color="#f59e0b"
+        />
+      </div>
 
-      {/* 3. Middle Main Widgets Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Double-Column Panel */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Revenue Over Time Chart */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <span className="text-xs font-bold text-[#9ca3af] uppercase tracking-wider">MSAI FINANCIALS</span>
-                <h3 className="text-lg font-extrabold text-[#0c0407] tracking-tight mt-0.5">Overall Revenue Tracking</h3>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Line/Area Chart - Monthly Enrollments */}
+        <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col h-[380px]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-[#fc362d]">
+                <FiTrendingUp className="w-4 h-4" />
               </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-[#64748b] bg-[#f8fafc] rounded-lg p-1 border border-black/[0.06]">
-                <button className="px-3 py-1.5 bg-white text-[#0c0407] rounded-md shadow-sm border border-black/[0.06]">Monthly</button>
-                <button className="px-3 py-1.5 hover:text-[#0c0407]">Quarterly</button>
-              </div>
+              <h3 className="text-base font-extrabold text-[#0c0407]">Student Enrollments Trend</h3>
             </div>
-
-            {/* Custom Interactive SVG Line Chart (Replicates high fidelity charting) */}
-            <div className="h-64 relative w-full bg-slate-50/50 rounded-2xl border border-gray-50/50 p-4">
-              <svg viewBox="0 0 500 200" className="w-full h-full overflow-visible">
-                {/* Defs for gradients */}
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#334155" stopOpacity="0.05" />
-                    <stop offset="100%" stopColor="#334155" stopOpacity="0" />
-                  </linearGradient>
-                  <linearGradient id="adminChartSecondary" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.04" />
-                    <stop offset="100%" stopColor="#94a3b8" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-
-                {/* Gridlines */}
-                <line x1="0" y1="40" x2="500" y2="40" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3" />
-                <line x1="0" y1="90" x2="500" y2="90" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3" />
-                <line x1="0" y1="140" x2="500" y2="140" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3" />
-
-                {/* Shaded Area Under Primary Line */}
-                <path
-                  d="M 10 140 Q 90 40 170 110 T 330 60 T 490 80 L 490 180 L 10 180 Z"
-                  fill="url(#chartGradient)"
-                />
-                {/* Shaded Area Under Secondary Line */}
-                <path
-                  d="M 10 170 Q 90 90 170 140 T 330 90 T 490 110 L 490 180 L 10 180 Z"
-                  fill="url(#adminChartSecondary)"
-                />
-
-                {/* Target estimate — muted */}
-                <path
-                  d="M 10 170 Q 90 90 170 140 T 330 90 T 490 110"
-                  fill="none"
-                  stroke="#94a3b8"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeDasharray="4 4"
-                />
-
-                {/* Collected income — charcoal */}
-                <path
-                  d="M 10 140 Q 90 40 170 110 T 330 60 T 490 80"
-                  fill="none"
-                  stroke="#334155"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-
-                <circle cx="170" cy="110" r="3.5" fill="#334155" stroke="white" strokeWidth="1.5" />
-                <circle cx="330" cy="60" r="3.5" fill="#334155" stroke="white" strokeWidth="1.5" />
-
-                {/* X Axis Labels */}
-                <text x="10" y="195" fill="#9ca3af" fontSize="10" fontWeight="bold">Sep</text>
-                <text x="90" y="195" fill="#9ca3af" fontSize="10" fontWeight="bold">Oct</text>
-                <text x="170" y="195" fill="#9ca3af" fontSize="10" fontWeight="bold">Nov</text>
-                <text x="250" y="195" fill="#9ca3af" fontSize="10" fontWeight="bold">Dec</text>
-                <text x="330" y="195" fill="#9ca3af" fontSize="10" fontWeight="bold">Jan</text>
-                <text x="410" y="195" fill="#9ca3af" fontSize="10" fontWeight="bold">Feb</text>
-                <text x="470" y="195" fill="#9ca3af" fontSize="10" fontWeight="bold">Mar</text>
-              </svg>
-            </div>
-
-            <div className="flex gap-6 mt-4 pt-4 border-t border-slate-50 text-xs font-bold">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block w-4 h-0.5 rounded-full bg-[#334155]"></span>
-                <span className="text-[#64748b]">Collected Income</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-4 h-0 border-t border-dashed border-[#94a3b8]"></span>
-                <span className="text-gray-500">Target Estimate</span>
-              </div>
-            </div>
+            <span className="text-xs font-semibold text-[#636363] bg-[#f8fafc] px-2.5 py-1 rounded-md border border-black/[0.04]">Last 12 Months</span>
           </div>
-
-          {/* Quick Tasks Grid & Security Monitor Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Quick Actions Panel */}
-            <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-base font-extrabold text-[#0c0407] border-b border-black/[0.08] pb-3.5 mb-3.5">
-                System Commands
-              </h3>
-              <div className="grid grid-cols-1 gap-2">
-                {[
-                  {
-                    label: "Enroll New Student",
-                    desc: "Register student & configure payment blueprints",
-                    icon: <FiUsers className="w-4 h-4 text-[#fc362d]" />,
-                    onClick: () => navigate("/dashboard/students"),
-                  },
-                  {
-                    label: "Configure Server Ports",
-                    desc: "Change active gateway port settings",
-                    icon: <FiSettings className="w-4 h-4 text-[#475569]" />,
-                  },
-                  {
-                    label: "Manage User Permissions",
-                    desc: "Override and assign granular RBAC keys",
-                    icon: <FiShield className="w-4 h-4 text-[#05CD99]" />,
-                  },
-                  {
-                    label: "Full Database Backup",
-                    desc: "Capture safe structural dump file",
-                    icon: <FiDatabase className="w-4 h-4 text-teal-600" />,
-                  },
-                  {
-                    label: "Flush OTP Cache",
-                    desc: "Clear verifying registers in Redis",
-                    icon: <FiTrash2 className="w-4 h-4 text-red-500" />,
-                  },
-                ].map((act, i) => (
-                  <button
-                    key={i}
-                    onClick={act.onClick || (() => alert(`Simulated command: ${act.label}`))}
-                    className="flex items-start text-left p-3 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-black/[0.08] transition-all cursor-pointer group w-full"
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-[#fafafa] flex items-center justify-center mr-3 mt-0.5 group-hover:scale-105 transition-transform flex-shrink-0">
-                      {act.icon}
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-extrabold text-[#0c0407] group-hover:text-[#0c0407] transition-colors">
-                        {act.label}
-                      </h4>
-                      <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{act.desc}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Audit Security Logs */}
-            <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <div className="flex justify-between items-center border-b border-black/[0.08] pb-3.5 mb-3.5">
-                <h3 className="text-base font-extrabold text-[#0c0407]">Security Stream</h3>
-                <span className="inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#E6FAF5] text-[#05CD99] animate-pulse">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500 mr-1"></span>
-                  Active Monitor
-                </span>
-              </div>
-
-              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                {[
-                  { user: "super_admin", action: "Synced Postgres database constraints", time: "2m ago", lvl: "info" },
-                  { user: "trainer_pete", action: "Uploaded material syllabus.pdf", time: "24m ago", lvl: "info" },
-                  { user: "system_cron", action: "Expired 14 verifying OTP records", time: "1h ago", lvl: "ok" },
-                  { user: "unknown_api", action: "Suspicious POST payload on /login", time: "2h ago", lvl: "warn" },
-                ].map((log, i) => (
-                  <div key={i} className="flex justify-between items-start text-xs p-3 rounded-2xl bg-[#fafafa]/50 border border-gray-50">
-                    <div className="flex gap-2.5">
-                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
-                        log.lvl === "warn" ? "bg-amber-500" : log.lvl === "ok" ? "bg-emerald-500" : "bg-sky-500"
-                      }`}></span>
-                      <div>
-                        <p className="text-gray-600 leading-relaxed font-semibold">
-                          <span className="text-[#475569] font-extrabold">@{log.user}</span>: {log.action}
-                        </p>
-                        <span className="text-[10px] text-gray-400 font-bold mt-0.5 block">{log.time}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+          <div className="flex-1 min-h-0">
+            <EnrollmentTrendChart data={charts?.monthlyEnrollments || []} />
           </div>
-
         </div>
 
-        {/* Right Single-Column Panel */}
-        <div className="space-y-6">
-          
-          {/* Replicating "Your Card" credit card widget */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Billing Node</h3>
-            
-            {/* The Gradient Glassy Card */}
-            <div className="relative overflow-hidden aspect-[1.6/1] w-full rounded-2xl bg-gradient-to-br from-[#1a1a1f] via-[#141418] to-[#0c0407] p-5 text-white shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-lg"></div>
-              
-              <div className="h-full flex flex-col justify-between relative z-10">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">MSAI Admin Gateway</p>
-                    <h4 className="text-sm font-extrabold tracking-tight mt-0.5">TIMS Central</h4>
-                  </div>
-                  <FiCreditCard className="w-5 h-5 text-white/90" />
-                </div>
-                
-                <div>
-                  <p className="text-xs font-bold tracking-widest font-mono">7812 •••• •••• 9840</p>
-                  <div className="flex justify-between items-end mt-4">
-                    <div>
-                      <p className="text-[8px] font-bold text-white/50 uppercase">Balance Limit</p>
-                      <p className="text-sm font-extrabold tracking-tight">₹4,82,940</p>
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-bold text-white/50 uppercase">CVV Code</p>
-                      <p className="text-xs font-bold font-mono">09X</p>
-                    </div>
-                  </div>
-                </div>
+        {/* Bar Chart - Revenue */}
+        <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col h-[380px]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-[#f59e0b]">
+                <FiBarChart2 className="w-4 h-4" />
               </div>
+              <h3 className="text-base font-extrabold text-[#0c0407]">Revenue Analysis</h3>
             </div>
-
-            {/* Quick Actions Below Card */}
-            <div className="grid grid-cols-4 gap-2 mt-4 text-center">
-              {[
-                { label: "Withdraw", icon: "⇥" },
-                { label: "Deposit", icon: "⇤" },
-                { label: "Sync API", icon: "⚡" },
-                { label: "Ledger", icon: "▤" },
-              ].map((b, i) => (
-                <button key={i} className="p-2 rounded-xl bg-slate-50 border border-black/[0.08] hover:bg-slate-100 transition-all text-xs font-extrabold text-[#0c0407] cursor-pointer">
-                  <div className="text-sm font-bold mb-0.5 text-[#475569]">{b.icon}</div>
-                  <div className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">{b.label}</div>
+            <div className="flex items-center gap-1 bg-[#f8fafc] rounded-lg p-1 border border-black/[0.06] self-start sm:self-auto">
+              {["monthly", "quarterly", "yearly"].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setRevenuePeriod(period)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    revenuePeriod === period
+                      ? "bg-white text-[#0c0407] shadow-sm border border-black/[0.06]"
+                      : "text-[#64748b] hover:text-[#0c0407]"
+                  }`}
+                >
+                  {period.charAt(0).toUpperCase() + period.slice(1)}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Transactions Ledger */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <h3 className="text-base font-extrabold text-[#0c0407] mb-4">Financial Ledger</h3>
-            <div className="space-y-3">
-              {[
-                { item: "PG Fee UPI - STU-001", time: "22 May 2026", amt: "+₹14,500", positive: true },
-                { item: "AWS Object Store Storage", time: "18 May 2026", amt: "-₹8,490", positive: false },
-                { item: "PG Fee Bank - STU-024", time: "15 May 2026", amt: "+₹24,000", positive: true },
-                { item: "Redis Cluster Cache API", time: "12 May 2026", amt: "-₹2,300", positive: false },
-                { item: "PG Fee UPI - STU-112", time: "09 May 2026", amt: "+₹14,500", positive: true },
-              ].map((tx, i) => (
-                <div key={i} className="flex justify-between items-center text-xs p-2.5 rounded-2xl bg-slate-50/50 hover:bg-slate-50 border border-gray-50/80 transition-all">
-                  <div>
-                    <h4 className="font-extrabold text-[#0c0407] truncate max-w-[150px]">{tx.item}</h4>
-                    <span className="text-[9px] text-[#9ca3af] font-bold block mt-0.5">{tx.time}</span>
-                  </div>
-                  <span className={`font-extrabold text-sm ${tx.positive ? "text-[#05CD99]" : "text-[#0c0407]"}`}>
-                    {tx.amt}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <button className="w-full mt-4 py-2.5 text-center text-xs font-extrabold text-[#475569] bg-[#475569]/5 hover:bg-[#f1f5f9]/10 rounded-2xl transition-all cursor-pointer">
-              Download Bank Statements
-            </button>
+          <div className="flex-1 min-h-0">
+            <RevenueChart data={getRevenueData()} getLabel={getRevenueLabel} />
           </div>
-
         </div>
-
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Donut Chart - Students by Department */}
+        <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col h-[380px]">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-[#6366f1]">
+              <FiPieChart className="w-4 h-4" />
+            </div>
+            <h3 className="text-base font-extrabold text-[#0c0407]">Students by Department</h3>
+          </div>
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <DepartmentDonutChart data={charts?.departmentStats || []} />
+          </div>
+        </div>
+
+        {/* Horizontal Bar Chart - Course Popularity */}
+        <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col h-[380px]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-[#10b981]">
+                <FiBookOpen className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-extrabold text-[#0c0407]">Course Popularity</h3>
+            </div>
+            <span className="text-xs font-semibold text-[#636363] bg-[#f8fafc] px-2.5 py-1 rounded-md border border-black/[0.04]">Active Students</span>
+          </div>
+          <div className="flex-1 min-h-0">
+            <CoursePopularityChart data={charts?.courseStats || []} />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Donut Chart - User Role Distribution */}
+        <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col h-[380px]">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-[#8b5cf6]">
+              <FiUsers className="w-4 h-4" />
+            </div>
+            <h3 className="text-base font-extrabold text-[#0c0407]">User Roles Distribution</h3>
+          </div>
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <UserRolesChart data={charts?.roleStats || []} />
+          </div>
+        </div>
+
+        {/* Quick Insights card */}
+        <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col justify-between h-[380px]">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-sky-500">
+                <FiActivity className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-extrabold text-[#0c0407]">System Insights & Overview</h3>
+            </div>
+            <p className="text-sm text-[#636363] mb-6">
+              Quick analytical computations based on currently active database entities.
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-[#f8fafc] rounded-xl border border-black/[0.03] hover:bg-slate-50 transition-colors">
+                <span className="text-sm font-semibold text-[#636363]">Average Active Users per Dept</span>
+                <span className="text-base font-extrabold text-[#0c0407]">
+                  {stats?.totalDepartments > 0 ? (stats?.totalActiveUsers / stats?.totalDepartments).toFixed(1) : 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-[#f8fafc] rounded-xl border border-black/[0.03] hover:bg-slate-50 transition-colors">
+                <span className="text-sm font-semibold text-[#636363]">Average Courses per Dept</span>
+                <span className="text-base font-extrabold text-[#10b981]">
+                  {stats?.totalDepartments > 0 ? (stats?.totalCourses / stats?.totalDepartments).toFixed(1) : 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-[#f8fafc] rounded-xl border border-black/[0.03] hover:bg-slate-50 transition-colors">
+                <span className="text-sm font-semibold text-[#636363]">MTD Revenue flow</span>
+                <span className="text-base font-extrabold text-[#f59e0b]">{formatCurrency(stats?.mtdRevenue || 0)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-center text-xs text-[#636363] pt-4 border-t border-black/[0.04]">
+            Data updated in real-time • TIMS Console v1.0
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
+const StatTile = ({ label, value, icon, color }) => (
+  <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+    <div className="flex items-center justify-between mb-4">
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center"
+        style={{ backgroundColor: `${color}12` }}
+      >
+        <div style={{ color }}>{icon}</div>
+      </div>
+    </div>
+    <p className="text-xs font-bold text-[#636363] mb-1.5 uppercase tracking-wider">{label}</p>
+    <p className="text-2xl font-black text-[#0c0407] tracking-tight">{value}</p>
+  </div>
+);
+
+// 1. Enrollment Trend Chart (AreaChart)
+const EnrollmentTrendChart = ({ data }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-[#636363] text-sm font-medium">
+        No enrollment data available
+      </div>
+    );
+  }
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+          <p className="text-white/50 mb-0.5">{label}</p>
+          <p className="text-sm font-black text-[#fc362d]">
+            {payload[0].value} Student{payload[0].value !== 1 ? "s" : ""}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="w-full h-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorEnrollments" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#fc362d" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#fc362d" stopOpacity={0.0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+          <XAxis
+            dataKey="month"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+            allowDecimals={false}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="count"
+            stroke="#fc362d"
+            strokeWidth={2.5}
+            fillOpacity={1}
+            fill="url(#colorEnrollments)"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+// 2. Revenue Chart (BarChart)
+const RevenueChart = ({ data, getLabel }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-[#636363] text-sm font-medium">
+        No revenue data available
+      </div>
+    );
+  }
+
+  const chartData = data.map((d) => ({
+    ...d,
+    formattedLabel: getLabel(d),
+  }));
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+          <p className="text-white/50 mb-0.5">{label}</p>
+          <p className="text-sm font-black text-[#ff6b5b]">
+            {formatCurrency(payload[0].value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="w-full h-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 10, right: 5, left: -15, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#fc362d" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#ff6b5b" stopOpacity={0.75} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+          <XAxis
+            dataKey="formattedLabel"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(val) => `₹${formatCompactNumber(val)}`}
+            tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+          />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.02)" }} />
+          <Bar dataKey="revenue" fill="url(#colorRevenue)" radius={[4, 4, 0, 0]} maxBarSize={45} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+// 3. Department Donut Chart
+const DepartmentDonutChart = ({ data }) => {
+  const total = data.reduce((sum, d) => sum + parseInt(d.count || 0), 0);
+
+  if (!data || data.length === 0 || total === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-[#636363] text-sm font-medium">
+        No department distribution data available
+      </div>
+    );
+  }
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const pData = payload[0].payload;
+      const percentage = total > 0 ? ((pData.count / total) * 100).toFixed(1) : 0;
+      return (
+        <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+          <p className="font-black text-[#fc362d]">{pData.name}</p>
+          <p className="text-white/60 mt-0.5">
+            {pData.count} Student{pData.count !== 1 ? "s" : ""} ({percentage}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="w-full h-full flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 px-4">
+      <div className="relative w-44 h-44 flex-shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={58}
+              outerRadius={75}
+              paddingAngle={3}
+              dataKey="count"
+              animationDuration={600}
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="white" strokeWidth={1} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-2xl font-black text-[#0c0407] tracking-tight">{total}</span>
+          <span className="text-[9px] font-bold text-[#64748b] uppercase tracking-wider">Students</span>
+        </div>
+      </div>
+
+      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+        {data.map((item, index) => {
+          const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
+          const color = COLORS[index % COLORS.length];
+          return (
+            <div key={index} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+              <div
+                className="w-3 h-3 rounded-full mt-0.5 flex-shrink-0"
+                style={{ backgroundColor: color }}
+              ></div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#0c0407] truncate leading-tight">{item.name}</p>
+                <p className="text-[10px] font-medium text-[#64748b] mt-0.5">
+                  {item.count} Student{item.count !== 1 ? "s" : ""} • {percentage}%
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// 4. Course Popularity Chart (Horizontal BarChart)
+const CoursePopularityChart = ({ data }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-[#636363] text-sm font-medium">
+        No active course enrollment data available
+      </div>
+    );
+  }
+
+  // Cap length of course names to make them look nice on Y axis
+  const chartData = data.map((d) => ({
+    ...d,
+    shortName: d.name.length > 20 ? d.name.slice(0, 18) + "..." : d.name,
+  }));
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const pData = payload[0].payload;
+      return (
+        <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+          <p className="font-bold text-[#ff6b5b]">{pData.name}</p>
+          <p className="text-white/60 mt-0.5">{pData.count} Active Student{pData.count !== 1 ? "s" : ""}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="w-full h-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={chartData}
+          layout="vertical"
+          margin={{ top: 5, right: 15, left: 15, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(0,0,0,0.03)" />
+          <XAxis
+            type="number"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+            allowDecimals={false}
+          />
+          <YAxis
+            dataKey="shortName"
+            type="category"
+            width={110}
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: "#0c0407", fontSize: 10, fontWeight: 700 }}
+          />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.01)" }} />
+          <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={14}>
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+// 5. User Roles Chart (Donut Chart)
+const UserRolesChart = ({ data }) => {
+  const total = data.reduce((sum, d) => sum + parseInt(d.count || 0), 0);
+
+  if (!data || data.length === 0 || total === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-[#636363] text-sm font-medium">
+        No user role data available
+      </div>
+    );
+  }
+
+  // Make role names more readable
+  const formattedData = data.map((d) => {
+    let name = d.name;
+    if (name === "ADMIN") name = "Admin";
+    else if (name === "HR") name = "HR Coordinator";
+    else if (name === "TRAINER") name = "Trainer";
+    else if (name === "STUDENT") name = "Student";
+    return { ...d, name };
+  });
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const pData = payload[0].payload;
+      const percentage = total > 0 ? ((pData.count / total) * 100).toFixed(1) : 0;
+      return (
+        <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+          <p className="font-black text-[#fc362d]">{pData.name}</p>
+          <p className="text-white/60 mt-0.5">
+            {pData.count} User{pData.count !== 1 ? "s" : ""} ({percentage}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="w-full h-full flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 px-4">
+      <div className="relative w-44 h-44 flex-shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={formattedData}
+              cx="50%"
+              cy="50%"
+              innerRadius={58}
+              outerRadius={75}
+              paddingAngle={3}
+              dataKey="count"
+              animationDuration={600}
+            >
+              {formattedData.map((entry, index) => (
+                // Offset colors by 2 for variety
+                <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} stroke="white" strokeWidth={1} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-2xl font-black text-[#0c0407] tracking-tight">{total}</span>
+          <span className="text-[9px] font-bold text-[#64748b] uppercase tracking-wider">Active Users</span>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col gap-2.5 w-full">
+        {formattedData.map((item, index) => {
+          const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
+          const color = COLORS[(index + 2) % COLORS.length];
+          return (
+            <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition-colors border border-black/[0.01]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: color }}
+                ></div>
+                <span className="text-xs font-bold text-[#0c0407] truncate">{item.name}</span>
+              </div>
+              <span className="text-xs font-extrabold text-[#64748b]">
+                {item.count} ({percentage}%)
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default AdminDashboard;

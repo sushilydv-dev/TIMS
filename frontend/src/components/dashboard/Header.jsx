@@ -5,8 +5,9 @@ import {
   FiLogOut,
 } from "react-icons/fi";
 import { useAuth } from "../../app/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { io } from "socket.io-client";
 
 export const Header = ({ activeRole, onRoleChange }) => {
   const { user, logout } = useAuth();
@@ -37,7 +38,7 @@ export const Header = ({ activeRole, onRoleChange }) => {
           const { data } = await axios.get("/api/trainer/profile");
           imageUrl = data.profile_img;
         } else if (user.role === "STUDENT") {
-          const { data } = await axios.get("/api/student/profile");
+          const { data } = await axios.get("/api/students/me/profile");
           imageUrl = data.profile_img;
         }
         
@@ -48,6 +49,49 @@ export const Header = ({ activeRole, onRoleChange }) => {
     };
 
     fetchProfileImage();
+  }, [user]);
+
+  // Fetch unread notifications count
+  const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUnreadCount = async () => {
+      try {
+        const { data } = await axios.get("/api/notifications/unread-count");
+        setUnreadCount(data.count);
+      } catch (err) {
+        console.error("Failed to fetch unread count:", err);
+      }
+    };
+
+    fetchUnreadCount();
+  }, [user, location.pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    console.log("Header connecting to Socket.IO for notifications...");
+    const socket = io({
+      path: "/socket.io",
+      withCredentials: true,
+    });
+
+    socket.on("connect", () => {
+      console.log("Header connected to Socket.IO");
+      socket.emit("join", user.id);
+    });
+
+    socket.on("new_notification", () => {
+      console.log("Header received new notification, incrementing unread count...");
+      setUnreadCount((prev) => prev + 1);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [user]);
 
   const handleLogout = () => {
@@ -82,10 +126,15 @@ export const Header = ({ activeRole, onRoleChange }) => {
       <div className="flex items-center gap-2 sm:gap-3">
         <button
           type="button"
+          onClick={() => navigate("/dashboard/notifications")}
           className="hidden lg:flex relative w-10 h-10 rounded-xl items-center justify-center text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#0c0407] transition-all cursor-pointer shrink-0"
         >
           <FiBell className="w-[18px] h-[18px]" />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#fc362d] ring-2 ring-white" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#fc362d] px-1 text-[8px] font-extrabold text-white ring-2 ring-white">
+              {unreadCount}
+            </span>
+          )}
         </button>
 
         <div className="relative shrink-0 hidden lg:block">
