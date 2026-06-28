@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FiUsers, FiX } from "react-icons/fi";
+import { FiUsers, FiX, FiSearch, FiChevronDown, FiChevronUp, FiUser, FiTrash2, FiArrowRight, FiEye } from "react-icons/fi";
 import axios from "axios";
 import { inputClass, primaryBtnClass, secondaryBtnClass } from "../dashboardTheme";
 import { BatchStudentPickerPanel } from "./BatchStudentPickerPanel";
@@ -13,12 +13,15 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
   const [batchName, setBatchName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [trainerId, setTrainerId] = useState("");
+  const [selectedTrainers, setSelectedTrainers] = useState([]);
+  const [trainerSearch, setTrainerSearch] = useState("");
+  const [trainerDropdownOpen, setTrainerDropdownOpen] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [enrolledPreview, setEnrolledPreview] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -69,6 +72,9 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
       setLoading(false);
       setPickerOpen(false);
       setSelectedStudentId(null);
+      setExpandedStudentId(null);
+      setTrainerDropdownOpen(false);
+      setTrainerSearch("");
       return;
     }
 
@@ -76,7 +82,14 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
     setBatchName(batch.batch_name || "");
     setStartDate(batch.start_date || "");
     setEndDate(batch.end_date || "");
-    setTrainerId(batch.trainer?.id || "");
+    
+    // Handle multiple trainers
+    const batchTrainers = batch.trainers || [];
+    if (batch.trainer && !batchTrainers.find(t => t.id === batch.trainer.id)) {
+      batchTrainers.push(batch.trainer);
+    }
+    setSelectedTrainers(batchTrainers.map(t => ({ id: t.id, name: t.name, specialization: t.specialization, email: t.email })));
+    
     setSelectedStudents(initial.map((s) => s.id));
     setEnrolledPreview(initial);
 
@@ -128,7 +141,7 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
     try {
       await axios.put(`/api/admin/batches/${batch.id}`, {
         batch_name: batchName,
-        trainer_id: trainerId,
+        trainer_ids: selectedTrainers.map(t => t.id),
         start_date: startDate,
         end_date: endDate,
         student_ids: selectedStudents,
@@ -140,6 +153,55 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddTrainer = (trainer) => {
+    if (!selectedTrainers.find(t => t.id === trainer.id)) {
+      setSelectedTrainers([...selectedTrainers, trainer]);
+    }
+    setTrainerSearch("");
+    setTrainerDropdownOpen(false);
+  };
+
+  const handleRemoveTrainer = (trainerId) => {
+    setSelectedTrainers(selectedTrainers.filter(t => t.id !== trainerId));
+  };
+
+  const filteredTrainers = trainers.filter(t => {
+    const search = trainerSearch.toLowerCase();
+    return (
+      t.name?.toLowerCase().includes(search) ||
+      t.email?.toLowerCase().includes(search) ||
+      t.specialization?.toLowerCase().includes(search)
+    ) && !selectedTrainers.find(st => st.id === t.id);
+  });
+
+  const toggleStudentExpand = (studentId) => {
+    setExpandedStudentId(expandedStudentId === studentId ? null : studentId);
+  };
+
+  const handleRemoveStudent = async (studentId) => {
+    try {
+      await axios.delete(`/api/admin/batches/${batch.id}/students/${studentId}`);
+      setSelectedStudents(selectedStudents.filter(id => id !== studentId));
+      setEnrolledPreview(enrolledPreview.filter(s => s.id !== studentId));
+      setExpandedStudentId(null);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not remove student");
+    }
+  };
+
+  const handleReassignStudent = (studentId) => {
+    // TODO: Implement reassign modal
+    console.log("Reassign student:", studentId);
+  };
+
+  const handleViewStudentProfile = (studentId) => {
+    setSelectedStudentId(studentId);
+    setSearchParams((prev) => {
+      prev.set("studentId", studentId);
+      return prev;
+    });
   };
 
   return (
@@ -231,26 +293,75 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">Trainer</label>
-              <select
-                required
-                className={inputClass}
-                value={trainerId}
-                onChange={(e) => setTrainerId(e.target.value)}
-              >
-                <option value="">Select trainer</option>
-                {trainers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} — {t.specialization}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">Trainers</label>
+              <div className="relative">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {selectedTrainers.map((trainer) => (
+                    <div
+                      key={trainer.id}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-[#eff6ff] border border-[#bfdbfe] rounded-lg text-xs font-semibold text-[#0c0407]"
+                    >
+                      <span>{trainer.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTrainer(trainer.id)}
+                        className="text-[#64748b] hover:text-[#b91c1c] transition-colors"
+                      >
+                        <FiX className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
+                  <input
+                    type="text"
+                    placeholder="Search trainers by name or email..."
+                    className={`${inputClass} pl-9`}
+                    value={trainerSearch}
+                    onChange={(e) => {
+                      setTrainerSearch(e.target.value);
+                      setTrainerDropdownOpen(true);
+                    }}
+                    onFocus={() => setTrainerDropdownOpen(true)}
+                  />
+                  {trainerDropdownOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setTrainerDropdownOpen(false)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#0c0407]"
+                    >
+                      <FiChevronUp className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {trainerDropdownOpen && trainerSearch && filteredTrainers.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-black/[0.08] rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredTrainers.map((trainer) => (
+                      <button
+                        key={trainer.id}
+                        type="button"
+                        onClick={() => handleAddTrainer(trainer)}
+                        className="w-full px-4 py-2.5 text-left hover:bg-[#f8fafc] transition-colors border-b border-black/[0.04] last:border-0"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-bold text-[#0c0407]">{trainer.name}</p>
+                            <p className="text-[10px] text-[#636363]">{trainer.email}</p>
+                          </div>
+                          <span className="text-[10px] text-[#94a3b8]">{trainer.specialization}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <label className="block text-xs font-bold text-[#475569]">
-                  Enrolled students ({selectedStudents.length})
+                  Total students enrolled: {selectedStudents.length}
                 </label>
                 <button
                   type="button"
@@ -258,31 +369,84 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
                   className={`${secondaryBtnClass} inline-flex items-center gap-1.5 text-xs py-2 px-3`}
                 >
                   <FiUsers className="w-3.5 h-3.5" />
-                  Manage enrollment
+                  Manage enrollments
                 </button>
               </div>
 
               {enrolledPreview.length === 0 ? (
                 <p className="text-xs text-[#94a3b8] font-semibold py-4 text-center rounded-xl bg-[#fafafa] border border-dashed border-black/[0.08]">
-                  No students enrolled. Open enrollment to add students.
+                  No students enrolled. Open enrollments to add students.
                 </p>
               ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
                   {enrolledPreview.map((s) => (
                     <div
                       key={s.id}
-                      onClick={() => handleSelectStudent(s.id)}
-                      className="flex items-center justify-between p-3 rounded-xl border border-black/[0.06] bg-[#fafafa] hover:bg-white hover:border-black/15 transition-all cursor-pointer group"
+                      className={`relative bg-white border border-black/[0.06] rounded-xl overflow-hidden transition-all ${
+                        expandedStudentId === s.id ? 'ring-2 ring-[#3b82f6] shadow-md' : 'hover:border-black/15 hover:shadow-sm'
+                      }`}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-[#0c0407] group-hover:text-[#3b82f6] transition-colors truncate">
-                          {s.name}
-                        </p>
-                        <p className="text-[10px] text-[#636363] truncate mt-0.5">{s.email}</p>
+                      {/* Collapsed state */}
+                      <div
+                        onClick={() => toggleStudentExpand(s.id)}
+                        className="p-3 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#f1f5f9] flex items-center justify-center overflow-hidden shrink-0">
+                            {s.profile_img ? (
+                              <img src={s.profile_img} alt={s.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <FiUser className="w-5 h-5 text-[#94a3b8]" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-[#0c0407] truncate">{s.name}</p>
+                            <p className="text-[10px] text-[#636363] truncate">{s.student_code || s.id}</p>
+                          </div>
+                          <button
+                            type="button"
+                            className="text-[#94a3b8] hover:text-[#0c0407] transition-colors shrink-0"
+                          >
+                            {expandedStudentId === s.id ? (
+                              <FiChevronUp className="w-4 h-4" />
+                            ) : (
+                              <FiChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold text-[#3b82f6] bg-[#eff6ff] border border-[#bfdbfe] px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        Details
-                      </span>
+
+                      {/* Expanded state */}
+                      {expandedStudentId === s.id && (
+                        <div className="px-3 pb-3 pt-0 border-t border-black/[0.06] bg-[#fafafa]">
+                          <div className="pt-3 space-y-2">
+                            <button
+                              type="button"
+                              onClick={() => handleViewStudentProfile(s.id)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#0c0407] bg-white border border-black/[0.08] rounded-lg hover:bg-[#f8fafc] transition-colors"
+                            >
+                              <FiEye className="w-3.5 h-3.5" />
+                              View student profile
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReassignStudent(s.id)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#0c0407] bg-white border border-black/[0.08] rounded-lg hover:bg-[#f8fafc] transition-colors"
+                            >
+                              <FiArrowRight className="w-3.5 h-3.5" />
+                              Reassign to different batch
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStudent(s.id)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#b91c1c] bg-[#fef2f2] border border-[#b91c1c]/20 rounded-lg hover:bg-[#fee2e2] transition-colors"
+                            >
+                              <FiTrash2 className="w-3.5 h-3.5" />
+                              Remove from batch
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

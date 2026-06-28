@@ -10,6 +10,7 @@ import {
   updateTrainerProfile,
   listHrDetailed,
   updateHrProfile,
+  getDashboardStats,
 } from "../controllers/admin.controller.js";
 import {
   getCurriculum,
@@ -31,6 +32,7 @@ import {
   getBatch,
   updateBatch,
   getStudentDetails,
+  removeStudentFromBatch,
 } from "../controllers/batches.controller.js";
 import Fee from "../models/fee.js";
 import Payment from "../models/payment.js";
@@ -50,6 +52,7 @@ router.get("/courses/:courseId/batches", protect, requireAdminOrHR, listCourseBa
 
 router.use(protect, requireAdmin);
 
+router.get("/dashboard-stats", getDashboardStats);
 router.get("/users", listUsers);
 router.post("/invite", inviteUser);
 router.patch("/users/:id/status", updateUserStatus);
@@ -68,6 +71,7 @@ router.post("/batches", createBatch);
 router.get("/batches", listAllBatches);
 router.get("/batches/:id", getBatch);
 router.put("/batches/:id", updateBatch);
+router.delete("/batches/:id/students/:studentId", removeStudentFromBatch);
 router.get("/courses/:id", getCourse);
 router.post("/courses", createCourse);
 router.put("/courses/:id", updateCourse);

@@ -40,26 +40,13 @@ const Login = () => {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "An error occurred during login. Try a demo account from the top right!",
+          "An error occurred during login. Please check your credentials.",
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = async (demoEmail) => {
-    setLoading(true);
-    setError("");
-    setSuccessMessage("");
-    try {
-      await login(demoEmail, "demo1234");
-      navigate("/dashboard");
-    } catch (err) {
-      setError("Failed to login with demo account.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSendResetOtp = async (e) => {
     e.preventDefault();
@@ -115,26 +102,6 @@ const Login = () => {
     setSuccessMessage("");
   };
 
-  const demoSelector = (
-    <div className="relative hidden sm:block">
-      <select
-        onChange={(e) => {
-          if (e.target.value) handleQuickLogin(e.target.value);
-        }}
-        defaultValue=""
-        className="pl-3 pr-8 py-2 text-xs font-semibold text-[#636363] border border-black/10 rounded-full bg-white outline-none cursor-pointer appearance-none hover:border-[#fc362d]/30 transition-colors max-w-[140px]"
-      >
-        <option value="" disabled>
-          Demo access
-        </option>
-        <option value="admin@tims.com">Admin</option>
-        <option value="hr@tims.com">HR</option>
-        <option value="trainer@tims.com">Trainer</option>
-        <option value="student@tims.com">Student</option>
-      </select>
-      <FiChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9ca3af] pointer-events-none" />
-    </div>
-  );
 
   const alertBlock = (
     <>
@@ -169,7 +136,6 @@ const Login = () => {
             : "Check your email for the 6-digit OTP code"
       }
       alternateLink={{ label: "back to Home", to: "/" }}
-      topAction={demoSelector}
     >
       {alertBlock}
 
@@ -352,25 +318,6 @@ const Login = () => {
         </p>
       )}
 
-      
-      <div className="relative sm:hidden mt-6">
-        <select
-          onChange={(e) => {
-            if (e.target.value) handleQuickLogin(e.target.value);
-          }}
-          defaultValue=""
-          className="w-full pl-4 pr-10 py-3 text-sm font-semibold text-[#636363] border border-black/10 rounded-full bg-white outline-none cursor-pointer appearance-none"
-        >
-          <option value="" disabled>
-            Quick Demo Access
-          </option>
-          <option value="admin@tims.com">Admin</option>
-          <option value="hr@tims.com">HR</option>
-          <option value="trainer@tims.com">Trainer</option>
-          <option value="student@tims.com">Student</option>
-        </select>
-        <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9ca3af] pointer-events-none" />
-      </div>
     </AuthSplitLayout>
   );
 };

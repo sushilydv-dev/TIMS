@@ -72,6 +72,11 @@ export function StudentDetailPanel({ open, studentId, onClose }) {
   const feesList = student?.Fees || [];
   const primaryFee = feesList[0] || null;
 
+  const enrollments = student?.Enrollments || [];
+  const primaryEnrollment = enrollments[0] || null;
+  const batch = primaryEnrollment?.Batch || null;
+  const course = batch?.Course || null;
+
   return (
     <div className="fixed inset-0 z-[120] flex justify-end" role="dialog" aria-modal="true">
       <button
@@ -177,6 +182,51 @@ export function StudentDetailPanel({ open, studentId, onClose }) {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Course & Batch Information */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-[#475569] uppercase tracking-wider">
+                  Course & Batch
+                </h3>
+
+                {!course && !batch ? (
+                  <p className="text-xs text-[#94a3b8] font-semibold py-4 text-center rounded-xl bg-[#fafafa] border border-dashed border-black/[0.08]">
+                    No course or batch assigned yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {course && (
+                      <div className="bg-[#fafafa] border border-black/[0.05] rounded-xl p-4">
+                        <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider mb-1">Course</p>
+                        <p className="text-sm font-extrabold text-[#0c0407]">{course.title}</p>
+                      </div>
+                    )}
+                    {batch && (
+                      <div className="bg-[#fafafa] border border-black/[0.05] rounded-xl p-4">
+                        <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider mb-1">Batch</p>
+                        <p className="text-sm font-extrabold text-[#0c0407]">{batch.batch_name}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <div>
+                            <p className="text-[9px] text-[#94a3b8] font-bold uppercase tracking-wider">Start Date</p>
+                            <p className="text-xs font-semibold text-[#475569]">{batch.start_date}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] text-[#94a3b8] font-bold uppercase tracking-wider">End Date</p>
+                            <p className="text-xs font-semibold text-[#475569]">{batch.end_date}</p>
+                          </div>
+                        </div>
+                        {primaryEnrollment && (
+                          <div className="mt-2 pt-2 border-t border-black/[0.05]">
+                            <StatusBadge variant={primaryEnrollment.status === 'ACTIVE' ? 'ok' : 'warn'}>
+                              {String(primaryEnrollment.status || 'PENDING').toUpperCase()}
+                            </StatusBadge>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Fee Status */}

@@ -4,10 +4,12 @@ import Installment from "../models/installment.js";
 import Fee from "../models/fee.js";
 import Student from "../models/student.js";
 import Payment from "../models/payment.js";
+import User from "../models/user.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { recalculateStudentLedger } from "./studentControl.controller.js";
 import { getUserRoleForClient } from "../utils/roleHelpers.js";
 import Razorpay from "razorpay";
+import { sendFeePayment } from "../services/notification.service.js";
 
 function getRazorpayClient() {
   const key_id = process.env.RAZORPAY_KEY_ID;
@@ -196,6 +198,24 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
     await recalculateStudentLedger(studentIdToRecalculate);
   }
 
+  // Send notification to admins about fee payment
+  try {
+    const student = await Student.findByPk(studentIdToRecalculate, {
+      include: [{ model: User, attributes: ["name"] }],
+    });
+    if (student) {
+      await sendFeePayment(
+        student.user_id,
+        student.id,
+        student.User?.name || "Unknown",
+        settledAmount,
+        new Date().toISOString().slice(0, 10)
+      );
+    }
+  } catch (error) {
+    console.error("Error sending payment notification:", error);
+  }
+
   res.status(200).json({ message: "Payment verified and settled successfully" });
 });
 
@@ -274,6 +294,24 @@ export const handleRazorpayWebhook = asyncHandler(async (req, res) => {
 
     if (studentIdToRecalculate) {
       await recalculateStudentLedger(studentIdToRecalculate);
+    }
+
+    // Send notification to admins about fee payment
+    try {
+      const student = await Student.findByPk(studentIdToRecalculate, {
+        include: [{ model: User, attributes: ["name"] }],
+      });
+      if (student) {
+        await sendFeePayment(
+          student.user_id,
+          student.id,
+          student.User?.name || "Unknown",
+          amountSettled,
+          new Date().toISOString().slice(0, 10)
+        );
+      }
+    } catch (error) {
+      console.error("Error sending payment notification:", error);
     }
   }
 

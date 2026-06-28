@@ -16,7 +16,7 @@ const Batch = sequelize.define(
     },
     trainer_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       references: { model: "trainers", key: "id" },
     },
     batch_name: {

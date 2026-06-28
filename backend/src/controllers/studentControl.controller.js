@@ -17,6 +17,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendTemplateEmail } from "../utils/emailService.js";
 import { getCanonicalRoleByName, toClientRole } from "../utils/roleHelpers.js";
 import Razorpay from "razorpay";
+import { sendNewStudentEnrollment, sendFeePayment, sendStudentAssignedToBatch } from "../services/notification.service.js";
 
 
 // Helper: build activation link
@@ -137,7 +138,7 @@ export const enrollStudent = asyncHandler(async (req, res) => {
     installments, // array of { label, amount_due, due_date }
   } = req.body;
 
-  if (!name || !email?.trim() || !phone || !address || !qualification || !course_id || !batch_id) {
+  if (!name || !email?.trim() || !phone || !address || !qualification || !course_id) {
     res.status(400);
     throw new Error("Missing required fields");
   }
@@ -158,10 +159,18 @@ export const enrollStudent = asyncHandler(async (req, res) => {
     throw new Error("Course not found");
   }
 
-  const batch = await Batch.findByPk(batch_id);
-  if (!batch || batch.course_id !== course.id) {
-    res.status(400);
-    throw new Error("Batch not found or not assigned to the selected course");
+  let batch = null;
+  if (batch_id && batch_id !== "") {
+    batch = await Batch.findByPk(batch_id, {
+      include: [{ model: Course }]
+    });
+    if (!batch || batch.course_id !== course.id) {
+      res.status(400);
+      throw new Error("Batch not found or not assigned to the selected course");
+    }
+    console.log("Batch found for enrollment:", batch.batch_name, "ID:", batch.id);
+  } else {
+    console.log("No batch_id provided, enrolling without batch");
   }
 
   // Calculate fees
@@ -268,15 +277,21 @@ export const enrollStudent = asyncHandler(async (req, res) => {
     );
 
     // 5. Create Enrollment
-    await Enrollment.create(
-      {
-        student_id: student.id,
-        batch_id: batch.id,
-        enrollment_date: today,
-        status: "PENDING_FIRST_PAYMENT",
-      },
-      { transaction: t }
-    );
+    const enrollmentData = {
+      student_id: student.id,
+      enrollment_date: today,
+      status: "PENDING_FIRST_PAYMENT",
+    };
+    
+    if (batch_id && batch_id !== "" && batch) {
+      enrollmentData.batch_id = batch.id;
+      console.log("Creating enrollment with batch_id:", batch.id, "for student:", student.id);
+    } else {
+      console.log("Creating enrollment without batch_id for student:", student.id);
+    }
+    
+    const enrollment = await Enrollment.create(enrollmentData, { transaction: t });
+    console.log("Enrollment created with ID:", enrollment.id, "batch_id:", enrollment.batch_id);
 
     // 6. Generate invite credentials token
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -306,6 +321,28 @@ export const enrollStudent = asyncHandler(async (req, res) => {
     });
   } catch (emailErr) {
     console.error("Failed to send verification invitation email:", emailErr.message);
+  }
+
+  // Send notification to admins about new student enrollment
+  try {
+    await sendNewStudentEnrollment(result.student.user_id, result.student.id, name, course.title);
+  } catch (error) {
+    console.error("Error sending enrollment notification:", error);
+  }
+
+  // Notify trainers about student assigned to batch
+  if (batch) {
+    try {
+      await sendStudentAssignedToBatch(
+        result.student.user_id,
+        result.student.id,
+        name,
+        batch.id,
+        batch.batch_name
+      );
+    } catch (err) {
+      console.error("Error sending student assigned to batch notification:", err);
+    }
   }
 
   res.status(201).json({
@@ -380,6 +417,26 @@ export const recordOfflineSettle = asyncHandler(async (req, res) => {
 
   // Recalculate outstanding fee balances and toggle access
   await recalculateStudentLedger(studentId);
+
+  // Send notification to admins about fee payment
+  try {
+    const student = await Student.findByPk(studentId, {
+      include: [{ model: User, attributes: ["name", "id"] }],
+    });
+    if (student) {
+      const today = new Date().toISOString().slice(0, 10);
+      const amountSettled = result.amount || 0;
+      await sendFeePayment(
+        student.user_id,
+        student.id,
+        student.User?.name || "Unknown",
+        amountSettled,
+        today
+      );
+    }
+  } catch (error) {
+    console.error("Error sending offline fee payment notification:", error);
+  }
 
   res.status(200).json({
     message: "Offline transaction recorded successfully",

@@ -28,6 +28,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const CancellationPolicy = lazy(() => import("./pages/CancellationPolicy"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
+const LearnMore = lazy(() => import("./pages/LearnMore"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardIndex = lazy(() => import("./pages/DashboardIndex"));
@@ -82,6 +83,11 @@ const HrControl = lazy(() =>
     default: m.HrControl,
   })),
 );
+const AppointmentRequests = lazy(() =>
+  import("./components/dashboard/admin/AppointmentRequests").then((m) => ({
+    default: m.AppointmentRequests,
+  })),
+);
 
 /* trainer */
 const TrainerProfile = lazy(
@@ -109,6 +115,11 @@ const StudentMaterials = lazy(
   () => import("./components/dashboard/student/StudentMaterials"),
 );
 
+/* shared */
+const NotificationCenter = lazy(
+  () => import("./components/dashboard/NotificationCenter"),
+);
+
 // ── Companion component to handle route changes
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -128,10 +139,7 @@ export const App = () => {
   return (
     <AuthProvider>
      
-      <ReactLenis
-        root
-        options={{ lerp: 0.1, duration: .9, smoothWheel: true }}
-      >
+     
         <Router>
           <ScrollToTop />
           <Suspense fallback={<PageLoader label="Loading page" />}>
@@ -147,6 +155,7 @@ export const App = () => {
                 <Route path="/about-us" element={<AboutPage />} />
                 <Route path="/all-courses" element={<AllCoursesPage />} />
                 <Route path="/course/:courseId" element={<CoursePage />} />
+                <Route path="/learn-more/:trackId" element={<LearnMore />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route
                   path="/cancellation-policy"
@@ -180,6 +189,10 @@ export const App = () => {
                       path="trainer/attendance"
                       element={<TrainerAttendance />}
                     />
+                    <Route
+                      path="notifications"
+                      element={<NotificationCenter />}
+                    />
                   </Route>
 
                   {/* ── Student ── */}
@@ -191,6 +204,10 @@ export const App = () => {
                   <Route
                     path="student/materials"
                     element={<StudentMaterials />}
+                  />
+                  <Route
+                    path="notifications"
+                    element={<NotificationCenter />}
                   />
 
                   {/* ── Admin ── */}
@@ -229,8 +246,16 @@ export const App = () => {
                   <Route
                     path="hr"
                     element={
-                      <RequireAdmin>
+                      <RequireAdminOrHR>
                         <HrControl />
+                      </RequireAdminOrHR>
+                    }
+                  />
+                  <Route
+                    path="appointment-requests"
+                    element={
+                      <RequireAdmin>
+                        <AppointmentRequests />
                       </RequireAdmin>
                     }
                   />
@@ -282,12 +307,16 @@ export const App = () => {
                       </RequireAdmin>
                     }
                   />
+                  <Route
+                    path="notifications"
+                    element={<NotificationCenter />}
+                  />
                 </Route>
               </Route>
             </Routes>
           </Suspense>
         </Router>
-      </ReactLenis>
+      
     </AuthProvider>
   );
 };

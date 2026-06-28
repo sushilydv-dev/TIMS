@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronDown } from "lucide-react";
+import axios from "axios";
 
 const TIME_SLOTS = [
   "9:00 AM – 11:00 AM",
@@ -21,6 +22,8 @@ const initialForm = {
 
 export const Consulatation = ({ open, onClose }) => {
   const [form, setForm] = useState(initialForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -45,10 +48,31 @@ export const Consulatation = ({ open, onClose }) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onClose();
-    setForm(initialForm);
+    setSubmitting(true);
+    
+    try {
+      await axios.post("/api/appointments", {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phone: form.phone,
+        email: form.email,
+        preferredTime: form.preferredTime,
+        preferredDate: form.preferredDate,
+      });
+      
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        handleClose();
+      }, 2000);
+    } catch (error) {
+      console.error("Error submitting appointment request:", error);
+      alert("Failed to submit appointment request. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -203,10 +227,21 @@ export const Consulatation = ({ open, onClose }) => {
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-gradient-to-r from-rose-500 to-[#fc362d] hover:bg-[#e02d25] text-white font-bold text-base py-4 transition-colors duration-300 shadow-[0_4px_20px_rgba(252,54,45,0.3)] cursor-pointer"
+                disabled={submitting}
+                className="w-full rounded-xl bg-gradient-to-r from-rose-500 to-[#fc362d] hover:bg-[#e02d25] text-white font-bold text-base py-4 transition-colors duration-300 shadow-[0_4px_20px_rgba(252,54,45,0.3)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Leave a Request
+                {submitting ? "Submitting..." : submitSuccess ? "Request Sent!" : "Leave a Request"}
               </button>
+              
+              {submitSuccess && (
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-3 text-xs text-green-600 font-semibold"
+                >
+                  ✓ Your appointment request has been submitted successfully!
+                </motion.p>
+              )}
             </form>
           </motion.div>
         </motion.div>

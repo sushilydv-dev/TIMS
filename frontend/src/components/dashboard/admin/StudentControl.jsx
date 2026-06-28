@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FiUsers, FiSearch, FiDollarSign, FiPercent, FiPlus, FiGrid, FiUser } from "react-icons/fi";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
 import {
   WelcomeBanner,
   StatCards,
@@ -35,7 +36,19 @@ export const StudentControl = () => {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [toastMsg, setToastMsg] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const studentId = params.get("studentId");
+    if (studentId) {
+      console.log("Deep link detected for studentId:", studentId);
+      setSelectedStudentId(studentId);
+    }
+  }, [location.search]);
 
   // Quick Stats
   const [stats, setStats] = useState({

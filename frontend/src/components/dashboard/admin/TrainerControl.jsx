@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FiUsers, FiSearch, FiX, FiShield, FiCalendar, FiImage, FiTrash2 } from "react-icons/fi";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
 import {
   WelcomeBanner,
   StatCards,
@@ -145,6 +146,34 @@ export const TrainerControl = () => {
   useEffect(() => {
     fetchAllBatches();
   }, []);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const trainerId = params.get("trainerId");
+    if (trainerId) {
+      const match = trainers.find(t => t.id === trainerId);
+      if (match) {
+        openTrainerProfile(match);
+      } else {
+        const fetchTrainerById = async () => {
+          try {
+            const { data } = await axios.get("/api/admin/trainers/browse", {
+              params: { limit: 100 }
+            });
+            const fullMatch = data?.trainers?.find(t => t.id === trainerId);
+            if (fullMatch) {
+              openTrainerProfile(fullMatch);
+            }
+          } catch (err) {
+            console.error("Failed to find trainer by ID in deep link:", err);
+          }
+        };
+        fetchTrainerById();
+      }
+    }
+  }, [location.search, trainers]);
 
   const openTrainerProfile = (trainer) => {
     setSelectedTrainer(trainer);

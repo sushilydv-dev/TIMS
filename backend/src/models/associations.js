@@ -9,6 +9,7 @@ import Course from "./course.js";
 import CourseModule from "./courseModule.js";
 import Syllabus from "./syllabus.js";
 import Batch from "./batch.js";
+import BatchTrainer from "./batchTrainer.js";
 import Enrollment from "./enrollment.js";
 import Attendance from "./attendance.js";
 import Project from "./project.js";
@@ -22,6 +23,7 @@ import Certificate from "./certificate.js";
 import Notification from "./notification.js";
 import InviteToken from "./inviteToken.js";
 import Installment from "./installment.js";
+import AppointmentRequest from "./appointmentRequest.js";
 
 User.belongsTo(Role, { foreignKey: "role_id", as: "role" });
 Role.hasMany(User, { foreignKey: "role_id" });
@@ -37,6 +39,8 @@ Hr.belongsTo(User, { foreignKey: "user_id" });
 
 User.hasMany(Notification, { foreignKey: "user_id", onDelete: "CASCADE" });
 Notification.belongsTo(User, { foreignKey: "user_id" });
+
+Notification.belongsTo(User, { foreignKey: "related_user_id", as: "relatedUser" });
 
 Department.hasMany(Course, { foreignKey: "department_id", onDelete: "SET NULL" });
 Course.belongsTo(Department, { foreignKey: "department_id" });
@@ -59,8 +63,23 @@ StudyMaterial.belongsTo(Course, { foreignKey: "course_id" });
 Course.hasMany(Assessment, { foreignKey: "course_id", onDelete: "CASCADE" });
 Assessment.belongsTo(Course, { foreignKey: "course_id" });
 
-Trainer.hasMany(Batch, { foreignKey: "trainer_id", onDelete: "CASCADE" });
-Batch.belongsTo(Trainer, { foreignKey: "trainer_id" });
+// Keep one-to-many for backward compatibility (primary trainer)
+Trainer.hasMany(Batch, { foreignKey: "trainer_id", onDelete: "SET NULL" });
+Batch.belongsTo(Trainer, { foreignKey: "trainer_id", as: "trainer" });
+
+// Many-to-many relationship between Batch and Trainer (additional trainers)
+Batch.belongsToMany(Trainer, { 
+  through: BatchTrainer, 
+  foreignKey: "batch_id", 
+  otherKey: "trainer_id",
+  as: "trainers"
+});
+Trainer.belongsToMany(Batch, { 
+  through: BatchTrainer, 
+  foreignKey: "trainer_id", 
+  otherKey: "batch_id",
+  as: "batches"
+});
 
 Batch.hasMany(Enrollment, { foreignKey: "batch_id", onDelete: "CASCADE" });
 Enrollment.belongsTo(Batch, { foreignKey: "batch_id" });
@@ -129,4 +148,5 @@ export {
   Notification,
   InviteToken,
   Installment,
+  AppointmentRequest,
 };

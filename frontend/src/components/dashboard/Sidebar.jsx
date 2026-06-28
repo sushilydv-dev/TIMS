@@ -10,6 +10,7 @@ import {
   FiAward,
   FiCalendar,
   FiChevronDown,
+  FiClock,
 } from "react-icons/fi";
 import { useAuth } from "../../app/AuthContext";
 import logo from "../../assets/logo.png";
@@ -53,6 +54,7 @@ export const Sidebar = ({ activeRole }) => {
               { label: "HR Control", path: "/dashboard/hr" },
             ],
           },
+          { label: "Appointment Requests", icon: <FiClock className="w-5 h-5" />, path: "/dashboard/appointment-requests" },
           { label: "Manage Departments", icon: <FiLayers className="w-5 h-5" />, path: "/dashboard/departments" },
           { label: "Courses", icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard/courses" },
           { label: "Batches", icon: <FiCalendar className="w-5 h-5" />, path: "/dashboard/batches" },

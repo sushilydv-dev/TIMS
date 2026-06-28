@@ -299,11 +299,7 @@ export const Projects = () => {
         ) : (
           <div className="relative" style={{ height: stageHeight }}>
            
-            {/* Gesture + perspective + 3D-context surface — covers the
-                whole stage so a drag started anywhere (not just on a
-                card) rotates the ring. Each card computes its own full
-                rotation (global angle + its fixed position on the ring)
-                directly, so this is the only 3D container needed. */}
+           
             <motion.div
               onPanStart={handlePanStart}
               onPan={handlePan}
@@ -332,15 +328,7 @@ export const Projects = () => {
               ))}
             </motion.div>
 
-            {/* Drag hint */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: interacted ? 0 : 1 }}
-              transition={{ duration: 0.5 }}
-              className="pointer-events-none absolute bottom-2 left-0 right-0 text-center text-[11px] font-semibold tracking-wide uppercase text-[#636363]/60"
-            >
-              Drag to rotate
-            </motion.p>
+           
           </div>
         )}
       </div>
