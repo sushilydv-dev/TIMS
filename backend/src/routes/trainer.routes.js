@@ -13,7 +13,10 @@ import Project from "../models/project.js";
 import StudyMaterial from "../models/studyMaterial.js";
 import Notification from "../models/notification.js";
 import { Op } from "sequelize";
-import { sendTrainerProfileComplete } from "../services/notification.service.js";
+import {
+  sendProjectAssignedToStudents,
+  sendTrainerProfileComplete,
+} from "../services/notification.service.js";
 
 const router = express.Router();
 router.use(protect);
@@ -402,6 +405,18 @@ router.post("/batches/:batchId/projects", asyncHandler(async (req, res) => {
     deadline: deadline.trim(),
     assigned_by: String(req.user.id),
   });
+
+  try {
+    await sendProjectAssignedToStudents(
+      batch.course_id,
+      project.id,
+      project.title,
+      project.deadline,
+      req.user?.name || "Trainer",
+    );
+  } catch (error) {
+    console.error("Error sending project assigned notification:", error);
+  }
 
   res.status(201).json(project);
 }));

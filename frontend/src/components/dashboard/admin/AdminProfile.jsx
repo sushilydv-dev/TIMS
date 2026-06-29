@@ -54,6 +54,27 @@ function InfoRow({ icon: Icon, label, value, editing, inputProps }) {
   );
 }
 
+/* ── PasswordField ────────────────────────────────────── */
+const PasswordField = ({ field, label, show, toggle, form, setForm, labelMutedClass, inputClass }) => (
+  <div>
+    <label className={`${labelMutedClass} block mb-1.5`}>{label}</label>
+    <div className="relative">
+      <input
+        type={show[field] ? "text" : "password"}
+        value={form[field]}
+        onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))}
+        className={`${inputClass} pr-10`}
+        placeholder="••••••••"
+        required
+      />
+      <button type="button" onClick={() => toggle(field)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#0c0407] cursor-pointer">
+        {show[field] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+      </button>
+    </div>
+  </div>
+);
+
 /* ── PasswordSection ─────────────────────────────────── */
 function PasswordSection() {
   const [form, setForm]     = useState({ current: "", next: "", confirm: "" });
@@ -80,34 +101,14 @@ function PasswordSection() {
     } finally { setSaving(false); }
   };
 
-  const PasswordField = ({ field, label }) => (
-    <div>
-      <label className={`${labelMutedClass} block mb-1.5`}>{label}</label>
-      <div className="relative">
-        <input
-          type={show[field] ? "text" : "password"}
-          value={form[field]}
-          onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))}
-          className={`${inputClass} pr-10`}
-          placeholder="••••••••"
-          required
-        />
-        <button type="button" onClick={() => toggle(field)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#0c0407] cursor-pointer">
-          {show[field] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className={`${cardClass} p-6`}>
       <h3 className="text-sm font-extrabold text-[#0c0407] mb-1">Change Password</h3>
       <p className={`${labelMutedClass} mb-4`}>Update your account password</p>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <PasswordField field="current" label="Current Password" />
-        <PasswordField field="next" label="New Password" />
-        <PasswordField field="confirm" label="Confirm New Password" />
+        <PasswordField field="current" label="Current Password" show={show} toggle={toggle} form={form} setForm={setForm} labelMutedClass={labelMutedClass} inputClass={inputClass} />
+        <PasswordField field="next" label="New Password" show={show} toggle={toggle} form={form} setForm={setForm} labelMutedClass={labelMutedClass} inputClass={inputClass} />
+        <PasswordField field="confirm" label="Confirm New Password" show={show} toggle={toggle} form={form} setForm={setForm} labelMutedClass={labelMutedClass} inputClass={inputClass} />
         {msg.text && (
           <p className={`text-xs font-semibold ${msg.type === "error" ? "text-[#b91c1c]" : "text-[#059669]"}`}>
             {msg.text}

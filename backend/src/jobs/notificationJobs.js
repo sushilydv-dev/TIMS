@@ -3,7 +3,13 @@ import Fee from "../models/fee.js";
 import Student from "../models/student.js";
 import User from "../models/user.js";
 import Notification from "../models/notification.js";
-import { sendFeeReminder, sendFeeMissed } from "../services/notification.service.js";
+import Project from "../models/project.js";
+import {
+  sendFeeReminder,
+  sendFeeMissed,
+  sendStudentFeeReminder,
+  sendProjectDeadlineReminderToStudents,
+} from "../services/notification.service.js";
 import { Op } from "sequelize";
 
 // Check for installments due within 24 hours and send reminders
@@ -47,11 +53,13 @@ export const checkFeeReminders = async () => {
       const amount = installment.amount_due;
       const dueDate = installment.due_date;
 
-      // Check if a reminder notification already exists for this installment today
+      // Check if an admin reminder notification already exists for this installment today
       const existingReminder = await Notification.findOne({
         where: {
           type: "fee_reminder",
-          related_user_id: student?.user_id,
+          related_data: {
+            [Op.contains]: { installmentId: installment.id },
+          },
           created_at: {
             [Op.gte]: todayStr,
           },
@@ -59,9 +67,28 @@ export const checkFeeReminders = async () => {
       });
 
       if (!existingReminder && student) {
-        await sendFeeReminder(student.user_id, student.id, studentName, amount, dueDate);
+        await sendFeeReminder(
+          student.user_id,
+          student.id,
+          studentName,
+          amount,
+          dueDate,
+          installment.id,
+        );
         console.log(`Fee reminder sent for student ${studentName}, amount: ₹${amount}`);
-      } else if (existingReminder) {
+      }
+
+      if (student) {
+        await sendStudentFeeReminder(
+          student.user_id,
+          student.id,
+          amount,
+          dueDate,
+          installment.id,
+        );
+      }
+
+      if (existingReminder) {
         console.log(`Reminder already sent for student ${studentName} today`);
       }
     }
@@ -131,5 +158,47 @@ export const checkMissedFees = async () => {
     }
   } catch (error) {
     console.error("Error in checkMissedFees:", error);
+  }
+};
+
+export const checkProjectDeadlineReminders = async () => {
+  try {
+    console.log("Running checkProjectDeadlineReminders job...");
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+    const projects = await Project.findAll({
+      where: { deadline: tomorrowStr },
+    });
+
+    console.log(`Found ${projects.length} projects with deadline on ${tomorrowStr}`);
+
+    for (const project of projects) {
+      const deadlineStart = new Date(`${project.deadline}T00:00:00`);
+      const assignedAt = new Date(project.createdAt);
+
+      if (
+        Number.isNaN(deadlineStart.getTime()) ||
+        Number.isNaN(assignedAt.getTime())
+      ) {
+        continue;
+      }
+
+      const leadTimeMs = deadlineStart.getTime() - assignedAt.getTime();
+      if (leadTimeMs <= 24 * 60 * 60 * 1000) {
+        continue;
+      }
+
+      await sendProjectDeadlineReminderToStudents(
+        project.course_id,
+        project.id,
+        project.title,
+        project.deadline,
+      );
+    }
+  } catch (error) {
+    console.error("Error in checkProjectDeadlineReminders:", error);
   }
 };

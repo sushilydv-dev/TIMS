@@ -1,22 +1,52 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  FiUsers, FiBookOpen, FiAward, FiLayers, FiPlus, FiCheck,
-  FiExternalLink, FiCheckCircle, FiAlertCircle, FiTrash2,
-  FiUpload, FiCalendar, FiChevronDown, FiX, FiLoader,
+  FiUsers,
+  FiBookOpen,
+  FiAward,
+  FiLayers,
+  FiAlertCircle,
+  FiUpload,
+  FiCalendar,
+  FiX,
+  FiTrendingUp,
+  FiBarChart2,
 } from "react-icons/fi";
 import axios from "axios";
 import {
-  WelcomeBanner, StatCards, Panel, PanelHeader,
-  PrimaryButton, SecondaryButton, Toast, StatusBadge,
+  WelcomeBanner,
+  StatCards,
+  Panel,
+  PrimaryButton,
+  SecondaryButton,
+  StatusBadge,
 } from "../DashboardUI";
 import {
-  pageWrapClass, inputClass, primaryBtnClass, secondaryBtnClass,
-  cardClass, cardLightClass, labelMutedClass,
+  pageWrapClass,
+  inputClass,
+  primaryBtnClass,
+  secondaryBtnClass,
+  cardClass,
+  cardLightClass,
+  labelMutedClass,
 } from "../dashboardTheme";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 /* ── helpers ─────────────────────────────────────────── */
 const today = () => new Date().toISOString().slice(0, 10);
 const fmt   = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+const fmtShort = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—";
 const statusColor = {
   PRESENT: "bg-emerald-100 text-emerald-700",
   ABSENT:  "bg-red-100 text-red-600",
@@ -24,71 +54,234 @@ const statusColor = {
   LEAVE:   "bg-blue-100 text-blue-600",
 };
 
-/* ── SubmissionRow ────────────────────────────────────── */
-function SubmissionRow({ sub, onGrade }) {
-  const [marks, setMarks]       = useState(String(sub.marks || ""));
-  const [feedback, setFeedback] = useState(sub.feedback || "");
-  const [saving, setSaving]     = useState(false);
+const POSITIVE_ATTENDANCE = new Set(["PRESENT", "LATE"]);
 
-  const handleSubmit = async () => {
-    if (!marks) return;
-    setSaving(true);
-    await onGrade(sub.id, marks, feedback);
-    setSaving(false);
+const marksScaleFor = (subs) => {
+  const maxMarks = Math.max(0, ...subs.map((s) => Number(s?.marks || 0)));
+  return maxMarks <= 10 ? 10 : 100;
+};
+
+const attendanceSeriesFor = (records) => {
+  const grouped = (records || []).reduce((acc, record) => {
+    const date = record?.attendance_date;
+    if (!date) return acc;
+    if (!acc[date]) acc[date] = { date, present: 0, total: 0 };
+    acc[date].total += 1;
+    if (POSITIVE_ATTENDANCE.has(String(record.status || "").toUpperCase())) {
+      acc[date].present += 1;
+    }
+    return acc;
+  }, {});
+
+  return Object.values(grouped)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map((row) => ({
+      label: fmtShort(row.date),
+      fullDate: fmt(row.date),
+      pct: row.total ? Math.round((row.present / row.total) * 100) : 0,
+      present: row.present,
+      total: row.total,
+    }))
+    .slice(-10);
+};
+
+const submissionVolumeFor = (subs) => {
+  const grouped = (subs || []).reduce((acc, sub) => {
+    const date = sub?.submitted_at;
+    if (!date) return acc;
+    acc[date] = (acc[date] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([date, count]) => ({ date, label: fmtShort(date), fullDate: fmt(date), count }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(-10);
+};
+
+const materialTypeFor = (materials) => {
+  const grouped = (materials || []).reduce((acc, m) => {
+    const key = String(m?.material_type || "OTHER").toUpperCase();
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const palette = ["#fc362d", "#6366f1", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"];
+
+  return Object.entries(grouped)
+    .map(([name, count], index) => ({ name, count, color: palette[index % palette.length] }))
+    .sort((a, b) => b.count - a.count);
+};
+
+function ChartCard({ title, subtitle, icon, iconClassName, children }) {
+  return (
+    <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col h-[360px]">
+      <div className="flex items-center gap-3 mb-5">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconClassName}`}>
+          {icon}
+        </div>
+        <div>
+          <h3 className="text-base font-extrabold text-[#0c0407]">{title}</h3>
+          <p className="text-xs text-[#94a3b8] font-semibold mt-0.5">{subtitle}</p>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0">{children}</div>
+    </div>
+  );
+}
+
+function EmptyState({ title, subtitle }) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center text-center px-6">
+      <p className="text-sm font-bold text-[#0c0407]">{title}</p>
+      <p className="text-xs font-semibold text-[#94a3b8] mt-1">{subtitle}</p>
+    </div>
+  );
+}
+
+function AttendanceTrendChart({ data }) {
+  if (!data.length) {
+    return <EmptyState title="No attendance records" subtitle="Mark attendance to unlock analytics." />;
+  }
+
+  const tooltip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0].payload;
+    return (
+      <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+        <p className="text-white/60">{point.fullDate}</p>
+        <p className="text-emerald-400 font-black mt-1">{point.pct}% attendance</p>
+        <p className="text-white/60 mt-1">
+          {point.present}/{point.total} present/late
+        </p>
+      </div>
+    );
   };
 
   return (
-    <div className="p-4 rounded-2xl bg-[#fafafa] border border-black/[0.07] space-y-3">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <div>
-          <h4 className="font-bold text-sm text-[#0c0407]">{sub.student?.name}</h4>
-          <p className="text-[10px] text-[#94a3b8] font-semibold mt-0.5">
-            {sub.project?.title} · Submitted {fmt(sub.submitted_at)}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {sub.github_link && (
-            <a href={sub.github_link} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] font-bold text-[#475569] hover:text-[#fc362d]">
-              <FiExternalLink className="w-3.5 h-3.5" /> GitHub
-            </a>
-          )}
-        </div>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data} margin={{ top: 10, right: 8, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="trainerAttendanceTrend" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.04)" />
+        <XAxis
+          dataKey="label"
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }}
+        />
+        <Tooltip content={tooltip} />
+        <Area
+          type="monotone"
+          dataKey="pct"
+          stroke="#10b981"
+          strokeWidth={2.5}
+          fillOpacity={1}
+          fill="url(#trainerAttendanceTrend)"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+function SubmissionVolumeChart({ data }) {
+  if (!data.length) {
+    return <EmptyState title="No submissions yet" subtitle="Student submissions will trend here." />;
+  }
+
+  const tooltip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0].payload;
+    return (
+      <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+        <p className="text-white/60">{point.fullDate}</p>
+        <p className="text-[#fc362d] font-black mt-1">
+          {point.count} submission{point.count !== 1 ? "s" : ""}
+        </p>
       </div>
+    );
+  };
 
-      <div className="h-px bg-black/[0.05]" />
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 10, right: 8, left: -12, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.04)" />
+        <XAxis
+          dataKey="label"
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }}
+        />
+        <YAxis
+          allowDecimals={false}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }}
+        />
+        <Tooltip content={tooltip} cursor={{ fill: "rgba(0,0,0,0.02)" }} />
+        <Bar dataKey="count" fill="#fc362d" radius={[6, 6, 0, 0]} maxBarSize={42} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 
-      {sub.graded ? (
-        <div className="flex items-center justify-between bg-[#475569]/5 border border-[#475569]/10 p-3 rounded-xl text-xs">
-          <span className="text-[#475569] font-semibold">
-            Score: <strong>{sub.marks}/100</strong>
-            {sub.feedback && <> · <span className="text-[#636363]">{sub.feedback}</span></>}
-          </span>
-          <span className="px-2 py-0.5 bg-[#475569] text-white text-[9px] font-bold rounded-lg flex items-center gap-1">
-            <FiCheck className="w-3 h-3" /> Graded
-          </span>
-        </div>
-      ) : (
-        <div className="flex flex-col md:flex-row gap-2 items-end bg-white border border-black/[0.07] p-3 rounded-xl">
-          <div className="w-24 shrink-0">
-            <label className={`${labelMutedClass} block mb-1`}>Marks /100</label>
-            <input type="number" min={0} max={100} value={marks}
-              onChange={e => setMarks(e.target.value)}
-              className={`${inputClass} !py-1.5 text-xs`} placeholder="90" />
-          </div>
-          <div className="flex-1 w-full">
-            <label className={`${labelMutedClass} block mb-1`}>Feedback</label>
-            <input type="text" value={feedback}
-              onChange={e => setFeedback(e.target.value)}
-              className={`${inputClass} !py-1.5 text-xs`} placeholder="Great work…" />
-          </div>
-          <button onClick={handleSubmit} disabled={saving || !marks}
-            className={`${primaryBtnClass} py-2 px-4 text-xs whitespace-nowrap disabled:opacity-50`}>
-            {saving ? "Saving…" : "Submit Grade"}
-          </button>
-        </div>
-      )}
-    </div>
+function MaterialTypeChart({ data }) {
+  if (!data.length) {
+    return <EmptyState title="No materials uploaded" subtitle="Upload study materials to see distribution." />;
+  }
+
+  const tooltip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0].payload;
+    return (
+      <div className="bg-[#0c0407] text-white p-3 rounded-xl shadow-xl border border-white/10 text-xs font-semibold">
+        <p className="font-black" style={{ color: point.color }}>
+          {point.name}
+        </p>
+        <p className="text-white/60 mt-1">
+          {point.count} item{point.count !== 1 ? "s" : ""}
+        </p>
+      </div>
+    );
+  };
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} layout="vertical" margin={{ top: 10, right: 12, left: 18, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(0,0,0,0.04)" />
+        <XAxis
+          type="number"
+          allowDecimals={false}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }}
+        />
+        <YAxis
+          type="category"
+          dataKey="name"
+          width={100}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "#0c0407", fontSize: 10, fontWeight: 800 }}
+        />
+        <Tooltip content={tooltip} cursor={{ fill: "rgba(0,0,0,0.02)" }} />
+        <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={14}>
+          {data.map((entry) => (
+            <Cell key={entry.name} fill={entry.color} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -214,96 +407,18 @@ function AttendancePanel({ batchId, students, onClose }) {
   );
 }
 
-/* ── MaterialsPanel ───────────────────────────────────── */
-function MaterialsPanel({ batchId, materials, onRefresh }) {
-  const [form, setForm]     = useState({ title: "", file_url: "", material_type: "PDF" });
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState("");
-
-  const TYPES = ["PDF", "VIDEO", "PPT", "ASSIGNMENT", "LINK"];
-
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    setSaving(true); setError("");
-    try {
-      await axios.post(`/api/trainer/batches/${batchId}/materials`, form);
-      setForm({ title: "", file_url: "", material_type: "PDF" });
-      onRefresh();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to upload");
-    } finally { setSaving(false); }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this material?")) return;
-    try { await axios.delete(`/api/trainer/materials/${id}`); onRefresh(); }
-    catch { /* ignore */ }
-  };
-
-  return (
-    <div className="space-y-4">
-      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
-        <input required value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-          placeholder="Material title" className={`${inputClass} flex-1`} />
-        <input required value={form.file_url} onChange={e => setForm(p => ({ ...p, file_url: e.target.value }))}
-          placeholder="URL or link" className={`${inputClass} flex-1`} />
-        <select value={form.material_type} onChange={e => setForm(p => ({ ...p, material_type: e.target.value }))}
-          className={`${inputClass} w-32 shrink-0`}>
-          {TYPES.map(t => <option key={t}>{t}</option>)}
-        </select>
-        <button type="submit" disabled={saving} className={`${primaryBtnClass} shrink-0 disabled:opacity-50`}>
-          <FiUpload className="w-3.5 h-3.5 mr-1 inline" />{saving ? "Uploading…" : "Upload"}
-        </button>
-      </form>
-      {error && <p className="text-xs text-[#b91c1c] font-semibold">{error}</p>}
-
-      {materials.length === 0 ? (
-        <p className="text-xs text-[#94a3b8] text-center py-6 bg-[#fafafa] rounded-xl border border-dashed border-black/[0.07]">
-          No materials uploaded yet.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {materials.map(m => (
-            <div key={m.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#fafafa] border border-black/[0.07]">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[#0c0407] truncate">{m.title}</p>
-                <p className="text-[10px] text-[#94a3b8] font-semibold truncate">{m.file_url}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-[#f1f5f9] text-[#475569] border border-black/[0.06]">
-                  {m.material_type}
-                </span>
-                <a href={m.file_url} target="_blank" rel="noopener noreferrer"
-                  className="w-7 h-7 rounded-lg border border-black/10 flex items-center justify-center text-[#475569] hover:text-[#fc362d]">
-                  <FiExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <button onClick={() => handleDelete(m.id)}
-                  className="w-7 h-7 rounded-lg border border-black/10 flex items-center justify-center text-[#94a3b8] hover:text-[#b91c1c] hover:border-[#b91c1c]/30 cursor-pointer">
-                  <FiTrash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── Main TrainerDashboard ────────────────────────────── */
 export const TrainerDashboard = ({ user }) => {
+  const navigate = useNavigate();
   const [profile, setProfile]           = useState(null);
   const [loading, setLoading]           = useState(true);
   const [activeBatchId, setActiveBatchId] = useState(null);
   const [batchDetail, setBatchDetail]   = useState(null);
   const [submissions, setSubmissions]   = useState([]);
   const [materials, setMaterials]       = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loadingBatch, setLoadingBatch] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
-  const [activeTab, setActiveTab]       = useState("submissions"); // submissions | materials | students
-  const [toast, setToast]               = useState("");
-
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
 
   /* Fetch trainer profile + batches */
   const fetchProfile = useCallback(async () => {
@@ -328,36 +443,41 @@ export const TrainerDashboard = ({ user }) => {
     if (!batchId) return;
     setLoadingBatch(true);
     try {
-      const [detailRes, subRes, matRes] = await Promise.all([
+      const [detailRes, subRes, matRes, attendanceRes] = await Promise.all([
         axios.get(`/api/trainer/batches/${batchId}`),
         axios.get(`/api/trainer/batches/${batchId}/submissions`),
         axios.get(`/api/trainer/batches/${batchId}/materials`),
+        axios.get(`/api/trainer/batches/${batchId}/attendance`),
       ]);
       setBatchDetail(detailRes.data);
       setSubmissions(subRes.data);
       setMaterials(matRes.data);
-    } catch { setBatchDetail(null); setSubmissions([]); setMaterials([]); }
+      setAttendanceRecords(attendanceRes.data?.records || []);
+    } catch {
+      setBatchDetail(null);
+      setSubmissions([]);
+      setMaterials([]);
+      setAttendanceRecords([]);
+    }
     finally { setLoadingBatch(false); }
   }, []);
 
   useEffect(() => { if (activeBatchId) fetchBatchData(activeBatchId); }, [activeBatchId, fetchBatchData]);
 
-  const handleGrade = async (subId, marks, feedback) => {
-    try {
-      await axios.put(`/api/trainer/submissions/${subId}/grade`, { marks: Number(marks), feedback });
-      showToast("Grade saved");
-      const { data } = await axios.get(`/api/trainer/batches/${activeBatchId}/submissions`);
-      setSubmissions(data);
-    } catch (e) {
-      showToast(e.response?.data?.message || "Failed to grade");
-    }
-  };
-
   const pendingCount = submissions.filter(s => !s.graded).length;
-  const presentPct   = batchDetail ? (() => {
-    // compute attendance pct across all students for today-ish context
-    return "—";
-  })() : "—";
+  const gradedCount  = submissions.filter(s => s.graded).length;
+  const marksScale   = useMemo(() => marksScaleFor(submissions), [submissions]);
+  const averageMarks = useMemo(() => {
+    const graded = submissions.filter(s => s.graded && Number(s.marks || 0) > 0);
+    if (!graded.length) return null;
+    const total = graded.reduce((sum, s) => sum + Number(s.marks || 0), 0);
+    return total / graded.length;
+  }, [submissions]);
+  const attendanceTrend = useMemo(() => attendanceSeriesFor(attendanceRecords), [attendanceRecords]);
+  const submissionTrend = useMemo(() => submissionVolumeFor(submissions), [submissions]);
+  const materialTypeTrend = useMemo(() => materialTypeFor(materials), [materials]);
+  const latestAttendancePct = attendanceTrend.length ? attendanceTrend[attendanceTrend.length - 1].pct : 0;
+  const reviewCompletionPct = submissions.length ? Math.round((gradedCount / submissions.length) * 100) : 0;
 
   if (loading) return (
     <div className={pageWrapClass}>
@@ -383,8 +503,6 @@ export const TrainerDashboard = ({ user }) => {
 
   return (
     <div className={pageWrapClass}>
-      <Toast message={toast} />
-
       {attendanceOpen && batchDetail && (
         <AttendancePanel
           batchId={activeBatchId}
@@ -396,14 +514,18 @@ export const TrainerDashboard = ({ user }) => {
       <WelcomeBanner
         badge="Trainer Workstation"
         title={`Welcome, ${user?.name || "Trainer"}!`}
-        description="Your overview — batches assigned, submissions to review, and quick access to all your tools."
+        description="Batch analytics — attendance momentum, submission volume, material usage, and review load."
         actions={
           <>
             <PrimaryButton onClick={() => setAttendanceOpen(true)} className="flex items-center gap-1.5">
               <FiCalendar className="w-3.5 h-3.5" /> Mark Attendance
             </PrimaryButton>
-            <SecondaryButton onClick={() => { setActiveTab("materials"); }}>
-              Upload Material
+            <SecondaryButton
+              onClick={() =>
+                navigate(activeBatchId ? `/dashboard/trainer/batches/${activeBatchId}` : "/dashboard/trainer/batches")
+              }
+            >
+              Manage Batch
             </SecondaryButton>
           </>
         }
@@ -413,7 +535,7 @@ export const TrainerDashboard = ({ user }) => {
         { label: "Assigned Batches",  value: String(profile.batch_count || 0),    change: "Active cohorts",      icon: <FiLayers   className="w-5 h-5" /> },
         { label: "Total Students",    value: String(profile.total_students || 0),  change: "Enrolled learners",   icon: <FiUsers    className="w-5 h-5" /> },
         { label: "Pending Reviews",   value: String(pendingCount),                 change: "Submissions to grade", icon: <FiAward    className="w-5 h-5" /> },
-        { label: "Study Materials",   value: String(materials.length),             change: "Uploaded this batch",  icon: <FiBookOpen className="w-5 h-5" /> },
+        { label: "Attendance",        value: `${latestAttendancePct}%`,            change: "Recent sessions",      icon: <FiTrendingUp className="w-5 h-5" /> },
       ]} />
 
       {/* Batch selector */}
@@ -447,113 +569,103 @@ export const TrainerDashboard = ({ user }) => {
 
       {activeBatch && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* ── Left 2/3 ── */}
           <div className="lg:col-span-2 space-y-6">
-
-            {/* Tab nav */}
-            <div className="flex border-b border-black/[0.08] gap-5">
-              {[
-                { key: "submissions", label: "Submissions", badge: pendingCount > 0 ? pendingCount : null },
-                { key: "materials",   label: "Study Materials" },
-                { key: "students",    label: "Students" },
-              ].map(tab => (
-                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                  className={`pb-2.5 text-xs font-bold relative cursor-pointer transition-colors flex items-center gap-1.5 ${
-                    activeTab === tab.key ? "text-[#fc362d]" : "text-[#94a3b8] hover:text-[#0c0407]"
-                  }`}>
-                  {tab.label}
-                  {tab.badge && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-[#fc362d] text-white text-[9px] font-extrabold">
-                      {tab.badge}
-                    </span>
-                  )}
-                  {activeTab === tab.key && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#fc362d] rounded-full" />
-                  )}
-                </button>
-              ))}
-            </div>
-
             {loadingBatch ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3">
                 <div className="w-8 h-8 border-3 border-[#fc362d]/20 border-t-[#fc362d] rounded-full animate-spin" />
-                <p className="text-sm text-[#94a3b8]">Loading batch data…</p>
+                <p className="text-sm text-[#94a3b8]">Loading analytics…</p>
               </div>
             ) : (
               <>
-                {/* Submissions tab */}
-                {activeTab === "submissions" && (
-                  <Panel>
-                    <PanelHeader eyebrow="Evaluation Hub" title="Student Submissions"
-                      action={<span className="text-xs font-bold text-[#475569] bg-[#f1f5f9] px-3 py-1 rounded-lg border border-black/[0.06]">
-                        {pendingCount} Pending
-                      </span>} />
-                    {submissions.length === 0 ? (
-                      <p className="text-xs text-[#94a3b8] text-center py-10 bg-[#fafafa] rounded-xl border border-dashed border-black/[0.07]">
-                        No submissions yet for this batch.
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {submissions.map(sub => (
-                          <SubmissionRow key={sub.id} sub={sub} onGrade={handleGrade} />
-                        ))}
-                      </div>
-                    )}
-                  </Panel>
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ChartCard
+                    title="Attendance Momentum"
+                    subtitle="Attendance rate across recent sessions"
+                    icon={<FiTrendingUp className="w-5 h-5" />}
+                    iconClassName="bg-emerald-50 text-emerald-600"
+                  >
+                    <AttendanceTrendChart data={attendanceTrend} />
+                  </ChartCard>
 
-                {/* Materials tab */}
-                {activeTab === "materials" && (
-                  <Panel>
-                    <PanelHeader eyebrow="Resources" title="Study Materials" />
-                    <MaterialsPanel
-                      batchId={activeBatchId}
-                      materials={materials}
-                      onRefresh={() => fetchBatchData(activeBatchId)}
-                    />
-                  </Panel>
-                )}
+                  <ChartCard
+                    title="Submission Volume"
+                    subtitle="How many submissions arrive per day"
+                    icon={<FiBarChart2 className="w-5 h-5" />}
+                    iconClassName="bg-red-50 text-[#fc362d]"
+                  >
+                    <SubmissionVolumeChart data={submissionTrend} />
+                  </ChartCard>
+                </div>
 
-                {/* Students tab */}
-                {activeTab === "students" && (
-                  <Panel>
-                    <PanelHeader eyebrow="Roster" title={`Enrolled Students (${batchDetail?.students?.length || 0})`} />
-                    {!batchDetail?.students?.length ? (
-                      <p className="text-xs text-[#94a3b8] text-center py-8">No students enrolled.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="border-b border-black/[0.07] text-[#94a3b8] uppercase tracking-wider">
-                              <th className="pb-3 px-2 font-bold text-left">Student</th>
-                              <th className="pb-3 px-2 font-bold text-left">Email</th>
-                              <th className="pb-3 px-2 font-bold text-left">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {batchDetail.students.map((s, i) => (
-                              <tr key={i} className="border-b border-black/[0.04] hover:bg-[#fafafa]">
-                                <td className="py-3 px-2 font-bold text-[#0c0407]">{s.student?.name}</td>
-                                <td className="py-3 px-2 text-[#636363]">{s.student?.email}</td>
-                                <td className="py-3 px-2">
-                                  <StatusBadge variant={s.enrollment_status === "ACTIVE" ? "ok" : "info"}>
-                                    {s.enrollment_status}
-                                  </StatusBadge>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ChartCard
+                    title="Material Distribution"
+                    subtitle="What type of resources you shared"
+                    icon={<FiBookOpen className="w-5 h-5" />}
+                    iconClassName="bg-indigo-50 text-indigo-600"
+                  >
+                    <MaterialTypeChart data={materialTypeTrend} />
+                  </ChartCard>
+
+                  <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col h-[360px]">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 text-slate-600">
+                        <FiAward className="w-5 h-5" />
                       </div>
-                    )}
-                  </Panel>
-                )}
+                      <div>
+                        <h3 className="text-base font-extrabold text-[#0c0407]">Review Load</h3>
+                        <p className="text-xs text-[#94a3b8] font-semibold mt-0.5">Pending vs graded work</p>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-h-0 space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-4 rounded-2xl bg-[#fafafa] border border-black/[0.05]">
+                          <p className={labelMutedClass}>Pending</p>
+                          <p className="text-2xl font-black text-[#0c0407] mt-2">{pendingCount}</p>
+                          <StatusBadge variant={pendingCount > 0 ? "warn" : "ok"}>
+                            {pendingCount > 0 ? "Needs review" : "Clear"}
+                          </StatusBadge>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-[#fafafa] border border-black/[0.05]">
+                          <p className={labelMutedClass}>Reviewed</p>
+                          <p className="text-2xl font-black text-[#0c0407] mt-2">{gradedCount}</p>
+                          <StatusBadge variant={gradedCount > 0 ? "ok" : "info"}>
+                            {gradedCount > 0 ? "Graded" : "None"}
+                          </StatusBadge>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-[#fafafa] border border-black/[0.05]">
+                        <p className={labelMutedClass}>Completion</p>
+                        <p className="text-xl font-black text-[#0c0407] mt-2">{reviewCompletionPct}%</p>
+                        <div className="h-2 rounded-full bg-[#e2e8f0] overflow-hidden mt-3">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#fc362d] to-rose-500 rounded-full"
+                            style={{ width: `${reviewCompletionPct}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] font-semibold text-[#94a3b8] mt-2">
+                          {submissions.length} total submissions tracked
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-[#fafafa] border border-black/[0.05]">
+                        <p className={labelMutedClass}>Average Score</p>
+                        <p className="text-xl font-black text-[#0c0407] mt-2">
+                          {averageMarks === null ? "—" : `${averageMarks.toFixed(marksScale === 10 ? 1 : 0)}/${marksScale}`}
+                        </p>
+                        <p className="text-[11px] font-semibold text-[#94a3b8] mt-2">
+                          Based on graded submissions only
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </div>
 
-          {/* ── Right 1/3 ── */}
           <div className="space-y-5">
 
             {/* Active batch card */}
@@ -584,27 +696,6 @@ export const TrainerDashboard = ({ user }) => {
                   <span className={labelMutedClass}>Students</span>
                   <p className="text-2xl font-extrabold text-[#0c0407] mt-0.5">{activeBatch.student_count}</p>
                 </div>
-              </div>
-            </Panel>
-
-            {/* Quick actions */}
-            <Panel>
-              <h3 className="text-sm font-bold text-[#0c0407] mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                {[
-                  { label: "Mark Today's Attendance", icon: <FiCalendar className="w-4 h-4" />, action: () => setAttendanceOpen(true) },
-                  { label: "Upload Study Material",    icon: <FiUpload   className="w-4 h-4" />, action: () => setActiveTab("materials") },
-                  { label: "Review Submissions",       icon: <FiAward    className="w-4 h-4" />, action: () => setActiveTab("submissions") },
-                  { label: "View Student Roster",      icon: <FiUsers    className="w-4 h-4" />, action: () => setActiveTab("students") },
-                ].map((a, i) => (
-                  <button key={i} onClick={a.action}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-black/[0.07] bg-[#fafafa] hover:bg-white hover:border-[#fc362d]/20 hover:shadow-sm transition-all cursor-pointer text-left">
-                    <span className="w-7 h-7 rounded-lg bg-[#fc362d]/10 flex items-center justify-center text-[#fc362d] shrink-0">
-                      {a.icon}
-                    </span>
-                    <span className="text-xs font-semibold text-[#475569]">{a.label}</span>
-                  </button>
-                ))}
               </div>
             </Panel>
 

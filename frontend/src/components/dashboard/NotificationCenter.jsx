@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { FiBell, FiCheck, FiTrash2, FiClock, FiAlertCircle, FiCheckCircle, FiUser } from "react-icons/fi";
+import { useState, useEffect } from "react";
+import {
+  FiAward,
+  FiBell,
+  FiCheck,
+  FiTrash2,
+  FiClock,
+  FiAlertCircle,
+  FiCheckCircle,
+  FiUser,
+  FiLayers,
+} from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
 import axios from "axios";
@@ -10,7 +20,6 @@ const NotificationCenter = () => {
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -30,28 +39,25 @@ const NotificationCenter = () => {
       console.log("Real-time notification received:", notification);
       setNotifications((prev) => [notification, ...prev]);
     });
-
-    setSocket(newSocket);
-
     return () => {
       newSocket.disconnect();
     };
   }, [user]);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [filter]);
+    const loadNotifications = async () => {
+      try {
+        const { data } = await axios.get(`/api/notifications?filter=${filter}`);
+        setNotifications(data);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchNotifications = async () => {
-    try {
-      const { data } = await axios.get(`/api/notifications?filter=${filter}`);
-      setNotifications(data);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadNotifications();
+  }, [filter]);
 
   const markAsRead = async (id) => {
     try {
@@ -103,9 +109,12 @@ const NotificationCenter = () => {
       case "student_assigned_to_batch":
         return <FiUser className="w-5 h-5 text-blue-500" />;
       case "project_submission":
+      case "project_assigned":
         return <FiAward className="w-5 h-5 text-purple-500" />;
       case "trainer_assigned_to_batch":
         return <FiLayers className="w-5 h-5 text-indigo-500" />;
+      case "project_deadline_reminder":
+        return <FiClock className="w-5 h-5 text-amber-500" />;
       case "success":
         return <FiCheckCircle className="w-5 h-5 text-emerald-500" />;
       case "warning":
@@ -129,9 +138,12 @@ const NotificationCenter = () => {
       case "student_assigned_to_batch":
         return "bg-blue-50 border-blue-200";
       case "project_submission":
+      case "project_assigned":
         return "bg-purple-50 border-purple-200";
       case "trainer_assigned_to_batch":
         return "bg-indigo-50 border-indigo-200";
+      case "project_deadline_reminder":
+        return "bg-amber-50 border-amber-200";
       case "success":
         return "bg-emerald-50 border-emerald-200";
       case "warning":

@@ -28,7 +28,23 @@ const Notification = sequelize.define(
       defaultValue: "info",
       validate: {
         isIn: [
-          ["fee_reminder", "fee_missed", "trainer_profile_complete", "new_student_enrollment", "fee_payment", "appointment_request", "info", "warning", "success", "error", "student_assigned_to_batch", "project_submission", "trainer_assigned_to_batch"]
+          [
+            "fee_reminder",
+            "fee_missed",
+            "trainer_profile_complete",
+            "new_student_enrollment",
+            "fee_payment",
+            "appointment_request",
+            "info",
+            "warning",
+            "success",
+            "error",
+            "student_assigned_to_batch",
+            "project_submission",
+            "trainer_assigned_to_batch",
+            "project_assigned",
+            "project_deadline_reminder",
+          ],
         ],
       },
     },
