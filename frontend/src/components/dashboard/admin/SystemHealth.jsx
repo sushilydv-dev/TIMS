@@ -2,6 +2,7 @@ import React from "react";
 import { FiActivity, FiDatabase, FiServer, FiCpu } from "react-icons/fi";
 import { WelcomeBanner, StatCards, Panel, PanelHeader, StatusBadge } from "../DashboardUI";
 import { pageWrapClass } from "../dashboardTheme";
+import { INSTITUTE_NAME } from "../../../constants";
 
 const SERVICES = [
   { name: "PostgreSQL", status: "ok", latency: "8ms", uptime: "99.98%" },
@@ -17,7 +18,7 @@ export const SystemHealth = () => {
       <WelcomeBanner
         badge="System Health"
         title="Infrastructure monitor"
-        description="Live status of databases, caches, and external services powering TIMS."
+        description={`Live status of databases, caches, and external services powering ${INSTITUTE_NAME}.`}
       />
 
       <StatCards

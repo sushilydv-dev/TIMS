@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logo.png";
 import { useAuth } from "../app/AuthContext";
+import { INSTITUTE_NAME } from "../constants";
 
 const NAV_LINKS = [
   { label: "Home",       hasDropdown: false, to: "/" },
@@ -241,7 +242,7 @@ export const Navbar = () => {
               className="h-[30px] w-[40px] px-1 "
             />
             <span className="text-[1.05rem] font-bold text-[#0d463e] ">
-              TIMS
+              {INSTITUTE_NAME}
             </span>
           </div>
         </a>
@@ -380,7 +381,7 @@ export const Navbar = () => {
             <div className="mb-8 flex items-center justify-between">
               <a href="/" className="flex items-center gap-2 no-underline" onClick={closeMobileMenu}>
                 <img src={logo} alt="MSAI India Logo" className="h-[48px] w-[66px]" />
-                <span className="text-[1.05rem] font-bold text-[#0d463e]">TIMS</span>
+                <span className="text-[1.05rem] font-bold text-[#0d463e]">{INSTITUTE_NAME}</span>
               </a>
               <button
                 type="button"

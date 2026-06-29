@@ -20,6 +20,7 @@ import Payment from "./payment.js";
 import Assessment from "./assessment.js";
 import AssessmentResult from "./assessmentResult.js";
 import Certificate from "./certificate.js";
+import CertificateSettings from "./certificateSettings.js";
 import Notification from "./notification.js";
 import InviteToken from "./inviteToken.js";
 import Installment from "./installment.js";
@@ -120,6 +121,12 @@ AssessmentResult.belongsTo(Student, { foreignKey: "student_id" });
 Student.hasMany(Certificate, { foreignKey: "student_id", onDelete: "CASCADE" });
 Certificate.belongsTo(Student, { foreignKey: "student_id" });
 
+Batch.hasMany(Certificate, { foreignKey: "batch_id", onDelete: "CASCADE" });
+Certificate.belongsTo(Batch, { foreignKey: "batch_id" });
+
+User.hasMany(Certificate, { foreignKey: "approved_by", as: "approvedCertificates", onDelete: "SET NULL" });
+Certificate.belongsTo(User, { foreignKey: "approved_by", as: "approver" });
+
 User.hasMany(InviteToken, { foreignKey: "user_id", onDelete: "CASCADE" });
 InviteToken.belongsTo(User, { foreignKey: "user_id" });
 
@@ -145,6 +152,7 @@ export {
   Assessment,
   AssessmentResult,
   Certificate,
+  CertificateSettings,
   Notification,
   InviteToken,
   Installment,

@@ -1,17 +1,18 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
+import { INSTITUTE_NAME } from "../../constants";
 
 const FAQ_ITEMS = [
   {
     num: "01",
-    question: "What domains does TIMS specialise in?",
-    answer: "TIMS offers programs in Full-Stack Web Development, UI/UX Design, Cloud Infrastructure & DevOps, AI & Machine Learning, Business Management, and Cybersecurity — each co-designed with industry practitioners.",
+    question: `What domains does ${INSTITUTE_NAME} specialise in?`,
+    answer: `${INSTITUTE_NAME} offers programs in Full-Stack Web Development, UI/UX Design, Cloud Infrastructure & DevOps, AI & Machine Learning, Business Management, and Cybersecurity — each co-designed with industry practitioners.`,
   },
   {
     num: "02",
     question: "How does the project assignment and evaluation work?",
-    answer: "Trainees are assigned structured milestones with clear deliverables. All submissions are pushed via code repositories (GitHub) and evaluated directly within our TIMS portal dashboard by assigned mentors.",
+    answer: `Trainees are assigned structured milestones with clear deliverables. All submissions are pushed via code repositories (GitHub) and evaluated directly within our ${INSTITUTE_NAME} portal dashboard by assigned mentors.`,
   },
   {
     num: "03",
@@ -21,7 +22,7 @@ const FAQ_ITEMS = [
   {
     num: "04",
     question: "Is placement support included in all programs?",
-    answer: "Yes — every TIMS program includes dedicated placement support: resume reviews, mock interviews, referrals to our 120+ industry partner network, and continued alumni network access post-graduation.",
+    answer: `Yes — every ${INSTITUTE_NAME} program includes dedicated placement support: resume reviews, mock interviews, referrals to our 120+ industry partner network, and continued alumni network access post-graduation.`,
   },
   {
     num: "05",

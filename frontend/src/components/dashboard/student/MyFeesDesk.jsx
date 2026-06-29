@@ -4,6 +4,7 @@ import axios from "axios";
 import { Toast } from "../DashboardUI";
 import { cardClass, labelMutedClass, trendUpClass, trendDownClass } from "../dashboardTheme";
 import { generatePaymentReceipt } from "../../../utils/generatePaymentReceipt";
+import { INSTITUTE_NAME } from "../../../constants";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -69,7 +70,7 @@ export function MyFeesDesk({ onPaymentSuccess }) {
         key: key_id,
         amount: amount * 100,
         currency: currency,
-        name: "TIMS Academy",
+        name: `${INSTITUTE_NAME} Academy`,
         description: `Fee Payment - ${installment.installment_label}`,
         order_id: razorpay_order_id,
         handler: async (response) => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { INSTITUTE_NAME } from "../../constants";
 import {
   FiHome,
   FiBookOpen,
@@ -11,6 +12,7 @@ import {
   FiCalendar,
   FiChevronDown,
   FiClock,
+  FiCheckSquare,
 } from "react-icons/fi";
 import { useAuth } from "../../app/AuthContext";
 import logo from "../../assets/logo.png";
@@ -60,6 +62,8 @@ export const Sidebar = ({ activeRole }) => {
           { label: "Batches", icon: <FiCalendar className="w-5 h-5" />, path: "/dashboard/batches" },
           { label: "Fee Status", icon: <FiActivity className="w-5 h-5" />, path: "/dashboard/health" },
           { label: "Billing Ledger", icon: <FiDollarSign className="w-5 h-5" />, path: "/dashboard/billing" },
+          { label: "Certificate Settings", icon: <FiAward className="w-5 h-5" />, path: "/dashboard/admin/certificates/settings" },
+          { label: "Certificate Approvals", icon: <FiCheckSquare className="w-5 h-5" />, path: "/dashboard/admin/certificates/approvals" },
         ];
       case "HR_COORDINATOR":
       case "HR":
@@ -80,6 +84,7 @@ export const Sidebar = ({ activeRole }) => {
         return [
           ...baseLinks,
           { label: "My Profile",      icon: <FiUsers    className="w-5 h-5" />, path: "/dashboard/student/profile" },
+          { label: "My Certificates", icon: <FiAward    className="w-5 h-5" />, path: "/dashboard/student/certificates" },
           { label: "Projects",        icon: <FiAward    className="w-5 h-5" />, path: "/dashboard/student/projects" },
           { label: "Study Materials", icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard/student/materials" },
           { label: "Receipts Locker", icon: <FiDollarSign className="w-5 h-5" />, path: "/dashboard?tab=fees" },
@@ -94,9 +99,9 @@ export const Sidebar = ({ activeRole }) => {
   return (
     <div className="w-72 bg-white min-h-screen h-full border-r border-black/[0.08] flex flex-col py-6 px-5">
       <Link to="/" className="flex items-center gap-3 px-2 py-2 mb-8">
-        <img src={logo} alt="TIMS" className="h-9 w-9 object-contain" />
+        <img src={logo} alt={INSTITUTE_NAME} className="h-9 w-9 object-contain" />
         <span className="text-xl font-bold text-[#0c0407] tracking-tight">
-          TIMS
+          {INSTITUTE_NAME}
         </span>
       </Link>
 

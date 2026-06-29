@@ -3,6 +3,7 @@ import { FiUser, FiBookOpen, FiDollarSign, FiCalendar, FiArrowLeft, FiPlus, FiTr
 import axios from "axios";
 import { Panel, PanelHeader, PrimaryButton, SecondaryButton, Toast } from "../DashboardUI";
 import { inputClass } from "../dashboardTheme";
+import { INSTITUTE_NAME } from "../../../constants";
 
 export function EnrollStudentForm({ onBack, onSuccess }) {
   const [step, setStep] = useState(1);
@@ -344,7 +345,7 @@ export function EnrollStudentForm({ onBack, onSuccess }) {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="e.g. alex.manda@tims.com"
+                  placeholder={`e.g. alex.manda@${INSTITUTE_NAME.toLowerCase()}.com`}
                   required
                   className={inputClass}
                 />

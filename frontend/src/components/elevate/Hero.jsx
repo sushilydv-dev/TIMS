@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { Star, ArrowRight, Users, BookOpen, Award } from "lucide-react";
 import landingimage from "../../assets/landing.jpg";
 import { useConsultation } from "../../context/ConsultationContext";
+import { INSTITUTE_NAME } from "../../constants";
 
 const TRUST_PILLS = [
   { icon: Users,    text: "50K+ Alumni" },
@@ -64,7 +65,7 @@ export const Hero = () => {
           transition={{ duration: 0.8, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
           className="text-base md:text-lg lg:text-xl text-[#636363] max-w-2xl leading-relaxed mb-10 font-medium"
         >
-          TIMS partners with ambitious individuals to close the gap between classroom theory and enterprise-level execution — through structured programs, live projects, and dedicated mentorship.
+          {INSTITUTE_NAME} partners with ambitious individuals to close the gap between classroom theory and enterprise-level execution — through structured programs, live projects, and dedicated mentorship.
         </motion.p>
 
         {/* CTAs */}

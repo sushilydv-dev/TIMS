@@ -1,20 +1,21 @@
 import { useRef } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Star, Quote } from "lucide-react";
+import { INSTITUTE_NAME } from "../../constants";
 
 const TESTIMONIALS = [
   {
     name: "Arjun Mehta",
     role: "Full-Stack Engineer · Hired at Razorpay",
     avatar: "https://framerusercontent.com/images/SGBVLdHSw2BsdL7hyXRyapVb8js.png",
-    quote: "The TIMS training system changed how I approach software development. Clear milestones, precise repository feedback from mentors, and a real portfolio project that directly landed me my full-time role.",
+    quote: `The ${INSTITUTE_NAME} training system changed how I approach software development. Clear milestones, precise repository feedback from mentors, and a real portfolio project that directly landed me my full-time role.`,
     rating: 5,
   },
   {
     name: "Sneha Kapoor",
     role: "UI/UX Designer · Placed at Zomato",
     avatar: "https://framerusercontent.com/images/Qim8xH67hjKAmd5sM3sdqrE.png",
-    quote: "Learning to design production-grade user journeys at TIMS gave me exactly the tools I needed. The structured feedback loops and live project work made my portfolio stand out immediately.",
+    quote: `Learning to design production-grade user journeys at ${INSTITUTE_NAME} gave me exactly the tools I needed. The structured feedback loops and live project work made my portfolio stand out immediately.`,
     rating: 5,
   },
   {
@@ -28,7 +29,7 @@ const TESTIMONIALS = [
     name: "Priya Nair",
     role: "DevOps Specialist · Placed at Wipro",
     avatar: "https://framerusercontent.com/images/nQ7ZlW3LUqX2WBlLbzTadqZ2uo.png",
-    quote: "Having a centralised workspace where every repository push was evaluated gave me the discipline and the confidence to meet enterprise-level standards. TIMS genuinely prepared me.",
+    quote: `Having a centralised workspace where every repository push was evaluated gave me the discipline and the confidence to meet enterprise-level standards. ${INSTITUTE_NAME} genuinely prepared me.`,
     rating: 5,
   },
 ];
@@ -80,7 +81,7 @@ export const Testimonials = () => {
             Voices of success
           </motion.h2>
           <motion.p variants={cardItem} className="text-[#636363] text-base md:text-lg leading-relaxed font-medium">
-            Real graduates. Real placements. Read how TIMS helped them break into their dream roles.
+            Real graduates. Real placements. Read how {INSTITUTE_NAME} helped them break into their dream roles.
           </motion.p>
         </motion.div>
 

@@ -13,6 +13,7 @@ import {
   PrimaryButton,
   SecondaryButton,
 } from "../DashboardUI";
+import { INSTITUTE_NAME } from "../../../constants";
 import { pageWrapClass } from "../dashboardTheme";
 
 export const HrDashboard = ({ user }) => {
@@ -226,7 +227,7 @@ export const HrDashboard = ({ user }) => {
                 <div className="flex justify-between items-end">
                   <div>
                     <p className="text-[7px] font-bold text-white/40 uppercase">Card Holder Serial</p>
-                    <p className="text-xs font-bold font-mono">TIMS-HR-491026</p>
+                    <p className="text-xs font-bold font-mono">{INSTITUTE_NAME}-HR-491026</p>
                   </div>
                   <div>
                     <p className="text-[7px] font-bold text-white/40 uppercase text-right">Office Base</p>
