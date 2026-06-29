@@ -17,7 +17,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendTemplateEmail } from "../utils/emailService.js";
 import { getCanonicalRoleByName, toClientRole } from "../utils/roleHelpers.js";
 import Razorpay from "razorpay";
-import { sendNewStudentEnrollment, sendFeePayment, sendStudentAssignedToBatch } from "../services/notification.service.js";
+import {
+  sendBatchAssignedToStudent,
+  sendNewStudentEnrollment,
+  sendFeePayment,
+  sendStudentAssignedToBatch,
+} from "../services/notification.service.js";
 
 
 // Helper: build activation link
@@ -339,6 +344,13 @@ export const enrollStudent = asyncHandler(async (req, res) => {
         name,
         batch.id,
         batch.batch_name
+      );
+
+      await sendBatchAssignedToStudent(
+        result.student.user_id,
+        result.student.id,
+        batch.id,
+        batch.batch_name,
       );
     } catch (err) {
       console.error("Error sending student assigned to batch notification:", err);

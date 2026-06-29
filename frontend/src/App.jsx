@@ -1,11 +1,11 @@
-import React, { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   useLocation,
 } from "react-router-dom";
-import { ReactLenis, useLenis } from "lenis/react"; // ── Modern import format
+import { useLenis } from "lenis/react"; // ── Modern import format
 import { AuthProvider } from "./app/AuthContext";
 import { PrivateRoutes } from "./Routes/PrivateRoutes";
 import { PublicRoutes } from "./Routes/PublicRoutes";
@@ -170,6 +170,10 @@ export const App = () => {
               <Route element={<PrivateRoutes />}>
                 <Route path="/dashboard" element={<Dashboard />}>
                   <Route index element={<DashboardIndex />} />
+                  <Route
+                    path="notifications"
+                    element={<NotificationCenter />}
+                  />
 
                   {/* ── Trainer ── */}
                   <Route element={<RequireTrainerProfile />}>
@@ -189,10 +193,6 @@ export const App = () => {
                       path="trainer/attendance"
                       element={<TrainerAttendance />}
                     />
-                    <Route
-                      path="notifications"
-                      element={<NotificationCenter />}
-                    />
                   </Route>
 
                   {/* ── Student ── */}
@@ -204,10 +204,6 @@ export const App = () => {
                   <Route
                     path="student/materials"
                     element={<StudentMaterials />}
-                  />
-                  <Route
-                    path="notifications"
-                    element={<NotificationCenter />}
                   />
 
                   {/* ── Admin ── */}
@@ -306,10 +302,6 @@ export const App = () => {
                         <BillingLedger />
                       </RequireAdmin>
                     }
-                  />
-                  <Route
-                    path="notifications"
-                    element={<NotificationCenter />}
                   />
                 </Route>
               </Route>

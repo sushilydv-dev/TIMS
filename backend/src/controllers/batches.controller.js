@@ -11,7 +11,11 @@ import Attendance from "../models/attendance.js";
 import Installment from "../models/installment.js";
 import Payment from "../models/payment.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { sendStudentAssignedToBatch, sendTrainerAssignedToBatch } from "../services/notification.service.js";
+import {
+  sendBatchAssignedToStudent,
+  sendStudentAssignedToBatch,
+  sendTrainerAssignedToBatch,
+} from "../services/notification.service.js";
 
 function formatTrainer(trainer) {
   const user = trainer?.User;
@@ -350,6 +354,13 @@ export const createBatch = asyncHandler(async (req, res) => {
           batch.id,
           batch.batch_name
         );
+
+        await sendBatchAssignedToStudent(
+          stud.user_id,
+          stud.id,
+          batch.id,
+          batch.batch_name,
+        );
       }
     } catch (err) {
       console.error("Error sending student assigned to batch notification:", err);
@@ -477,6 +488,7 @@ export const updateBatch = asyncHandler(async (req, res) => {
     if (toAdd.length > 0) {
       const students = await Student.findAll({
         where: { id: toAdd },
+        include: [{ model: User, attributes: ["id", "name", "email"] }],
       });
 
       if (students.length !== toAdd.length) {
@@ -527,6 +539,13 @@ export const updateBatch = asyncHandler(async (req, res) => {
             stud.User?.name || "Unknown Student",
             batch.id,
             batch.batch_name
+          );
+
+          await sendBatchAssignedToStudent(
+            stud.user_id,
+            stud.id,
+            batch.id,
+            batch.batch_name,
           );
         }
       } catch (err) {

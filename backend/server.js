@@ -12,7 +12,11 @@ import { seedMissingRoleProfiles } from "./src/config/seedRoleProfiles.js"
 import { syncDatabase } from "./src/config/syncDatabase.js"
 import { notFound, errorHandler } from "./src/middlewares/errormiddleware.js"
 import { deleteOldNotifications } from "./src/controllers/notification.controller.js"
-import { checkFeeReminders, checkMissedFees } from "./src/jobs/notificationJobs.js"
+import {
+  checkFeeReminders,
+  checkMissedFees,
+  checkProjectDeadlineReminders,
+} from "./src/jobs/notificationJobs.js"
 
 dotenv.config()
 const app = express()
@@ -85,6 +89,9 @@ syncDatabase()
         
         // Check for missed fees (every hour)
         setInterval(checkMissedFees, 60 * 60 * 1000);
+
+        // Check for project deadline reminders (every hour)
+        setInterval(checkProjectDeadlineReminders, 60 * 60 * 1000);
         
         httpServer.listen(PORT, () => {
             console.log(`app listening at ${PORT}`);

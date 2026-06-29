@@ -1,8 +1,13 @@
 import { createNotification } from "../controllers/notification.controller.js";
+import { Op } from "sequelize";
 import User from "../models/user.js";
 import Role from "../models/role.js";
 import Batch from "../models/batch.js";
 import Trainer from "../models/trainer.js";
+import Enrollment from "../models/enrollment.js";
+import Student from "../models/student.js";
+import Notification from "../models/notification.js";
+import ProjectSubmission from "../models/projectSubmission.js";
 
 // Helper function to format notification for client (so it matches getNotifications structure)
 const formatNotificationForClient = (n) => {
@@ -28,13 +33,110 @@ const emitNotification = (userId, notification) => {
   }
 };
 
+const startOfToday = () => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const hasNotification = async ({
+  userId,
+  type,
+  relatedDataContains = null,
+  since = null,
+}) => {
+  const where = {
+    user_id: userId,
+    type,
+  };
+
+  if (since) {
+    where.created_at = { [Op.gte]: since };
+  }
+
+  if (relatedDataContains) {
+    where.related_data = { [Op.contains]: relatedDataContains };
+  }
+
+  const existing = await Notification.findOne({ where });
+  return Boolean(existing);
+};
+
+const createAndEmitNotification = async (data) => {
+  const notification = await createNotification(data);
+  emitNotification(data.user_id, notification);
+  return notification;
+};
+
+const getCourseStudentRecipients = async (courseId) => {
+  const enrollments = await Enrollment.findAll({
+    where: {
+      batch_id: { [Op.ne]: null },
+    },
+    include: [
+      {
+        model: Batch,
+        attributes: ["id", "batch_name", "course_id"],
+        where: { course_id: courseId },
+        required: true,
+      },
+      {
+        model: Student,
+        required: true,
+        include: [{ model: User, attributes: ["id", "name"] }],
+      },
+    ],
+  });
+
+  const recipients = new Map();
+
+  for (const enrollment of enrollments) {
+    const student = enrollment.Student;
+    const user = student?.User;
+    if (!student?.id || !student?.user_id || !user?.id) {
+      continue;
+    }
+
+    if (!recipients.has(student.id)) {
+      recipients.set(student.id, {
+        studentId: student.id,
+        studentUserId: student.user_id,
+        studentName: user.name || "Student",
+        batchId: enrollment.Batch?.id || null,
+        batchName: enrollment.Batch?.batch_name || "",
+      });
+    }
+  }
+
+  return Array.from(recipients.values());
+};
+
+const createNotificationsForStudents = async (recipients, buildNotification) => {
+  const notifications = [];
+
+  for (const recipient of recipients) {
+    const payload = buildNotification(recipient);
+    if (!payload) {
+      continue;
+    }
+
+    const notification = await createAndEmitNotification({
+      ...payload,
+      user_id: recipient.studentUserId,
+    });
+
+    notifications.push(notification);
+  }
+
+  return notifications;
+};
+
 // Create and emit notification
 export const sendNotification = async (data) => {
   try {
     console.log("Creating notification with data:", data);
-    const notification = await createNotification(data);
+    const notification = await createAndEmitNotification(data);
     console.log("Notification created:", notification.id);
-    emitNotification(data.user_id, notification);
     return notification;
   } catch (error) {
     console.error("Error sending notification:", error);
@@ -96,15 +198,51 @@ export const sendToAdmins = async (data) => {
 };
 
 // Fee reminder notification (24 hours before due date)
-export const sendFeeReminder = async (userId, studentId, studentName, amount, dueDate) => {
+export const sendFeeReminder = async (
+  userId,
+  studentId,
+  studentName,
+  amount,
+  dueDate,
+  installmentId = null,
+) => {
   console.log(`Sending fee reminder for student ${studentName}, amount: ₹${amount}, due: ${dueDate}`);
   return sendToAdmins({
     title: "Fee Payment Due Soon",
     message: `Student ${studentName} has a fee payment of ₹${amount} due within 24 hours (Due: ${dueDate})`,
     type: "fee_reminder",
     related_user_id: userId,
-    related_data: { studentName, amount, dueDate, studentId },
+    related_data: { studentName, amount, dueDate, studentId, installmentId },
     action_url: `/dashboard/students?studentId=${studentId}`,
+  });
+};
+
+export const sendStudentFeeReminder = async (
+  studentUserId,
+  studentId,
+  amount,
+  dueDate,
+  installmentId,
+) => {
+  const alreadySent = await hasNotification({
+    userId: studentUserId,
+    type: "fee_reminder",
+    relatedDataContains: { installmentId },
+    since: startOfToday(),
+  });
+
+  if (alreadySent) {
+    return null;
+  }
+
+  return sendNotification({
+    title: "Fee Payment Due Soon",
+    message: `Your fee payment of ₹${amount} is due within 24 hours (Due: ${dueDate}).`,
+    type: "fee_reminder",
+    user_id: studentUserId,
+    related_user_id: studentUserId,
+    related_data: { studentId, amount, dueDate, installmentId },
+    action_url: "/dashboard?tab=fees",
   });
 };
 
@@ -244,6 +382,23 @@ export const sendStudentAssignedToBatch = async (studentUserId, studentId, stude
   });
 };
 
+export const sendBatchAssignedToStudent = async (
+  studentUserId,
+  studentId,
+  batchId,
+  batchName,
+) => {
+  return sendNotification({
+    title: "Assigned to New Batch",
+    message: `You have been assigned to batch: ${batchName}`,
+    type: "student_assigned_to_batch",
+    user_id: studentUserId,
+    related_user_id: studentUserId,
+    related_data: { studentId, batchId, batchName },
+    action_url: "/dashboard",
+  });
+};
+
 // Notify trainers when a student submits a project
 export const sendProjectSubmitted = async (studentUserId, studentId, studentName, projectId, projectTitle, batchId, batchName) => {
   console.log(`=== SEND PROJECT SUBMISSION NOTIFICATION ===`);
@@ -255,6 +410,95 @@ export const sendProjectSubmitted = async (studentUserId, studentId, studentName
     related_data: { studentName, studentId, projectId, projectTitle, batchId, batchName },
     action_url: `/dashboard/trainer/batches/${batchId}`
   });
+};
+
+export const sendProjectAssignedToStudents = async (
+  courseId,
+  projectId,
+  projectTitle,
+  deadline,
+  assignedByName = "Trainer",
+) => {
+  const recipients = await getCourseStudentRecipients(courseId);
+
+  return createNotificationsForStudents(recipients, (recipient) => ({
+    title: "New Project Assigned",
+    message: `${assignedByName} assigned a new project: ${projectTitle}${deadline ? ` (Due: ${deadline})` : ""}`,
+    type: "project_assigned",
+    related_user_id: null,
+    related_data: {
+      projectId,
+      projectTitle,
+      deadline,
+      courseId,
+      batchId: recipient.batchId,
+      batchName: recipient.batchName,
+    },
+    action_url: "/dashboard/student/projects",
+  }));
+};
+
+export const sendProjectDeadlineReminderToStudents = async (
+  courseId,
+  projectId,
+  projectTitle,
+  deadline,
+) => {
+  const recipients = await getCourseStudentRecipients(courseId);
+  if (!recipients.length) {
+    return [];
+  }
+
+  const existingSubmissions = await ProjectSubmission.findAll({
+    where: {
+      project_id: projectId,
+      student_id: recipients.map((recipient) => recipient.studentId),
+    },
+    attributes: ["student_id"],
+  });
+
+  const submittedStudentIds = new Set(
+    existingSubmissions.map((submission) => submission.student_id),
+  );
+
+  const created = [];
+
+  for (const recipient of recipients) {
+    if (submittedStudentIds.has(recipient.studentId)) {
+      continue;
+    }
+
+    const alreadySent = await hasNotification({
+      userId: recipient.studentUserId,
+      type: "project_deadline_reminder",
+      relatedDataContains: { projectId },
+      since: startOfToday(),
+    });
+
+    if (alreadySent) {
+      continue;
+    }
+
+    const notification = await createAndEmitNotification({
+      title: "Project Deadline Tomorrow",
+      message: `Your project "${projectTitle}" is due within 24 hours (Due: ${deadline}).`,
+      type: "project_deadline_reminder",
+      user_id: recipient.studentUserId,
+      related_user_id: recipient.studentUserId,
+      related_data: {
+        projectId,
+        projectTitle,
+        deadline,
+        courseId,
+        studentId: recipient.studentId,
+      },
+      action_url: "/dashboard/student/projects",
+    });
+
+    created.push(notification);
+  }
+
+  return created;
 };
 
 // Notify a trainer when they are assigned to a batch
