@@ -7,6 +7,7 @@ import {
   FaLinkedin,
 } from "react-icons/fa6";
 import productlogo from "../../assets/logo.png"
+import { INSTITUTE_NAME } from "../../constants";
 export const Footer = () => {
   return (
     <footer className="relative bg-[#fbfbfc] border-t border-black/[0.04] pt-20 pb-12 px-4 md:px-8 lg:px-16 overflow-hidden">
@@ -33,11 +34,11 @@ export const Footer = () => {
                         
                       
               <span className="text-2xl font-black tracking-tight text-[#0c0407] group-hover:text-black/80 transition-colors duration-200">
-                TIMS
+                {INSTITUTE_NAME}
               </span>
             </a>
             <p className="text-[#636363] text-sm md:text-base leading-relaxed mb-6 font-medium">
-              TIMS — Automating the future of technical education and industrial
+              {INSTITUTE_NAME} — Automating the future of technical education and industrial
               internship management.
             </p>
             {/* Social Icons Row */}
@@ -110,7 +111,7 @@ export const Footer = () => {
         {/* Bottom footer row: Copyright */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-8 gap-4">
           <p className="text-xs md:text-sm text-gray-400 font-semibold">
-            &copy; {new Date().getFullYear()} TIMS. All rights reserved.
+            &copy; {new Date().getFullYear()} {INSTITUTE_NAME}. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link

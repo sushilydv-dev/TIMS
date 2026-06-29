@@ -29,6 +29,7 @@ const CancellationPolicy = lazy(() => import("./pages/CancellationPolicy"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const LearnMore = lazy(() => import("./pages/LearnMore"));
+const CertificateVerification = lazy(() => import("./pages/CertificateVerification"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardIndex = lazy(() => import("./pages/DashboardIndex"));
@@ -36,6 +37,12 @@ const DashboardIndex = lazy(() => import("./pages/DashboardIndex"));
 /* admin */
 const AdminProfile = lazy(
   () => import("./components/dashboard/admin/AdminProfile"),
+);
+const CertificateSettings = lazy(
+  () => import("./components/dashboard/admin/CertificateSettings").then(m => ({ default: m.default })),
+);
+const CertificateApproval = lazy(
+  () => import("./components/dashboard/admin/CertificateApproval").then(m => ({ default: m.default })),
 );
 const UserControl = lazy(() =>
   import("./components/dashboard/admin/UserControl").then((m) => ({
@@ -108,6 +115,9 @@ const TrainerAttendance = lazy(() =>
 const StudentProfile = lazy(
   () => import("./components/dashboard/student/StudentProfile"),
 );
+const MyCertificates = lazy(
+  () => import("./components/dashboard/student/MyCertificates"),
+);
 const StudentProjects = lazy(
   () => import("./components/dashboard/student/StudentProjects"),
 );
@@ -161,6 +171,7 @@ export const App = () => {
                   path="/cancellation-policy"
                   element={<CancellationPolicy />}
                 />
+                <Route path="/verify/:code" element={<CertificateVerification />} />
                 <Route element={<AuthPresenceWrapper />}>
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
@@ -198,6 +209,10 @@ export const App = () => {
                   {/* ── Student ── */}
                   <Route path="student/profile" element={<StudentProfile />} />
                   <Route
+                    path="student/certificates"
+                    element={<MyCertificates />}
+                  />
+                  <Route
                     path="student/projects"
                     element={<StudentProjects />}
                   />
@@ -212,6 +227,22 @@ export const App = () => {
                     element={
                       <RequireAdmin>
                         <AdminProfile />
+                      </RequireAdmin>
+                    }
+                  />
+                  <Route
+                    path="admin/certificates/settings"
+                    element={
+                      <RequireAdmin>
+                        <CertificateSettings />
+                      </RequireAdmin>
+                    }
+                  />
+                  <Route
+                    path="admin/certificates/approvals"
+                    element={
+                      <RequireAdmin>
+                        <CertificateApproval />
                       </RequireAdmin>
                     }
                   />

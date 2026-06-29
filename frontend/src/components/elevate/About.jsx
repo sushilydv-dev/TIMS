@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { CheckCircle } from "lucide-react";
 import { useConsultation } from "../../context/ConsultationContext";
+import { INSTITUTE_NAME } from "../../constants";
 
 /* ── Animated counter ────────────────────────────────── */
 function Counter({ value, suffix = "" }) {
@@ -87,7 +88,7 @@ export const About = () => {
           className="lg:col-span-6 flex flex-col items-start"
         >
           <motion.span variants={item} className="px-3 py-1.5 rounded-full text-xs font-bold tracking-[0.2em] uppercase text-[#fc362d] bg-[#fc362d]/10 border border-[#fc362d]/20 mb-6">
-            About TIMS
+            About {INSTITUTE_NAME}
           </motion.span>
 
           <motion.h2 variants={item} className="text-3xl md:text-5xl font-extrabold text-[#0c0407] tracking-tight leading-tight mb-6">
@@ -98,7 +99,7 @@ export const About = () => {
           </motion.h2>
 
           <motion.p variants={item} className="text-[#636363] text-base md:text-lg leading-relaxed mb-8 font-medium">
-            Founded in 2014, TIMS combines industrial technical training with modern business administration systems — delivering comprehensive programs in engineering, management, and human resources through a centralised, outcome-focused management ecosystem.
+            Founded in 2014, {INSTITUTE_NAME} combines industrial technical training with modern business administration systems — delivering comprehensive programs in engineering, management, and human resources through a centralised, outcome-focused management ecosystem.
           </motion.p>
 
           <motion.div variants={stagger} className="flex flex-col gap-3 mb-10">
