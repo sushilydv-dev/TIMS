@@ -11,6 +11,7 @@ import { getCanonicalRoleByName, getUserRoleForClient } from "../utils/roleHelpe
 import { normalizeRoleName } from "../config/roles.js"
 import { ensureRoleProfile } from "../utils/ensureRoleProfile.js"
 import Student from "../models/student.js"
+import { handleFileUpload } from "../utils/fileUpload.js"
 
 export const sendOTP = asyncHandler(async (req, res) => {
     const { email } = req.body;
@@ -317,7 +318,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
     if (name) user.name = name;
     if (email) user.email = email;
-    if (profile_img !== undefined) user.profile_img = profile_img;
+    if (profile_img !== undefined) {
+        user.profile_img = handleFileUpload(profile_img, "profile");
+    }
 
     await user.save();
 

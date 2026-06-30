@@ -15,6 +15,7 @@ import Student from "../models/student.js";
 import sequelize from "../config/db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendTemplateEmail } from "../utils/emailService.js";
+import { handleFileUpload } from "../utils/fileUpload.js";
 import {
   getCanonicalRoleByName,
   getUserRoleForClient,
@@ -396,7 +397,7 @@ export const updateTrainerProfile = asyncHandler(async (req, res) => {
     if (specialization !== undefined) trainer.specialization = specialization;
     if (experience_year !== undefined) trainer.experience_year = parseInt(experience_year, 10) || 0;
     if (salary !== undefined) trainer.salary = parseInt(salary, 10) || 0;
-    if (profile_img !== undefined) trainer.profile_img = profile_img;
+    if (profile_img !== undefined) trainer.profile_img = handleFileUpload(profile_img, "profile");
     await trainer.save({ transaction: t });
 
     if (batch_ids !== undefined) {
@@ -520,7 +521,7 @@ export const updateHrProfile = asyncHandler(async (req, res) => {
     }
     await user.save({ transaction: t });
 
-    if (profile_img !== undefined) hr.profile_img = profile_img;
+    if (profile_img !== undefined) hr.profile_img = handleFileUpload(profile_img, "profile");
     await hr.save({ transaction: t });
   });
 

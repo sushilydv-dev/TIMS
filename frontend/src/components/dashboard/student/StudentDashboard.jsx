@@ -992,6 +992,7 @@ export const StudentDashboard = ({ user }) => {
                   <div className="space-y-3">
                     {recentMaterials.map((material) => {
                       const isBase64 = material.file_url?.startsWith("data:");
+                      const fileUrl = isBase64 ? material.file_url : `http://localhost:3000${material.file_url}`;
                       const ext =
                         material.material_type === "PDF"
                           ? ".pdf"
@@ -1019,26 +1020,14 @@ export const StudentDashboard = ({ user }) => {
                               <span>Uploaded by {material.uploader_name || "Trainer"}</span>
                             </div>
                           </div>
-                          {isBase64 ? (
-                            <a
-                              href={material.file_url}
-                              download={downloadName}
-                              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-black/[0.08] text-xs font-bold text-[#475569] hover:text-[#fc362d] hover:border-[#fc362d]/30 transition-all no-underline"
-                            >
-                              <FiDownload className="w-3.5 h-3.5" />
-                              Download
-                            </a>
-                          ) : (
-                            <a
-                              href={material.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-black/[0.08] text-xs font-bold text-[#475569] hover:text-[#fc362d] hover:border-[#fc362d]/30 transition-all no-underline"
-                            >
-                              <FiExternalLink className="w-3.5 h-3.5" />
-                              Open Resource
-                            </a>
-                          )}
+                          <a
+                            href={fileUrl}
+                            download={downloadName}
+                            className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-black/[0.08] text-xs font-bold text-[#475569] hover:text-[#fc362d] hover:border-[#fc362d]/30 transition-all no-underline"
+                          >
+                            <FiDownload className="w-3.5 h-3.5" />
+                            Download
+                          </a>
                         </div>
                       );
                     })}

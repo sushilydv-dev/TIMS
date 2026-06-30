@@ -13,6 +13,7 @@ import Project from "../models/project.js";
 import StudyMaterial from "../models/studyMaterial.js";
 import Notification from "../models/notification.js";
 import { Op } from "sequelize";
+import { handleFileUpload } from "../utils/fileUpload.js";
 import {
   sendProjectAssignedToStudents,
   sendTrainerProfileComplete,
@@ -68,7 +69,7 @@ router.put("/complete-profile", asyncHandler(async (req, res) => {
   // Update trainer fields
   trainer.specialization = specialization || trainer.specialization;
   trainer.experience_year = experience_year || trainer.experience_year;
-  trainer.profile_img = profile_img || trainer.profile_img;
+  trainer.profile_img = handleFileUpload(profile_img || trainer.profile_img, "profile");
   trainer.profile_completed = true;
   
   // Update user name if provided
@@ -117,7 +118,7 @@ router.put("/profile", asyncHandler(async (req, res) => {
   if (name !== undefined)            trainer.User.name           = String(name).trim();
   if (specialization !== undefined)  trainer.specialization      = String(specialization).trim();
   if (experience_year !== undefined) trainer.experience_year     = parseInt(experience_year, 10) || 0;
-  if (profile_img !== undefined)     trainer.profile_img         = profile_img || "";
+  if (profile_img !== undefined)     trainer.profile_img         = handleFileUpload(profile_img, "profile");
 
   await trainer.User.save();
   await trainer.save();
@@ -519,8 +520,8 @@ router.post("/batches/:batchId/materials", asyncHandler(async (req, res) => {
     res.status(400); throw new Error("title and material_type are required");
   }
 
-  // Accept either a base64 data URL (file_data) or a plain URL (file_url)
-  const storedUrl = (file_data?.trim() || file_url?.trim() || "");
+  // Handle file upload - save base64 to disk or use existing URL
+  const storedUrl = handleFileUpload(file_data?.trim() || file_url?.trim() || "", "material");
   if (!storedUrl) {
     res.status(400); throw new Error("Either file_data or file_url is required");
   }

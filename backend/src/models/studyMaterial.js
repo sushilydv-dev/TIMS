@@ -24,7 +24,7 @@ const StudyMaterial = sequelize.define(
       defaultValue: "General",
     },
     file_url: {
-      type: DataTypes.TEXT,        // base64 files need TEXT not VARCHAR(255)
+      type: DataTypes.STRING(500),
       allowNull: false,
     },
     material_type: {
