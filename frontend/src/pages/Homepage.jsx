@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 // 1. Import motion and useScroll from framer-motion
 import { motion, useScroll } from "framer-motion";
+import axios from "axios";
 
 import { PageLoader } from "../components/PageLoader";
 import { Navbar } from "../components/Navbar";
@@ -19,6 +20,11 @@ const MIN_LOADER_MS = 900;
 
 export const Homepage = () => {
   const [pageLoading, setPageLoading] = useState(true);
+  const [courseData, setCourseData] = useState({
+    departments: [],
+    loading: true,
+    error: "",
+  });
 
   const { scrollYProgress } = useScroll();
 
@@ -45,6 +51,39 @@ export const Homepage = () => {
     };
   }, []);
 
+  // Fetch course data on homepage render
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchCurriculum = async () => {
+      setCourseData({ departments: [], loading: true, error: "" });
+
+      try {
+        const { data } = await axios.get("/api/public/curriculum");
+        if (cancelled) return;
+
+        const nextDepartments = Array.isArray(data?.departments)
+          ? data.departments
+          : [];
+
+        setCourseData({ departments: nextDepartments, loading: false, error: "" });
+      } catch {
+        if (cancelled) return;
+        setCourseData({
+          departments: [],
+          loading: false,
+          error: "Unable to load courses right now.",
+        });
+      }
+    };
+
+    fetchCurriculum();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (pageLoading) {
     return <PageLoader label="Loading homepage" />;
   }
@@ -54,7 +93,7 @@ export const Homepage = () => {
       <div className="bg-white min-h-screen text-[#0c0407] overflow-x-hidden">
         {/* 3. Combined Navbar & Scroll Progress Container */}
         <div className="fixed top-0 left-0 w-full z-20">
-          <Navbar />
+          <Navbar courseData={courseData} />
 
           {/* The Scroll Progress Bar */}
           <motion.div

@@ -3,6 +3,7 @@ import { FiChevronLeft, FiChevronRight, FiSearch, FiUserMinus, FiUserPlus, FiX }
 import axios from "axios";
 import { StatusBadge } from "../DashboardUI";
 import { inputClass, primaryBtnClass, secondaryBtnClass } from "../dashboardTheme";
+import { ProfileAvatar } from "../ProfileAvatar";
 
 const PAGE_SIZE = 10;
 
@@ -31,6 +32,7 @@ export function BatchStudentPickerPanel({
   selectedIds,
   onSelectionChange,
   onClose,
+  onOpenStudentProfile,
 }) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -191,14 +193,22 @@ export function BatchStudentPickerPanel({
                   className="rounded-2xl border border-black/[0.08] p-4 bg-[#fafafa] hover:bg-white transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-extrabold text-[#0c0407] truncate">{student.name}</p>
-                      <p className="text-[10px] text-[#94a3b8] font-semibold truncate mt-0.5">
-                        {student.email}
-                      </p>
-                      {student.student_code && (
-                        <p className="text-[10px] text-[#64748b] font-bold mt-1">{student.student_code}</p>
-                      )}
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <ProfileAvatar
+                        src={student.profile_img}
+                        name={student.name}
+                        profileType="student"
+                        onClick={() => onOpenStudentProfile?.(student.id)}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-extrabold text-[#0c0407] truncate">{student.name}</p>
+                        <p className="text-[10px] text-[#94a3b8] font-semibold truncate mt-0.5">
+                          {student.email}
+                        </p>
+                        {student.student_code && (
+                          <p className="text-[10px] text-[#64748b] font-bold mt-1">{student.student_code}</p>
+                        )}
+                      </div>
                     </div>
                     <StatusBadge variant={isEnrolled ? "ok" : "info"}>
                       {isEnrolled ? "Enrolled" : "Not enrolled"}

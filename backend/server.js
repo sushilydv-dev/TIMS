@@ -17,6 +17,7 @@ import {
   checkMissedFees,
   checkProjectDeadlineReminders,
 } from "./src/jobs/notificationJobs.js"
+import { runAutoCertificateGeneration } from "./src/jobs/certificateJobs.js"
 
 dotenv.config()
 const app = express()
@@ -72,7 +73,7 @@ app.use("/api", routes)
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 3000
 
 syncDatabase()
     .then(async () => {
@@ -93,6 +94,10 @@ syncDatabase()
 
         // Check for project deadline reminders (every hour)
         setInterval(checkProjectDeadlineReminders, 60 * 60 * 1000);
+
+        // Auto-generate certificates for eligible students (every 6 hours)
+        setInterval(runAutoCertificateGeneration, 6 * 60 * 60 * 1000);
+        runAutoCertificateGeneration();
         
         httpServer.listen(PORT, () => {
             console.log(`app listening at ${PORT}`);

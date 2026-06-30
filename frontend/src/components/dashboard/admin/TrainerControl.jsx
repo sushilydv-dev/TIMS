@@ -15,6 +15,8 @@ import { pageWrapClass, inputClass, primaryBtnClass } from "../dashboardTheme";
 import { UserListPagination } from "./UserListPagination";
 import { InviteUserModal } from "./InviteUserModal";
 import trainerPlaceholder from "../../../assets/trainer_placeholder.png";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 
 
 const PAGE_SIZE = 10;
@@ -33,6 +35,13 @@ export const TrainerControl = () => {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const imgInputRef = useRef(null);
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   // Stats
   const [stats, setStats] = useState({
@@ -313,6 +322,13 @@ export const TrainerControl = () => {
         fixedRole="TRAINER"
       />
 
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
+
       <WelcomeBanner
         badge="Trainer Control Center"
         title="Faculty Management & Specializations"
@@ -399,16 +415,11 @@ export const TrainerControl = () => {
                   >
                     <td className="py-3.5 px-3">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={
-                            t.profile_img ||
-                            trainerPlaceholder
-                          }
-                          alt=""
-                          className="w-8 h-8 rounded-lg bg-slate-50 border border-black/5 object-cover"
-                          onError={(e) => {
-                            e.target.src = trainerPlaceholder;
-                          }}
+                        <ProfileAvatar
+                          src={t.profile_img || trainerPlaceholder}
+                          name={t.User?.name}
+                          profileType="trainer"
+                          onClick={() => openBasicProfile("trainer", t.id)}
                         />
 
                         <div>

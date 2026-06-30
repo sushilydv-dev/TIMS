@@ -27,6 +27,8 @@ import {
   StatusBadge,
   WelcomeBanner,
 } from "../DashboardUI";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 import {
   cardClass,
   labelMutedClass,
@@ -493,6 +495,13 @@ export const StudentDashboard = ({ user }) => {
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [feeData, setFeeData] = useState(null);
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -688,6 +697,12 @@ export const StudentDashboard = ({ user }) => {
 
   return (
     <div className={pageWrapClass}>
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
       <div className="flex border-b border-black/[0.08] text-xs font-bold text-[#94a3b8] gap-6 pb-0">
         {[
           { key: "workspace", label: "My Workspace", path: "/dashboard" },
@@ -1080,16 +1095,12 @@ export const StudentDashboard = ({ user }) => {
                 {trainerInfo ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <img
-                        src={
-                          trainerInfo.profile_img ||
-                          `https://api.dicebear.com/7.x/initials/svg?seed=${trainerInfo.name || "Trainer"}`
-                        }
-                        alt={trainerInfo.name || "Trainer"}
-                        className="w-12 h-12 rounded-2xl object-cover border border-black/[0.08]"
-                        onError={(event) => {
-                          event.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${trainerInfo.name || "Trainer"}`;
-                        }}
+                      <ProfileAvatar
+                        src={trainerInfo.profile_img}
+                        name={trainerInfo.name}
+                        profileType="trainer"
+                        size="lg"
+                        onClick={() => openBasicProfile("trainer", trainerInfo.id)}
                       />
                       <div>
                         <p className="text-base font-extrabold text-[#0c0407]">

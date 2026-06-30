@@ -1,12 +1,28 @@
 import { Panel, PanelHeader, StatusBadge } from "../DashboardUI";
 import { FiUsers } from "react-icons/fi";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 
 /**
  * Students tab — enrolled student roster for a batch.
  */
 export function BatchStudents({ students = [] }) {
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
+
   return (
     <Panel>
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
       <PanelHeader eyebrow="Roster" title={`Enrolled (${students.length})`} />
       {!students.length ? (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -26,9 +42,19 @@ export function BatchStudents({ students = [] }) {
             </thead>
             <tbody>
               {students.map((s, i) => (
-                <tr key={i} className="border-b border-black/[0.04] hover:bg-[#fafafa]">
+                <tr key={s.enrollment_id || s.student?.id || i} className="border-b border-black/[0.04] hover:bg-[#fafafa]">
                   <td className="py-3 px-2 text-[#94a3b8] font-bold">{i + 1}</td>
-                  <td className="py-3 px-2 font-extrabold text-[#0c0407]">{s.student?.name || "—"}</td>
+                  <td className="py-3 px-2">
+                    <div className="flex items-center gap-3">
+                      <ProfileAvatar
+                        src={s.student?.profile_img}
+                        name={s.student?.name}
+                        profileType="student"
+                        onClick={() => openBasicProfile("student", s.student?.id)}
+                      />
+                      <span className="font-extrabold text-[#0c0407]">{s.student?.name || "—"}</span>
+                    </div>
+                  </td>
                   <td className="py-3 px-2 text-[#636363]">{s.student?.email || "—"}</td>
                   <td className="py-3 px-2">
                     <StatusBadge variant={s.enrollment_status === "ACTIVE" ? "ok" : "info"}>

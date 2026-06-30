@@ -1,8 +1,9 @@
 import { useState } from "react";
 import axios from "axios";
-import { FiCheckCircle, FiAward } from "react-icons/fi";
+import { FiAward } from "react-icons/fi";
 import { Panel, PanelHeader, StatusBadge, Toast } from "../DashboardUI";
-import { labelMutedClass, primaryBtnClass, secondaryBtnClass, inputClass } from "../dashboardTheme";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 import { fmt } from "./trainerUtils";
 import { SubmissionPanel } from "./SubmissionPanel";
 
@@ -12,6 +13,13 @@ import { SubmissionPanel } from "./SubmissionPanel";
 export function BatchSubmissions({ batchId, submissions, onRefresh }) {
   const [toast, setToast]           = useState("");
   const [selectedSub, setSelectedSub] = useState(null);
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 3500); };
 
@@ -31,6 +39,12 @@ export function BatchSubmissions({ batchId, submissions, onRefresh }) {
   return (
     <>
       <Toast message={toast} />
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
 
       {selectedSub && (
         <SubmissionPanel
@@ -59,27 +73,34 @@ export function BatchSubmissions({ batchId, submissions, onRefresh }) {
         ) : (
           <div className="divide-y divide-black/[0.04]">
             {submissions.map(sub => (
-              <button
+              <div
                 key={sub.id}
-                type="button"
-                onClick={() => setSelectedSub(sub)}
-                className="w-full flex items-center gap-3 py-3.5 px-1 hover:bg-[#fafafa] transition-colors group text-left"
+                className="w-full flex items-center gap-3 py-3.5 px-1 hover:bg-[#fafafa] transition-colors group"
               >
-                <div className="w-8 h-8 rounded-full bg-[#fc362d]/10 flex items-center justify-center text-[#fc362d] text-[10px] font-extrabold shrink-0">
-                  {(sub.student?.name || "?").slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[#0c0407] group-hover:text-[#fc362d] transition-colors truncate">
-                    {sub.student?.name}
-                  </p>
-                  <p className="text-[10px] text-[#94a3b8] font-semibold mt-0.5 truncate">
-                    {sub.project?.title} · Submitted {fmt(sub.submitted_at)}
-                  </p>
-                </div>
-                <StatusBadge variant={sub.graded ? "ok" : "warn"}>
-                  {sub.graded ? `${sub.marks}/10` : "Pending"}
-                </StatusBadge>
-              </button>
+                <ProfileAvatar
+                  src={sub.student?.profile_img}
+                  name={sub.student?.name}
+                  profileType="student"
+                  onClick={() => openBasicProfile("student", sub.student?.id)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSelectedSub(sub)}
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#0c0407] group-hover:text-[#fc362d] transition-colors truncate">
+                      {sub.student?.name}
+                    </p>
+                    <p className="text-[10px] text-[#94a3b8] font-semibold mt-0.5 truncate">
+                      {sub.project?.title} · Submitted {fmt(sub.submitted_at)}
+                    </p>
+                  </div>
+                  <StatusBadge variant={sub.graded ? "ok" : "warn"}>
+                    {sub.graded ? `${sub.marks}/10` : "Pending"}
+                  </StatusBadge>
+                </button>
+              </div>
             ))}
           </div>
         )}

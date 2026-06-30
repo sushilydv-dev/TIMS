@@ -15,6 +15,8 @@ import { pageWrapClass, inputClass } from "../dashboardTheme";
 import { UserListPagination } from "./UserListPagination";
 import { EnrollStudentForm } from "./EnrollStudentForm";
 import { StudentFinancialProfile } from "./StudentFinancialProfile";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 
 const PAGE_SIZE = 10;
 
@@ -38,6 +40,13 @@ export const StudentControl = () => {
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [toastMsg, setToastMsg] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   const location = useLocation();
 
@@ -251,9 +260,12 @@ export const StudentControl = () => {
                     >
                       <td className="py-3.5 px-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold">
-                            {student.name ? student.name.charAt(0).toUpperCase() : <FiUser />}
-                          </div>
+                          <ProfileAvatar
+                            src={student.profile_img}
+                            name={student.name}
+                            profileType="student"
+                            onClick={() => openBasicProfile("student", student.id)}
+                          />
                           <div>
                             <div className="flex items-center gap-1.5">
                               <p className="font-bold text-[#0c0407]">{student.name}</p>
@@ -309,6 +321,13 @@ export const StudentControl = () => {
           loading={loading}
         />
       </Panel>
+
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
 
       <StudentFinancialProfile
         open={profileOpen}

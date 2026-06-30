@@ -14,6 +14,8 @@ import { pageWrapClass, inputClass, secondaryBtnClass, primaryBtnClass } from ".
 import { UserListPagination } from "./UserListPagination";
 import { InviteUserModal } from "./InviteUserModal";
 import hrPlaceholder from "../../../assets/hr_placeholder.png";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 
 
 const PAGE_SIZE = 10;
@@ -23,6 +25,13 @@ export const HrControl = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -186,6 +195,13 @@ export const HrControl = () => {
         fixedRole="HR"
       />
 
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
+
       <WelcomeBanner
         badge="HR Control Center"
         title="HR & Admin Coordinators Management"
@@ -270,16 +286,11 @@ export const HrControl = () => {
                   >
                     <td className="py-3.5 px-3">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={
-                            h.profile_img ||
-                            hrPlaceholder
-                          }
-                          alt=""
-                          className="w-8 h-8 rounded-lg bg-slate-50 border border-black/5 object-cover"
-                          onError={(e) => {
-                            e.target.src = hrPlaceholder;
-                          }}
+                        <ProfileAvatar
+                          src={h.profile_img || hrPlaceholder}
+                          name={h.User?.name}
+                          profileType="hr"
+                          onClick={() => openBasicProfile("hr", h.id)}
                         />
 
                         <div>

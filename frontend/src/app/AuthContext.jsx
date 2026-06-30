@@ -71,33 +71,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register action
-  const register = async (username, email, password, otp, role) => {
-    try {
-      const response = await axios.post("/api/auth/register", {
-        username,
-        email,
-        password,
-        otp,
-        role,
-      });
-      const { token: userToken, ...userData } = response.data;
-      const normalizedUser = {
-        ...userData,
-        role: normalizeRole(userData.role),
-      };
-
-      localStorage.setItem("token", userToken);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
-      setToken(userToken);
-      setUser(normalizedUser);
-      return { token: userToken, ...normalizedUser };
-    } catch (error) {
-      console.error("Registration error:", error);
-      throw error;
-    }
-  };
-
   // Logout action
   const logout = () => {
     localStorage.removeItem("token");
@@ -125,7 +98,6 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         login,
-        register,
         logout,
         establishSession,
       }}

@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthSwitchLink } from "../components/auth/AuthSwitchLink";
 import { useAuth } from "../app/AuthContext";
-import { HashLoader } from 'react-spinners';
-import { FiChevronDown, FiEye, FiEyeOff, FiLogIn } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiLogIn } from "react-icons/fi";
 import axios from "axios";
 import {
   AuthSplitLayout,
@@ -12,12 +10,20 @@ import {
   buttonPrimaryClass,
   buttonSecondaryClass,
 } from "../components/auth/AuthSplitLayout";
+import {
+  getForgotEmailErrors,
+  getLoginFieldErrors,
+  getResetPasswordFieldErrors,
+} from "../utils/authValidation";
+
+const fieldErrorClass = "mt-1.5 text-xs font-semibold text-red-600";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState("login");
   const [otp, setOtp] = useState("");
@@ -28,14 +34,34 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const clearFieldError = (field) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const resetAlerts = () => {
+    setError("");
+    setSuccessMessage("");
+    setFieldErrors({});
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    const trimmedEmail = email.trim();
+    const errors = getLoginFieldErrors(trimmedEmail, password);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setLoading(true);
     setError("");
     setSuccessMessage("");
 
     try {
-      await login(email, password);
+      await login(trimmedEmail, password);
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(
@@ -47,15 +73,19 @@ const Login = () => {
     }
   };
 
-
   const handleSendResetOtp = async (e) => {
     e.preventDefault();
+    const trimmedEmail = email.trim();
+    const errors = getForgotEmailErrors(trimmedEmail);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setLoading(true);
     setError("");
     setSuccessMessage("");
 
     try {
-      await axios.post("/api/auth/forgot-password", { email });
+      await axios.post("/api/auth/forgot-password", { email: trimmedEmail });
       setSuccessMessage("OTP sent successfully to your email.");
       setView("forgot_otp");
     } catch (err) {
@@ -70,14 +100,18 @@ const Login = () => {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    const errors = getResetPasswordFieldErrors(otp, newPassword);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setLoading(true);
     setError("");
     setSuccessMessage("");
 
     try {
       await axios.post("/api/auth/reset-password", {
-        email,
-        otp,
+        email: email.trim(),
+        otp: otp.trim(),
         newPassword,
       });
       setSuccessMessage(
@@ -87,6 +121,7 @@ const Login = () => {
       setPassword("");
       setOtp("");
       setNewPassword("");
+      setFieldErrors({});
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -96,12 +131,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
-  const resetAlerts = () => {
-    setError("");
-    setSuccessMessage("");
-  };
-
 
   const alertBlock = (
     <>
@@ -117,6 +146,11 @@ const Login = () => {
       )}
     </>
   );
+
+  const inputErrorClass = (field) =>
+    fieldErrors[field]
+      ? `${inputClass} border-red-300 focus:border-red-400 focus:ring-red-200`
+      : inputClass;
 
   return (
     <AuthSplitLayout
@@ -140,7 +174,7 @@ const Login = () => {
       {alertBlock}
 
       {view === "login" && (
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4" noValidate>
           <div>
             <label className={labelClass} htmlFor="email">
               Email Address
@@ -148,12 +182,18 @@ const Login = () => {
             <input
               id="email"
               type="email"
-              required
-              className={inputClass}
-              placeholder="Email or Username"
+              autoComplete="email"
+              className={inputErrorClass("email")}
+              placeholder="Email address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearFieldError("email");
+              }}
             />
+            {fieldErrors.email && (
+              <p className={fieldErrorClass}>{fieldErrors.email}</p>
+            )}
           </div>
 
           <div className="relative">
@@ -163,11 +203,14 @@ const Login = () => {
             <input
               id="password"
               type={showPassword ? "text" : "password"}
-              required
-              className={`${inputClass} pr-12`}
+              autoComplete="current-password"
+              className={`${inputErrorClass("password")} pr-12`}
               placeholder="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearFieldError("password");
+              }}
             />
             <button
               type="button"
@@ -181,6 +224,9 @@ const Login = () => {
                 <FiEye className="w-5 h-5" />
               )}
             </button>
+            {fieldErrors.password && (
+              <p className={fieldErrorClass}>{fieldErrors.password}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between text-sm pt-1">
@@ -211,7 +257,7 @@ const Login = () => {
       )}
 
       {view === "forgot_email" && (
-        <form onSubmit={handleSendResetOtp} className="space-y-4">
+        <form onSubmit={handleSendResetOtp} className="space-y-4" noValidate>
           <div>
             <label className={labelClass} htmlFor="reset-email">
               Email Address
@@ -219,12 +265,18 @@ const Login = () => {
             <input
               id="reset-email"
               type="email"
-              required
-              className={inputClass}
-              placeholder="Email or Username"
+              autoComplete="email"
+              className={inputErrorClass("email")}
+              placeholder="Email address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearFieldError("email");
+              }}
             />
+            {fieldErrors.email && (
+              <p className={fieldErrorClass}>{fieldErrors.email}</p>
+            )}
           </div>
 
           <button type="submit" disabled={loading} className={buttonPrimaryClass}>
@@ -245,7 +297,7 @@ const Login = () => {
       )}
 
       {view === "forgot_otp" && (
-        <form onSubmit={handleResetPassword} className="space-y-4">
+        <form onSubmit={handleResetPassword} className="space-y-4" noValidate>
           <div>
             <label className={labelClass} htmlFor="reset-otp">
               Enter 6-digit OTP
@@ -253,13 +305,20 @@ const Login = () => {
             <input
               id="reset-otp"
               type="text"
-              required
+              inputMode="numeric"
+              autoComplete="one-time-code"
               maxLength={6}
-              className={`${inputClass} text-center font-bold tracking-[0.25em]`}
+              className={`${inputErrorClass("otp")} text-center font-bold tracking-[0.25em]`}
               placeholder="------"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => {
+                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                clearFieldError("otp");
+              }}
             />
+            {fieldErrors.otp && (
+              <p className={fieldErrorClass}>{fieldErrors.otp}</p>
+            )}
           </div>
 
           <div className="relative">
@@ -269,11 +328,14 @@ const Login = () => {
             <input
               id="new-password"
               type={showNewPassword ? "text" : "password"}
-              required
-              className={`${inputClass} pr-12`}
-              placeholder="New Password"
+              autoComplete="new-password"
+              className={`${inputErrorClass("newPassword")} pr-12`}
+              placeholder="New password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                clearFieldError("newPassword");
+              }}
             />
             <button
               type="button"
@@ -287,6 +349,9 @@ const Login = () => {
                 <FiEye className="w-5 h-5" />
               )}
             </button>
+            {fieldErrors.newPassword && (
+              <p className={fieldErrorClass}>{fieldErrors.newPassword}</p>
+            )}
           </div>
 
           <button type="submit" disabled={loading} className={buttonPrimaryClass}>
@@ -305,19 +370,6 @@ const Login = () => {
           </button>
         </form>
       )}
-
-      {view === "login" && (
-        <p className="mt-8 text-center text-sm text-[#636363]">
-          Don&apos;t have an account?{" "}
-          <AuthSwitchLink
-            to="/signup"
-            className="text-[#fc362d] hover:text-[#e02d25] font-semibold transition-colors"
-          >
-            Sign up
-          </AuthSwitchLink>
-        </p>
-      )}
-
     </AuthSplitLayout>
   );
 };

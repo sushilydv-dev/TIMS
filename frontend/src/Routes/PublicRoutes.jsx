@@ -4,7 +4,7 @@ import { useAuth } from "../app/AuthContext";
 
 /**
  * Public routes — redirects logged-in users to dashboard.
- * Login/Signup blocking is handled by AuthPresenceWrapper.
+ * Login blocking is handled by AuthPresenceWrapper.
  */
 export const PublicRoutes = () => {
   const { user } = useAuth();

@@ -8,6 +8,8 @@ import {
   WelcomeBanner, StatCards, Panel, PanelHeader, Toast, PrimaryButton,
 } from "../DashboardUI";
 import { pageWrapClass, inputClass } from "../dashboardTheme";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 import { BatchEditPanel } from "./BatchEditPanel";
 import { BatchFormModal } from "./BatchFormModal";
 
@@ -20,6 +22,13 @@ export const BatchesList = () => {
   const [editBatch, setEditBatch] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [toast, setToast]         = useState("");
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   const batchIdParam = searchParams.get("batchId");
 
@@ -109,6 +118,12 @@ export const BatchesList = () => {
 
   return (
     <div className={pageWrapClass}>
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
       {/* Create batch modal — standalone (picks course internally) */}
       <BatchFormModal
         open={createOpen}
@@ -220,11 +235,19 @@ export const BatchesList = () => {
                     <td className="py-3.5 px-2 font-bold text-[#475569]">
                       {row.course_title}
                     </td>
-                    <td className="py-3.5 px-2 font-semibold text-[#636363]">
+                    <td className="py-3.5 px-2 font-semibold text-[#636363]" onClick={(e) => e.stopPropagation()}>
                       {row.trainer ? (
-                        <div>
-                          <p className="font-bold text-[#0c0407]">{row.trainer.name}</p>
-                          <p className="text-[10px] text-[#94a3b8] font-semibold">{row.trainer.specialization}</p>
+                        <div className="flex items-center gap-2.5">
+                          <ProfileAvatar
+                            src={row.trainer.profile_img}
+                            name={row.trainer.name}
+                            profileType="trainer"
+                            onClick={() => openBasicProfile("trainer", row.trainer.id)}
+                          />
+                          <div>
+                            <p className="font-bold text-[#0c0407]">{row.trainer.name}</p>
+                            <p className="text-[10px] text-[#94a3b8] font-semibold">{row.trainer.specialization}</p>
+                          </div>
                         </div>
                       ) : (
                         <span className="text-[#94a3b8] italic">Unassigned</span>
