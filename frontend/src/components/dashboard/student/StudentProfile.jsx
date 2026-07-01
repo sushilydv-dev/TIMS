@@ -194,7 +194,9 @@ export default function StudentProfile() {
         college_name:  data.college_name  || "",
         qualification: data.qualification || "",
       });
-      setImgPreview(data.profile_img || null);
+      // Handle file path vs base64
+      const imgUrl = data.profile_img;
+      setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
       setImgData(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load profile");
@@ -242,6 +244,7 @@ export default function StudentProfile() {
       showToast("Profile updated successfully!");
       setEditing(false);
       setImgData(null);
+      setImgPreview(null);
       fetchProfile();
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to save");

@@ -3,6 +3,7 @@ import Department from "../models/department.js";
 import Course from "../models/course.js";
 import CourseModule from "../models/courseModule.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { handleFileUpload } from "../utils/fileUpload.js";
 
 function normalizeModules(modules) {
   if (!Array.isArray(modules)) return [];
@@ -243,7 +244,7 @@ export const createCourse = asyncHandler(async (req, res) => {
     duration_month: Number(duration_month) || 1,
     fees: Number(fees) || 0,
     created_by: req.user?.id || null,
-    thumbnail_url: thumbnail_url || null,
+    thumbnail_url: handleFileUpload(thumbnail_url, "course"),
     demo_video_url: demo_video_url?.trim() || null,
     outcomes: normalizedOutcomes,
   });
@@ -289,7 +290,9 @@ export const updateCourse = asyncHandler(async (req, res) => {
     course.duration_month = Number(duration_month) || 1;
   }
   if (fees !== undefined) course.fees = Number(fees) || 0;
-  if (thumbnail_url !== undefined) course.thumbnail_url = thumbnail_url || null;
+  if (thumbnail_url !== undefined) {
+    course.thumbnail_url = handleFileUpload(thumbnail_url, "course");
+  }
   if (demo_video_url !== undefined) course.demo_video_url = demo_video_url?.trim() || null;
   if (outcomes !== undefined) {
     course.outcomes = Array.isArray(outcomes)

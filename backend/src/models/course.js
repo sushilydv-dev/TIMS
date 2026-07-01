@@ -35,9 +35,9 @@ const Course = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    /** Base64 data URL or absolute URL for the course thumbnail image */
+    /** File path for the course thumbnail image */
     thumbnail_url: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING(500),
       allowNull: true,
     },
     /** YouTube embed URL or direct video URL for the course demo */

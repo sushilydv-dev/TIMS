@@ -25,7 +25,7 @@ const ProjectSubmission = sequelize.define(
       defaultValue: "",
     },
     file_url: {
-      type: DataTypes.TEXT,     // base64 PDFs need TEXT, not VARCHAR(255)
+      type: DataTypes.STRING(500),
       allowNull: false,
       defaultValue: "",
     },

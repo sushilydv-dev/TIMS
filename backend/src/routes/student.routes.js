@@ -13,6 +13,7 @@ import ProjectSubmission from "../models/projectSubmission.js";
 import User from "../models/user.js";
 import Trainer from "../models/trainer.js";
 import { Op } from "sequelize";
+import { handleFileUpload } from "../utils/fileUpload.js";
 import { sendProjectSubmitted } from "../services/notification.service.js";
 
 const router = express.Router();
@@ -79,7 +80,7 @@ router.put("/me/profile", asyncHandler(async (req, res) => {
   if (address     !== undefined) student.address      = String(address || "").trim();
   if (college_name!== undefined) student.college_name = String(college_name || "").trim();
   if (qualification !== undefined) student.qualification = String(qualification || "").trim();
-  if (profile_img !== undefined) student.profile_img  = profile_img || "";
+  if (profile_img !== undefined) student.profile_img  = handleFileUpload(profile_img, "profile");
 
   await student.save();
   res.json({ message: "Profile updated", student_code: student.student_code });
@@ -296,6 +297,9 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
     res.status(400); throw new Error("Either github_link or file_url is required");
   }
 
+  // Handle file upload - save base64 to disk or use existing URL
+  const storedFileUrl = handleFileUpload(file_url?.trim() || "", "project");
+
   const enrollment = await Enrollment.findOne({
     where: { student_id: student.id },
     include: [{ model: Batch }]
@@ -308,7 +312,7 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
 
   if (existing) {
     existing.GitHub_link = github_link?.trim() || "";
-    existing.file_url    = file_url?.trim() || "";
+    existing.file_url    = storedFileUrl;
     existing.submitted_at = today;
     await existing.save();
 
@@ -336,7 +340,7 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
     project_id: req.params.projectId,
     student_id: student.id,
     GitHub_link: github_link?.trim() || "",
-    file_url:    file_url?.trim() || "",
+    file_url:    storedFileUrl,
     submitted_at: today,
     marks: 0,
     feedback: "",

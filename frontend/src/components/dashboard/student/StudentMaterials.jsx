@@ -16,6 +16,7 @@ const MAT_CFG = {
 };
 const getMatCfg = (t) => MAT_CFG[(t||"").toUpperCase()] || { bg: "bg-[#f1f5f9] text-[#475569] border-black/10", label: t||"FILE" };
 const isB64     = (u) => Boolean(u?.startsWith("data:"));
+const getFileUrl = (u) => isB64(u) ? u : `http://localhost:3000${u}`;
 const dlName    = (m) => {
   const ext = m.material_type==="DOC"?".docx":m.material_type==="PPT"?".pptx":".pdf";
   return `${(m.title||"file").replace(/\s+/g,"_")}${ext}`;
@@ -99,6 +100,7 @@ function TopicPanel({ topic, files, onClose }) {
             {files.map(m => {
               const cfg  = getMatCfg(m.material_type);
               const base = isB64(m.file_url);
+              const fileUrl = getFileUrl(m.file_url);
               const ext  = m.material_type==="DOC"?".docx":m.material_type==="PPT"?".pptx":".pdf";
               const dl   = `${(m.title||"file").replace(/\s+/g,"_")}${ext}`;
 
@@ -141,13 +143,13 @@ function TopicPanel({ topic, files, onClose }) {
                       )}
                     </div>
                     {base ? (
-                      <a href={m.file_url} download={dl}
+                      <a href={fileUrl} download={dl}
                         className="shrink-0 w-6 h-6 rounded-lg border border-black/[0.08] flex items-center justify-center text-[#475569] hover:text-[#fc362d] no-underline transition-all"
                         title="Download">
                         <FiDownload className="w-3 h-3" />
                       </a>
                     ) : (
-                      <a href={m.file_url} target="_blank" rel="noopener noreferrer"
+                      <a href={fileUrl} target="_blank" rel="noopener noreferrer"
                         className="shrink-0 w-6 h-6 rounded-lg border border-black/[0.08] flex items-center justify-center text-[#475569] hover:text-[#fc362d] no-underline transition-all"
                         title="Open">
                         <FiExternalLink className="w-3 h-3" />

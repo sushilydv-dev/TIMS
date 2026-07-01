@@ -28,7 +28,7 @@ const Trainer = sequelize.define(
       allowNull: false,
     },
     profile_img: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING(500),
       allowNull: false,
       defaultValue: "",
     },

@@ -16,6 +16,7 @@ import Attendance from "../models/attendance.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendTemplateEmail } from "../utils/emailService.js";
 import { getCanonicalRoleByName, toClientRole } from "../utils/roleHelpers.js";
+import { handleFileUpload } from "../utils/fileUpload.js";
 import Razorpay from "razorpay";
 import {
   sendBatchAssignedToStudent,
@@ -673,7 +674,9 @@ export const updateStudentProfile = asyncHandler(async (req, res) => {
     if (address !== undefined) student.address = address;
     if (college_name !== undefined) student.college_name = college_name;
     if (qualification !== undefined) student.qualification = qualification;
-    if (profile_img !== undefined) student.profile_img = profile_img;
+    if (profile_img !== undefined) {
+      student.profile_img = handleFileUpload(profile_img, "profile");
+    }
     await student.save({ transaction: t });
   });
 
