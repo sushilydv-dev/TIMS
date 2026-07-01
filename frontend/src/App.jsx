@@ -15,6 +15,7 @@ import { PageLoader } from "./components/PageLoader";
 import { RequireAdmin } from "./components/dashboard/admin/RequireAdmin";
 import { RequireAdminOrHR } from "./components/dashboard/admin/RequireAdminOrHR";
 import { RequireTrainerProfile } from "./components/dashboard/trainer/RequireTrainerProfile";
+import "./utils/axiosConfig";
 
 /* ── Eagerly loaded — shown on first paint ── */
 import { Homepage } from "./pages/Homepage";
@@ -92,6 +93,11 @@ const AppointmentRequests = lazy(() =>
     default: m.AppointmentRequests,
   })),
 );
+const AnalyticsDashboard = lazy(() =>
+  import("./components/dashboard/admin/AnalyticsDashboard").then((m) => ({
+    default: m.AnalyticsDashboard,
+  })),
+);
 
 /* trainer */
 const TrainerProfile = lazy(
@@ -111,6 +117,9 @@ const TrainerAttendance = lazy(() =>
 /* student */
 const StudentProfile = lazy(
   () => import("./components/dashboard/student/StudentProfile"),
+);
+const PerformanceScorecard = lazy(
+  () => import("./components/dashboard/student/PerformanceScorecard"),
 );
 const MyCertificates = lazy(
   () => import("./components/dashboard/student/MyCertificates"),
@@ -205,6 +214,10 @@ export const App = () => {
 
                   {/* ── Student ── */}
                   <Route path="student/profile" element={<StudentProfile />} />
+                  <Route
+                    path="student/performance"
+                    element={<PerformanceScorecard />}
+                  />
                   <Route
                     path="student/certificates"
                     element={<MyCertificates />}
@@ -320,6 +333,14 @@ export const App = () => {
                     element={
                       <RequireAdmin>
                         <BillingLedger />
+                      </RequireAdmin>
+                    }
+                  />
+                  <Route
+                    path="analytics"
+                    element={
+                      <RequireAdmin>
+                        <AnalyticsDashboard />
                       </RequireAdmin>
                     }
                   />

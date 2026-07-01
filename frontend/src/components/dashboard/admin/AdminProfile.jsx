@@ -157,7 +157,8 @@ export default function AdminProfile() {
       const { data } = await axios.get("/api/auth/profile");
       setProfile(data);
       setForm({ name: data.name || "", email: data.email || "" });
-      setImgPreview(data.profile_img || null);
+      const imgUrl = data.profile_img || null;
+      setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
     } catch (err) {
       console.error("Failed to fetch profile:", err);
       setError("Failed to load profile");
@@ -216,7 +217,8 @@ export default function AdminProfile() {
 
   const handleCancel = () => {
     setForm({ name: profile?.name || "", email: profile?.email || "" });
-    setImgPreview(profile?.profile_img || null);
+    const imgUrl = profile?.profile_img || null;
+    setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
     setEditing(false);
   };
 

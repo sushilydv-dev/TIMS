@@ -234,13 +234,16 @@ function ProjectCard({ project, onRefresh }) {
                     <FiExternalLink className="w-3 h-3" /> View link
                   </a>
                 )}
-                {sub.file_url && (
-                  <a href={sub.file_url}
-                    {...(sub.file_url.startsWith("data:") ? { download: "submission" } : { target: "_blank", rel: "noopener noreferrer" })}
-                    className="flex items-center gap-1 text-[10px] font-bold text-[#475569] hover:text-[#fc362d]">
-                    <FiFile className="w-3 h-3" /> View file
-                  </a>
-                )}
+                {sub.file_url && (() => {
+                  const fileUrl = sub.file_url.startsWith("data:") ? sub.file_url : `http://localhost:3000${sub.file_url}`;
+                  return (
+                    <a href={fileUrl}
+                      {...(sub.file_url.startsWith("data:") ? { download: "submission" } : { target: "_blank", rel: "noopener noreferrer" })}
+                      className="flex items-center gap-1 text-[10px] font-bold text-[#475569] hover:text-[#fc362d]">
+                      <FiFile className="w-3 h-3" /> View file
+                    </a>
+                  );
+                })()}
               </div>
             </div>
           </div>

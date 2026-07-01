@@ -22,6 +22,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -61,7 +62,7 @@ const Login = () => {
     setSuccessMessage("");
 
     try {
-      await login(trimmedEmail, password);
+      await login(trimmedEmail, password, rememberMe);
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(
@@ -233,6 +234,8 @@ const Login = () => {
             <label className="flex items-center text-[#636363] cursor-pointer select-none gap-2">
               <input
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="rounded border-gray-300 text-[#fc362d] focus:ring-[#fc362d]/30"
               />
               Remember me

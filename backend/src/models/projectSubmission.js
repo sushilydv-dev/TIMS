@@ -45,7 +45,7 @@ const ProjectSubmission = sequelize.define(
     },
   },
   {
-    tableName: "project_submisssions",
+    tableName: "project_submissions",
   },
 );
 

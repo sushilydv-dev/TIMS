@@ -133,6 +133,9 @@ function ChartCard({ title, subtitle, icon, iconClassName, children }) {
 function EmptyState({ title, subtitle }) {
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-6">
+      <div className="w-32 h-32 rounded-2xl overflow-hidden mb-4 border border-black/[0.06]">
+        <img src="/assets/consultation.jpg" alt="Empty state" className="w-full h-full object-cover opacity-60" />
+      </div>
       <p className="text-sm font-bold text-[#0c0407]">{title}</p>
       <p className="text-xs font-semibold text-[#94a3b8] mt-1">{subtitle}</p>
     </div>
@@ -506,7 +509,7 @@ export const TrainerDashboard = ({ user }) => {
       {attendanceOpen && batchDetail && (
         <AttendancePanel
           batchId={activeBatchId}
-          students={batchDetail.students?.map(s => ({ student_id: s.student?.id, name: s.student?.name })) || []}
+          students={batchDetail.students?.map(s => ({ student_id: s.id, name: s.name })) || []}
           onClose={() => setAttendanceOpen(false)}
         />
       )}
@@ -519,8 +522,7 @@ export const TrainerDashboard = ({ user }) => {
           <>
             <PrimaryButton onClick={() => setAttendanceOpen(true)} className="flex items-center gap-1.5">
               <FiCalendar className="w-3.5 h-3.5" /> Mark Attendance
-            </PrimaryButton>
-            <SecondaryButton
+            </PrimaryButton>            <SecondaryButton
               onClick={() =>
                 navigate(activeBatchId ? `/dashboard/trainer/batches/${activeBatchId}` : "/dashboard/trainer/batches")
               }

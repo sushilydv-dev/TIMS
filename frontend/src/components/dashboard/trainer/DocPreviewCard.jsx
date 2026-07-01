@@ -11,14 +11,17 @@ export function DocPreviewCard({ material, showDelete = false, onDelete }) {
   const [rendered, setRendered] = useState(false);
   const cfg  = getMatCfg(material.material_type);
   const base = isB64(material.file_url);
+  
+  // Handle file paths vs base64 URLs
+  const fileUrl = base ? material.file_url : (material.file_url ? `http://localhost:3000${material.file_url}` : material.file_url);
 
   useEffect(() => {
-    if (!base || material.material_type !== "PDF") return;
+    if (material.material_type !== "PDF") return;
     if (typeof window === "undefined" || !window.pdfjsLib) return;
     let cancelled = false;
     (async () => {
       try {
-        const pdf      = await window.pdfjsLib.getDocument(material.file_url).promise;
+        const pdf      = await window.pdfjsLib.getDocument(fileUrl).promise;
         const page     = await pdf.getPage(1);
         const viewport = page.getViewport({ scale: 0.5 });
         const canvas   = canvasRef.current;
@@ -30,14 +33,14 @@ export function DocPreviewCard({ material, showDelete = false, onDelete }) {
       } catch { /* silent */ }
     })();
     return () => { cancelled = true; };
-  }, [material.file_url, material.material_type, base]);
+  }, [fileUrl, material.material_type]);
 
   return (
     <div className="group flex flex-col border border-black/[0.08] rounded-2xl overflow-hidden bg-white hover:border-[#fc362d]/25 hover:shadow-md transition-all duration-200">
       {/* Preview */}
       <div className="relative w-full bg-[#f8f7fb] overflow-hidden" style={{ paddingBottom: "75%" }}>
         <div className="absolute inset-0 flex items-center justify-center">
-          {base && material.material_type === "PDF" ? (
+          {material.material_type === "PDF" ? (
             <>
               <canvas ref={canvasRef}
                 className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${rendered ? "opacity-100" : "opacity-0"}`}
@@ -49,7 +52,7 @@ export function DocPreviewCard({ material, showDelete = false, onDelete }) {
                 </div>
               )}
             </>
-          ) : base && material.material_type === "DOC" ? (
+          ) : material.material_type === "DOC" ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-blue-50">
               <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
                 <FiFile className="w-5 h-5 text-blue-600" />
@@ -57,7 +60,7 @@ export function DocPreviewCard({ material, showDelete = false, onDelete }) {
               <p className="text-[10px] font-bold text-blue-700 text-center truncate w-full px-2">{material.title}</p>
               <span className="text-[9px] font-extrabold text-blue-500 uppercase tracking-wider">Word Document</span>
             </div>
-          ) : base && material.material_type === "PPT" ? (
+          ) : material.material_type === "PPT" ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-orange-50">
               <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
                 <FiFile className="w-5 h-5 text-orange-600" />
@@ -82,13 +85,13 @@ export function DocPreviewCard({ material, showDelete = false, onDelete }) {
         <p className="flex-1 text-xs font-semibold text-[#0c0407] truncate min-w-0">{material.title}</p>
         <div className="flex gap-1 shrink-0">
           {base ? (
-            <a href={material.file_url} download={matDlName(material)}
+            <a href={fileUrl} download={matDlName(material)}
               className="w-6 h-6 rounded-lg border border-black/[0.08] flex items-center justify-center text-[#475569] hover:text-[#fc362d] hover:border-[#fc362d]/30 no-underline transition-all"
               title="Download">
               <FiDownload className="w-3 h-3" />
             </a>
           ) : (
-            <a href={material.file_url} target="_blank" rel="noopener noreferrer"
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer"
               className="w-6 h-6 rounded-lg border border-black/[0.08] flex items-center justify-center text-[#475569] hover:text-[#fc362d] hover:border-[#fc362d]/30 no-underline transition-all"
               title="Open">
               <FiExternalLink className="w-3 h-3" />

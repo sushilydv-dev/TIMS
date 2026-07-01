@@ -22,7 +22,7 @@ const dlName    = (m) => {
   return `${(m.title||"file").replace(/\s+/g,"_")}${ext}`;
 };
 
-/* ── PdfThumb — renders first page of a base64 PDF ───── */
+/* ── PdfThumb — renders first page of a base64 or file path PDF ───── */
 function PdfThumb({ dataUrl }) {
   const canvasRef = useRef(null);
   const [ok, setOk] = useState(false);
@@ -109,14 +109,14 @@ function TopicPanel({ topic, files, onClose }) {
                   {/* Preview */}
                   <div className="relative bg-[#f8f7fb] overflow-hidden" style={{ paddingBottom: "75%" }}>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      {base && m.material_type === "PDF" ? (
-                        <PdfThumb dataUrl={m.file_url} />
-                      ) : base && m.material_type === "DOC" ? (
+                      {m.material_type === "PDF" ? (
+                        <PdfThumb dataUrl={fileUrl} />
+                      ) : m.material_type === "DOC" ? (
                         <div className="w-full h-full flex flex-col items-center justify-center bg-blue-50 gap-2">
                           <FiFile className="w-7 h-7 text-blue-500" />
                           <span className="text-[9px] font-extrabold text-blue-500 uppercase">Word Doc</span>
                         </div>
-                      ) : base && m.material_type === "PPT" ? (
+                      ) : m.material_type === "PPT" ? (
                         <div className="w-full h-full flex flex-col items-center justify-center bg-orange-50 gap-2">
                           <FiFile className="w-7 h-7 text-orange-500" />
                           <span className="text-[9px] font-extrabold text-orange-500 uppercase">Presentation</span>

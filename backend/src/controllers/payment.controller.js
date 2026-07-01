@@ -153,6 +153,7 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
 
   // Update payment status in database
   let studentIdToRecalculate = student_id;
+  let settledAmount = 0;
   await sequelize.transaction(async (t) => {
     const installment = await Installment.findOne({
       where: { razorpay_order_id },
@@ -169,7 +170,7 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
     }
 
     if (installment.status !== "PAID") {
-      const settledAmount = getPayableAmount(installment) || Number(installment.amount_due);
+      settledAmount = getPayableAmount(installment) || Number(installment.amount_due);
 
       // Create payment transaction record
       await Payment.create(

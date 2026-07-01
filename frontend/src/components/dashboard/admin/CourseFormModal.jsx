@@ -90,7 +90,8 @@ export function CourseFormModal({
       setOutcomes(
         editCourse.outcomes?.length ? [...editCourse.outcomes] : [""],
       );
-      setThumbnailPreview(editCourse.thumbnail_url || null);
+      const thumbUrl = editCourse.thumbnail_url || null;
+      setThumbnailPreview(thumbUrl?.startsWith("data:") ? thumbUrl : (thumbUrl ? `http://localhost:3000${thumbUrl}` : null));
       setThumbnailData(null);
       setClearThumbnail(false);
       setDemoVideoUrl(editCourse.demo_video_url || "");

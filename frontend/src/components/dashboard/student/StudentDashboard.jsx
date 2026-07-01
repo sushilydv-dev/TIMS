@@ -188,6 +188,9 @@ const getMaterialBadge = (type) => {
 function EmptyCardState({ icon: Icon, title, description }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center px-4">
+      <div className="w-32 h-32 rounded-2xl overflow-hidden mb-4 border border-black/[0.06]">
+        <img src="/assets/consultation.jpg" alt="Empty state" className="w-full h-full object-cover opacity-60" />
+      </div>
       <Icon className="w-8 h-8 text-[#94a3b8] mb-2" />
       <p className="text-sm font-bold text-[#475569]">{title}</p>
       <p className="text-xs text-[#94a3b8] mt-1 max-w-xs">{description}</p>

@@ -57,6 +57,8 @@ export const HrControl = () => {
   });
 
   const [panelEditMode, setPanelEditMode] = useState(false);
+  const [imgPreview, setImgPreview] = useState(null);
+  const [imgData, setImgData] = useState(null);
 
   // Debounce search input
   useEffect(() => {
@@ -131,6 +133,8 @@ export const HrControl = () => {
       status: hr.User?.status || "inactive",
       profile_img: hr.profile_img || "",
     });
+    const imgUrl = hr.profile_img || null;
+    setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
     setPanelEditMode(false);
     setPanelOpen(true);
   };
@@ -173,6 +177,8 @@ export const HrControl = () => {
           status: data.hr.User?.status || "inactive",
           profile_img: data.hr.profile_img || "",
         });
+        const imgUrl = data.hr.profile_img || null;
+        setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
       }
       fetchHr(page);
     } catch (err) {
@@ -376,10 +382,7 @@ export const HrControl = () => {
                 <div className="flex flex-col items-center pb-5 mt-[-48px]">
                   <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
                     <img
-                      src={
-                        profileForm.profile_img ||
-                        hrPlaceholder
-                      }
+                      src={imgPreview || hrPlaceholder}
                       alt="HR Profile"
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -449,6 +452,8 @@ export const HrControl = () => {
                         status: selectedHr.User?.status || "inactive",
                         profile_img: selectedHr.profile_img || "",
                       });
+                      const imgUrl = selectedHr.profile_img || null;
+                      setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
                     }}
                     className="text-[10px] font-bold text-[#fc362d] hover:underline"
                   >

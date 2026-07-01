@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs"
 import User from "../models/user.js"
 import OTP from "../models/otp.js"
 import generateToken from "../utils/generatetoken.js"
+import { generateRefreshToken, generateAccessToken } from "../utils/generateRefreshToken.js"
+import RefreshToken from "../models/refreshToken.js"
 import { Op } from "sequelize"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { sendTemplateEmail } from "../utils/emailService.js"
@@ -102,7 +104,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     const user = await User.findOne({ where: { email } });
 
@@ -122,12 +124,34 @@ export const loginUser = asyncHandler(async (req, res) => {
         const userRole = await getUserRoleForClient(user, email);
         const student = await Student.findOne({ where: { user_id: user.id } });
 
+        const accessToken = generateAccessToken(user.id);
+        let refreshToken = null;
+
+        // Only generate refresh token if remember me is checked
+        if (rememberMe) {
+            // incalidate invalid refresh token 
+            await RefreshToken.update(
+                { revoked: true },
+                { where: { user_id: user.id, revoked: false } }
+            );
+
+            const { token, expiresAt } = generateRefreshToken(user.id);
+            await RefreshToken.create({
+                token,
+                user_id: user.id,
+                expires_at: expiresAt,
+                revoked: false,
+            });
+            refreshToken = token;
+        }
+
         res.json({
             id: user.id,
             name: user.name,
             email: user.email,
             role: userRole,
-            token: generateToken(user.id),
+            token: accessToken,
+            refreshToken: refreshToken,
             Student: student ? { id: student.id } : null
         });
 
@@ -357,4 +381,75 @@ export const changePassword = asyncHandler(async (req, res) => {
     await user.save();
 
     res.json({ message: "Password changed successfully" });
+});
+
+export const refreshToken = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+        res.status(400);
+        throw new Error("Refresh token is required");
+    }
+
+    // Find the refresh token in database
+    const tokenRecord = await RefreshToken.findOne({
+        where: {
+            token: refreshToken,
+            revoked: false,
+            expires_at: { [Op.gt]: new Date() },
+        },
+        include: [{ model: User }],
+    });
+
+    if (!tokenRecord || !tokenRecord.User) {
+        res.status(401);
+        throw new Error("Invalid or expired refresh token");
+    }
+
+    const user = tokenRecord.User;
+
+    // Generate new access token
+    const accessToken = generateAccessToken(user.id);
+
+    // Generate new refresh token and revoke old one
+    const { token: newRefreshToken, expiresAt } = generateRefreshToken(user.id);
+    
+    // Revoke old token
+    tokenRecord.revoked = true;
+    await tokenRecord.save();
+
+    // Create new refresh token
+    await RefreshToken.create({
+        token: newRefreshToken,
+        user_id: user.id,
+        expires_at: expiresAt,
+        revoked: false,
+    });
+
+    const userRole = await getUserRoleForClient(user);
+    const student = await Student.findOne({ where: { user_id: user.id } });
+
+    res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: userRole,
+        token: accessToken,
+        refreshToken: newRefreshToken,
+        Student: student ? { id: student.id } : null,
+    });
+});
+
+export const logout = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (refreshToken) {
+        // Revoke the refresh token
+        await RefreshToken.update(
+            { revoked: true },
+            { where: { token: refreshToken } }
+        );
+    }
+
+    res.json({ message: "Logged out successfully" });
 });

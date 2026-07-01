@@ -1,4 +1,6 @@
 import express from "express";
+import protect from "../middlewares/authmiddleware.js";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
   createAppointmentRequest,
   getAllAppointmentRequests,
@@ -12,9 +14,9 @@ const router = express.Router();
 // Public endpoint to create appointment request
 router.post("/", asyncHandler(createAppointmentRequest));
 
-// Admin endpoints (protected middleware will be added in main routes)
-router.get("/", asyncHandler(getAllAppointmentRequests));
-router.patch("/:id/status", asyncHandler(updateAppointmentStatus));
-router.delete("/:id", asyncHandler(deleteAppointmentRequest));
+// Admin-only endpoints
+router.get("/", protect, requireAdmin, asyncHandler(getAllAppointmentRequests));
+router.patch("/:id/status", protect, requireAdmin, asyncHandler(updateAppointmentStatus));
+router.delete("/:id", protect, requireAdmin, asyncHandler(deleteAppointmentRequest));
 
 export default router;
