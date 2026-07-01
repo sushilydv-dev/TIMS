@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 import { useLenis } from "lenis/react"; // ── Modern import format
 import { AuthProvider } from "./app/AuthContext";
@@ -27,7 +28,6 @@ const CoursePage = lazy(() => import("./pages/CoursePage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const CancellationPolicy = lazy(() => import("./pages/CancellationPolicy"));
 const Login = lazy(() => import("./pages/Login"));
-const Signup = lazy(() => import("./pages/Signup"));
 const LearnMore = lazy(() => import("./pages/LearnMore"));
 const CertificateVerification = lazy(() => import("./pages/CertificateVerification"));
 
@@ -37,9 +37,6 @@ const DashboardIndex = lazy(() => import("./pages/DashboardIndex"));
 /* admin */
 const AdminProfile = lazy(
   () => import("./components/dashboard/admin/AdminProfile"),
-);
-const CertificateSettings = lazy(
-  () => import("./components/dashboard/admin/CertificateSettings").then(m => ({ default: m.default })),
 );
 const CertificateApproval = lazy(
   () => import("./components/dashboard/admin/CertificateApproval").then(m => ({ default: m.default })),
@@ -174,7 +171,7 @@ export const App = () => {
                 <Route path="/verify/:code" element={<CertificateVerification />} />
                 <Route element={<AuthPresenceWrapper />}>
                   <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/signup" element={<Navigate to="/login" replace />} />
                 </Route>
               </Route>
 
@@ -227,14 +224,6 @@ export const App = () => {
                     element={
                       <RequireAdmin>
                         <AdminProfile />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="admin/certificates/settings"
-                    element={
-                      <RequireAdmin>
-                        <CertificateSettings />
                       </RequireAdmin>
                     }
                   />

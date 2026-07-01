@@ -13,14 +13,23 @@ const NAV_LINKS = [
   { label: "Pricing",    hasDropdown: false },
 ];
 
-export const Navbar = () => {
+const EMPTY_COURSE_DATA = {
+  departments: [],
+  loading: true,
+  error: "",
+};
+
+export const Navbar = ({ courseData: externalCourseData }) => {
+  const [internalCourseData, setInternalCourseData] = useState(EMPTY_COURSE_DATA);
+  const courseData = externalCourseData ?? internalCourseData;
+
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const [departments, setDepartments] = useState([]);
+  const [departments, setDepartments] = useState(courseData.departments || []);
   const [courseMenuState, setCourseMenuState] = useState({
-    loading: true,
-    error: "",
+    loading: courseData.loading,
+    error: courseData.error,
   });
   const [activeDepartmentId, setActiveDepartmentId] = useState(null);
   const [mobilePanel, setMobilePanel] = useState("main");
@@ -28,35 +37,28 @@ export const Navbar = () => {
   const navRef = useRef(null);
   const { user, logout } = useAuth();
 
-  
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    if (externalCourseData) return undefined;
 
-  useEffect(() => {
     let cancelled = false;
 
     const fetchCurriculum = async () => {
-      setCourseMenuState({ loading: true, error: "" });
+      setInternalCourseData({ departments: [], loading: true, error: "" });
 
       try {
         const { data } = await axios.get("/api/public/curriculum");
         if (cancelled) return;
 
-        const nextDepartments = Array.isArray(data?.departments)
-          ? data.departments
-          : [];
-
-        setDepartments(nextDepartments);
-        setActiveDepartmentId(nextDepartments[0]?.id ?? null);
-        setCourseMenuState({ loading: false, error: "" });
+        setInternalCourseData({
+          departments: Array.isArray(data?.departments) ? data.departments : [],
+          loading: false,
+          error: "",
+        });
       } catch {
         if (cancelled) return;
-        setDepartments([]);
-        setActiveDepartmentId(null);
-        setCourseMenuState({
+
+        setInternalCourseData({
+          departments: [],
           loading: false,
           error: "Unable to load courses right now.",
         });
@@ -68,9 +70,24 @@ export const Navbar = () => {
     return () => {
       cancelled = true;
     };
+  }, [externalCourseData]);
+
+  // Update departments and loading state when courseData changes
+  useEffect(() => {
+    setDepartments(courseData.departments || []);
+    setCourseMenuState({
+      loading: courseData.loading,
+      error: courseData.error,
+    });
+    setActiveDepartmentId(courseData.departments?.[0]?.id ?? null);
+  }, [courseData]);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  
   useEffect(() => {
     const handleClick = (e) => {
       if (navRef.current && !navRef.current.contains(e.target)) {
@@ -316,20 +333,12 @@ export const Navbar = () => {
               Logout
             </button>
           ) : (
-            <>
-              <Link
-                to="/login"
-                className="text-[0.88rem] font-medium text-[#4a5553] no-underline px-3 py-1.5 rounded-full hover:text-[#cd1a09] hover:bg-[#ec3d2d]/10 transition-all duration-200 whitespace-nowrap"
-              >
-                Login
-              </Link>
-              <Link
-                to="/signup"
-                className="text-[0.88rem] font-semibold text-white no-underline px-4 py-[7px] rounded-full bg-gradient-to-r from-rose-500 to-[#fc362d] shadow-[0_2px_10px_rgba(27,210,164,0.25)] hover:shadow-[0_4px_18px_rgba(27,210,164,0.4)] hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
-              >
-                Get started
-              </Link>
-            </>
+            <Link
+              to="/login"
+              className="text-[0.88rem] font-semibold text-white no-underline px-4 py-[7px] rounded-full bg-gradient-to-r from-rose-500 to-[#fc362d] shadow-[0_2px_10px_rgba(27,210,164,0.25)] hover:shadow-[0_4px_18px_rgba(27,210,164,0.4)] hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
+            >
+              Login
+            </Link>
           )}
         </div>
 
@@ -440,22 +449,13 @@ export const Navbar = () => {
                   Logout
                 </button>
               ) : (
-                <>
-                  <Link
-                    to="/login"
-                    onClick={closeMobileMenu}
-                    className="py-3 text-[1rem] font-medium text-[#4a5553] no-underline"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/signup"
-                    onClick={closeMobileMenu}
-                    className="text-center py-3 text-[0.95rem] font-semibold text-white rounded-[8px] bg-gradient-to-r from-rose-500 to-[#fc362d] shadow-[0_2px_10px_rgba(252,54,45,0.25)] transition-all duration-200"
-                  >
-                    Get started
-                  </Link>
-                </>
+                <Link
+                  to="/login"
+                  onClick={closeMobileMenu}
+                  className="text-center py-3 text-[0.95rem] font-semibold text-white rounded-[8px] bg-gradient-to-r from-rose-500 to-[#fc362d] shadow-[0_2px_10px_rgba(252,54,45,0.25)] transition-all duration-200"
+                >
+                  Login
+                </Link>
               )}
             </div>
           </section>

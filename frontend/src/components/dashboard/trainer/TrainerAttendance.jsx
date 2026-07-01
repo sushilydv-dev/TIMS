@@ -5,6 +5,8 @@ import {
 } from "react-icons/fi";
 import axios from "axios";
 import { Panel, WelcomeBanner } from "../DashboardUI";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 import {
   pageWrapClass, cardClass, cardLightClass, labelMutedClass,
   primaryBtnClass, secondaryBtnClass, inputClass,
@@ -41,7 +43,7 @@ const STATUS_CFG = {
 /* ════════════════════════════════════════════════════════
    STEP 3 — Attendance sheet for one batch + one date
    ════════════════════════════════════════════════════════ */
-function AttendanceSheet({ batch, date, onBack, onSaved }) {
+function AttendanceSheet({ batch, date, onBack, onSaved, onOpenStudentProfile }) {
   const [students, setStudents] = useState([]);
   const [entries, setEntries]   = useState({});
   const [loading, setLoading]   = useState(true);
@@ -192,9 +194,12 @@ function AttendanceSheet({ batch, date, onBack, onSaved }) {
                       <td className="py-3.5 px-4 text-[#94a3b8] font-bold text-xs">{i + 1}</td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-[#fc362d]/10 flex items-center justify-center text-[#fc362d] text-[10px] font-extrabold shrink-0">
-                            {(s.name || "?").slice(0, 2).toUpperCase()}
-                          </div>
+                          <ProfileAvatar
+                            src={s.profile_img}
+                            name={s.name}
+                            profileType="student"
+                            onClick={() => onOpenStudentProfile?.(s.student_id)}
+                          />
                           <span className="font-bold text-[#0c0407]">{s.name}</span>
                         </div>
                       </td>
@@ -439,6 +444,22 @@ export function TrainerAttendance() {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [selectedDate, setSelectedDate]   = useState(null);
   const [markSaved, setMarkSaved]     = useState(null); // callback from calendar cell
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
+
+  const profilePanel = (
+    <BasicProfile
+      open={basicProfileOpen}
+      profileType={basicProfileType}
+      profileId={basicProfileId}
+      onClose={closeBasicProfile}
+    />
+  );
 
   useEffect(() => {
     axios
@@ -452,6 +473,7 @@ export function TrainerAttendance() {
   if (selectedBatch && selectedDate) {
     return (
       <div className={pageWrapClass}>
+        {profilePanel}
         <AttendanceSheet
           batch={selectedBatch}
           date={selectedDate}
@@ -460,6 +482,7 @@ export function TrainerAttendance() {
             if (markSaved) markSaved(date);
             setSelectedDate(null);
           }}
+          onOpenStudentProfile={(studentId) => openBasicProfile("student", studentId)}
         />
       </div>
     );
@@ -469,6 +492,7 @@ export function TrainerAttendance() {
   if (selectedBatch) {
     return (
       <div className={pageWrapClass}>
+        {profilePanel}
         <BatchCalendar
           batch={selectedBatch}
           onBack={() => setSelectedBatch(null)}
@@ -489,6 +513,7 @@ export function TrainerAttendance() {
 
   return (
     <div className={pageWrapClass}>
+      {profilePanel}
       <WelcomeBanner
         badge="Attendance Register"
         title="Mark Attendance"

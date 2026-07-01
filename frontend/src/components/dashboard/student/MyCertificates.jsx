@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FiAward, FiDownload, FiClock, FiCheckCircle, FiExternalLink } from "react-icons/fi";
+import { FiAward, FiDownload, FiClock, FiCheckCircle } from "react-icons/fi";
 import { cardClass, labelMutedClass, primaryBtnClass } from "../dashboardTheme";
-import { INSTITUTE_NAME } from "../../../constants";
 
 const MyCertificates = () => {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchCertificates();
@@ -16,23 +16,17 @@ const MyCertificates = () => {
     try {
       const { data } = await axios.get("/api/certificates/my-certificates");
       setCertificates(data);
-    } catch (error) {
-      console.error("Error fetching certificates:", error);
+      setError("");
+    } catch (err) {
+      console.error("Error fetching certificates:", err);
+      setError(err.response?.data?.message || "Failed to load certificates");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDownload = (certificateUrl) => {
-    // Construct full URL if it's a relative path
-    const fullUrl = certificateUrl.startsWith('http') 
-      ? certificateUrl 
-      : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${certificateUrl}`;
-    window.open(fullUrl, "_blank");
-  };
-
-  const getVerificationUrl = (verificationCode) => {
-    return `https://sushildev.in/verify/${verificationCode}`;
+    window.open(certificateUrl, "_blank");
   };
 
   if (loading) {
@@ -60,7 +54,11 @@ const MyCertificates = () => {
       </div>
 
       <div className="p-6">
-        {certificates.length === 0 ? (
+        {error ? (
+          <div className="text-center py-12">
+            <p className="text-sm font-semibold text-[#b91c1c]">{error}</p>
+          </div>
+        ) : certificates.length === 0 ? (
           <div className="text-center py-12">
             <FiAward className="w-16 h-16 text-[#cbd5e1] mx-auto mb-4" />
             <p className="text-sm font-semibold text-[#94a3b8]">No certificates issued yet</p>
@@ -115,23 +113,6 @@ const MyCertificates = () => {
                         )}
                       </p>
                     </div>
-
-                    {cert.status === "issued" && cert.verification_code && (
-                      <div className="flex items-center gap-2 p-3 bg-[#f8fafc] rounded-lg">
-                        <FiExternalLink className="w-4 h-4 text-[#94a3b8]" />
-                        <p className="text-xs text-[#636363]">
-                          Verify at:{" "}
-                          <a
-                            href={getVerificationUrl(cert.verification_code)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#fc362d] font-semibold hover:underline"
-                          >
-                            {getVerificationUrl(cert.verification_code)}
-                          </a>
-                        </p>
-                      </div>
-                    )}
                   </div>
 
                   {cert.status === "issued" && cert.certificate_url ? (

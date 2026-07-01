@@ -9,6 +9,8 @@ import {
   WelcomeBanner, StatCards, Panel, PanelHeader, StatusBadge, Toast,
 } from "../DashboardUI";
 import { pageWrapClass, inputClass, labelMutedClass, cardClass } from "../dashboardTheme";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 import { generatePaymentReceipt } from "../../../utils/generatePaymentReceipt";
 
 /* ── helpers ─────────────────────────────────────────── */
@@ -55,14 +57,17 @@ function InstallmentRow({ inst }) {
 }
 
 /* ── PaymentRow — with per-payment receipt download ─── */
-function PaymentRow({ p }) {
+function PaymentRow({ p, onOpenStudentProfile }) {
   const [downloading, setDownloading] = useState(false);
   return (
     <div className="flex items-start justify-between gap-3 p-3 rounded-xl bg-[#fafafa] border border-black/[0.06] hover:bg-white transition-colors">
       <div className="flex items-start gap-2.5 min-w-0">
-        <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
-          <FiCheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-        </div>
+        <ProfileAvatar
+          src={p.profile_img}
+          name={p.student_name}
+          profileType="student"
+          onClick={() => onOpenStudentProfile?.(p.student_id)}
+        />
         <div className="min-w-0">
           <p className="text-xs font-bold text-[#0c0407] truncate">{p.student_name}</p>
           <p className="text-[10px] text-[#94a3b8] font-semibold">{p.student_code}</p>
@@ -112,7 +117,7 @@ function PaymentRow({ p }) {
 }
 
 /* ── StudentFeeRow ───────────────────────────────────── */
-function StudentFeeRow({ row }) {
+function StudentFeeRow({ row, onOpenStudentProfile }) {
   const [open, setOpen] = useState(false);
   const st   = getStatus(row.payment_status);
   const pct  = row.total_amount > 0 ? Math.round((row.paid_amount / row.total_amount) * 100) : 0;
@@ -126,9 +131,15 @@ function StudentFeeRow({ row }) {
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#fafafa] transition-colors"
       >
         {/* Avatar */}
-        <div className="w-8 h-8 rounded-full bg-[#fc362d]/10 flex items-center justify-center text-[#fc362d] text-[10px] font-extrabold shrink-0">
-          {(row.student_name || "?").slice(0, 2).toUpperCase()}
-        </div>
+        <ProfileAvatar
+          src={row.profile_img}
+          name={row.student_name}
+          profileType="student"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenStudentProfile?.(row.student_id);
+          }}
+        />
         {/* Name + course */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-[#0c0407] truncate">{row.student_name}</p>
@@ -216,8 +227,16 @@ export const BillingLedger = () => {
   const [search, setSearch]     = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [toast, setToast]       = useState("");
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 4000); };
+  const openStudentProfile = (studentId) => openBasicProfile("student", studentId);
 
   const fetchBilling = useCallback(async () => {
     setLoading(true);
@@ -258,6 +277,12 @@ export const BillingLedger = () => {
   return (
     <div className={pageWrapClass}>
       <Toast message={toast} />
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
 
       <WelcomeBanner
         badge="Billing Ledger"
@@ -355,7 +380,11 @@ export const BillingLedger = () => {
                   {statusFilter !== "ALL" && ` · filtered by "${STATUS_FILTERS.find(f=>f.key===statusFilter)?.label}"`}
                 </p>
                 {filtered.map(row => (
-                  <StudentFeeRow key={row.fee_id || row.student_id} row={row} />
+                  <StudentFeeRow
+                    key={row.fee_id || row.student_id}
+                    row={row}
+                    onOpenStudentProfile={openStudentProfile}
+                  />
                 ))}
               </div>
             )}
@@ -374,7 +403,9 @@ export const BillingLedger = () => {
               </p>
             ) : (
               <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
-                {payments.map(p => <PaymentRow key={p.id} p={p} />)}
+                {payments.map(p => (
+                  <PaymentRow key={p.id} p={p} onOpenStudentProfile={openStudentProfile} />
+                ))}
               </div>
             )}
           </Panel>

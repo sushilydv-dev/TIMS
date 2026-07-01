@@ -13,7 +13,6 @@ const pageVariants = {
 };
 
 function getSlideDirection(fromPath, toPath) {
-  if (fromPath === "/login" && toPath === "/signup") return 1;
   if (fromPath === "/signup" && toPath === "/login") return -1;
   return 1;
 }

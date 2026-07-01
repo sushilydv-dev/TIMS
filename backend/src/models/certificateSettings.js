@@ -19,6 +19,11 @@ const CertificateSettings = sequelize.define(
       defaultValue: true,
       allowNull: false,
     },
+    auto_generate: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
     verification_domain: {
       type: DataTypes.STRING,
       defaultValue: "sushildev.in",
@@ -27,6 +32,15 @@ const CertificateSettings = sequelize.define(
     certificate_template_url: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+    digital_signature_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    signature_title: {
+      type: DataTypes.STRING,
+      defaultValue: "Course Coordinator",
+      allowNull: false,
     },
   },
   {

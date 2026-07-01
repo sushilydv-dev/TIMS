@@ -17,6 +17,8 @@ import { InviteUserModal } from "./InviteUserModal";
 import { DeactivateUserModal } from "./DeactivateUserModal";
 import { UserActionsMenu } from "./UserActionsMenu";
 import { UserListPagination, PAGE_SIZE } from "./UserListPagination";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 
 function statusVariant(status) {
   const s = String(status || "").toLowerCase();
@@ -63,6 +65,13 @@ export const UserControl = () => {
     user: null,
     mode: "deactivate",
   });
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   useEffect(() => {
     const timer = window.setTimeout(
@@ -156,6 +165,13 @@ export const UserControl = () => {
         mode={statusModal.mode}
         onClose={closeStatusModal}
         onSuccess={handleStatusSuccess}
+      />
+
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
       />
 
       <WelcomeBanner
@@ -259,10 +275,10 @@ export const UserControl = () => {
                   >
                     <td className="py-3.5 px-2">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.name || row.email)}`}
-                          alt=""
-                          className="w-8 h-8 rounded-lg"
+                        <ProfileAvatar
+                          name={row.name}
+                          profileType="user"
+                          onClick={() => openBasicProfile("user", row.id)}
                         />
                         <div>
                           <p className="font-bold text-[#0c0407]">{row.name}</p>

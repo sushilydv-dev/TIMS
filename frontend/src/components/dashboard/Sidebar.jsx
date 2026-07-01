@@ -60,9 +60,7 @@ export const Sidebar = ({ activeRole }) => {
           { label: "Manage Departments", icon: <FiLayers className="w-5 h-5" />, path: "/dashboard/departments" },
           { label: "Courses", icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard/courses" },
           { label: "Batches", icon: <FiCalendar className="w-5 h-5" />, path: "/dashboard/batches" },
-          { label: "Fee Status", icon: <FiActivity className="w-5 h-5" />, path: "/dashboard/health" },
           { label: "Billing Ledger", icon: <FiDollarSign className="w-5 h-5" />, path: "/dashboard/billing" },
-          { label: "Certificate Settings", icon: <FiAward className="w-5 h-5" />, path: "/dashboard/admin/certificates/settings" },
           { label: "Certificate Approvals", icon: <FiCheckSquare className="w-5 h-5" />, path: "/dashboard/admin/certificates/approvals" },
         ];
       case "HR_COORDINATOR":

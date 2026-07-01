@@ -23,7 +23,7 @@ export function AuthSplitLayout({
   topAction,
   children,
   footerNote,
-  /** "left" = image on left (signup); "right" = image on right (login) */
+  /** "left" = image on left; "right" = image on right (login) */
   imagePosition = "left",
 }) {
   const imageAside = (

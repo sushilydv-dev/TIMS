@@ -9,6 +9,7 @@ import publicRoutes from "./public.routes.js"
 import notificationRoutes from "./notification.routes.js"
 import appointmentRoutes from "./appointment.routes.js"
 import certificateRoutes from "./certificate.routes.js"
+import profileRoutes from "./profile.routes.js"
 const router=express.Router()
 router.use("/auth", authRoutes);
 router.use("/public", publicRoutes);
@@ -20,5 +21,6 @@ router.use("/v1/payments", paymentRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/appointments", appointmentRoutes);
 router.use("/certificates", certificateRoutes);
+router.use("/profile", profileRoutes);
 
 export default router;

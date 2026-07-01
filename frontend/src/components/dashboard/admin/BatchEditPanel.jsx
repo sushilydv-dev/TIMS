@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FiUsers, FiX, FiSearch, FiChevronDown, FiChevronUp, FiUser, FiTrash2, FiArrowRight, FiEye } from "react-icons/fi";
+import { FiUsers, FiX, FiSearch, FiChevronDown, FiChevronUp, FiTrash2, FiArrowRight, FiEye } from "react-icons/fi";
 import axios from "axios";
 import { inputClass, primaryBtnClass, secondaryBtnClass } from "../dashboardTheme";
+import { BasicProfile, useBasicProfile } from "../BasicProfile";
+import { ProfileAvatar } from "../ProfileAvatar";
 import { BatchStudentPickerPanel } from "./BatchStudentPickerPanel";
 import { StudentDetailPanel } from "./StudentDetailPanel";
 
@@ -24,6 +26,13 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const {
+    basicProfileOpen,
+    basicProfileType,
+    basicProfileId,
+    openBasicProfile,
+    closeBasicProfile,
+  } = useBasicProfile();
 
   useEffect(() => {
     if (studentIdParam) {
@@ -206,12 +215,19 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
 
   return (
     <>
+      <BasicProfile
+        open={basicProfileOpen}
+        profileType={basicProfileType}
+        profileId={basicProfileId}
+        onClose={closeBasicProfile}
+      />
       <BatchStudentPickerPanel
         open={pickerOpen}
         batchId={batch.id}
         selectedIds={selectedStudents}
         onSelectionChange={handleSelectionChange}
         onClose={handlePickerClose}
+        onOpenStudentProfile={(studentId) => openBasicProfile("student", studentId)}
       />
 
       <StudentDetailPanel
@@ -301,6 +317,13 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
                       key={trainer.id}
                       className="flex items-center gap-2 px-3 py-1.5 bg-[#eff6ff] border border-[#bfdbfe] rounded-lg text-xs font-semibold text-[#0c0407]"
                     >
+                      <ProfileAvatar
+                        src={trainer.profile_img}
+                        name={trainer.name}
+                        profileType="trainer"
+                        size="sm"
+                        onClick={() => openBasicProfile("trainer", trainer.id)}
+                      />
                       <span>{trainer.name}</span>
                       <button
                         type="button"
@@ -392,13 +415,16 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
                         className="p-3 cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#f1f5f9] flex items-center justify-center overflow-hidden shrink-0">
-                            {s.profile_img ? (
-                              <img src={s.profile_img} alt={s.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <FiUser className="w-5 h-5 text-[#94a3b8]" />
-                            )}
-                          </div>
+                          <ProfileAvatar
+                            src={s.profile_img}
+                            name={s.name}
+                            profileType="student"
+                            size="md"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openBasicProfile("student", s.id);
+                            }}
+                          />
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-[#0c0407] truncate">{s.name}</p>
                             <p className="text-[10px] text-[#636363] truncate">{s.student_code || s.id}</p>

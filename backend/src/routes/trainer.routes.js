@@ -220,6 +220,8 @@ router.get("/batches/:batchId", asyncHandler(async (req, res) => {
         id: e.Student?.id,
         name: e.Student?.User?.name || "",
         email: e.Student?.User?.email || "",
+        profile_img: e.Student?.profile_img || "",
+        student_code: e.Student?.student_code || "",
       },
     })),
   });
@@ -255,6 +257,9 @@ router.get("/batches/:batchId/attendance", asyncHandler(async (req, res) => {
   const students = enrollments.map(e => ({
     student_id: e.Student?.id,
     name: e.Student?.User?.name || "",
+    email: e.Student?.User?.email || "",
+    profile_img: e.Student?.profile_img || "",
+    student_code: e.Student?.student_code || "",
   }));
 
   res.json({ records, students });
@@ -321,7 +326,11 @@ router.get("/batches/:batchId/submissions", asyncHandler(async (req, res) => {
   res.json(submissions.map(s => ({
     id: s.id,
     project: s.Project,
-    student: { id: s.Student?.id, name: s.Student?.User?.name || "" },
+    student: {
+      id: s.Student?.id,
+      name: s.Student?.User?.name || "",
+      profile_img: s.Student?.profile_img || "",
+    },
     github_link: s.github_link,
     file_url: s.file_url,
     submitted_at: s.submitted_at,

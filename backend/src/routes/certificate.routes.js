@@ -5,6 +5,7 @@ import {
   getEligibleStudents,
   getBypassQueueStudents,
   generateCertificate,
+  generateManualCertificate,
   bulkApproveCertificates,
   getStudentCertificates,
   verifyCertificate,
@@ -25,6 +26,7 @@ router.get("/bypass-queue", protect, requireAdmin, getBypassQueueStudents);
 
 // Certificate generation (admin only)
 router.post("/generate", protect, requireAdmin, generateCertificate);
+router.post("/generate-manual", protect, requireAdmin, generateManualCertificate);
 router.post("/bulk-approve", protect, requireAdmin, bulkApproveCertificates);
 
 // Get all certificates (admin only)

@@ -130,6 +130,8 @@ router.get("/billing", asyncHandler(async (req, res) => {
         const course = batch?.Course      || null;
         recentPayments.push({
           id:             p.id,
+          student_id:     fee.Student?.id,
+          profile_img:    fee.Student?.profile_img || "",
           student_name:   fee.Student?.User?.name || "Unknown",
           student_code:   fee.Student?.student_code || "—",
           student_email:  fee.Student?.User?.email || "—",
@@ -156,6 +158,7 @@ router.get("/billing", asyncHandler(async (req, res) => {
     return {
       fee_id:         fee.id,
       student_id:     fee.Student?.id,
+      profile_img:    fee.Student?.profile_img || "",
       student_name:   fee.Student?.User?.name  || "Unknown",
       student_email:  fee.Student?.User?.email || "—",
       student_code:   fee.Student?.student_code || "—",
