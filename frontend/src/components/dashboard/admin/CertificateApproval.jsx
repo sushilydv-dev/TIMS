@@ -5,7 +5,7 @@ import { Panel, PrimaryButton, SecondaryButton, Toast } from "../DashboardUI";
 import { CertificateSettingsModal } from "./CertificateSettings";
 import { BasicProfile, useBasicProfile } from "../BasicProfile";
 import { ProfileAvatar } from "../ProfileAvatar";
-import logo from "../../../assets/logo.png";
+import { LOGO_PATH } from "../../../constants";
 
 const selectionKey = (studentId, batchId) => `${studentId}::${batchId}`;
 
@@ -256,7 +256,7 @@ const CertificateApproval = () => {
           title="Certificate settings"
           aria-label="Open certificate settings"
         >
-          <img src={logo} alt="" className="w-8 h-8 object-contain" />
+          <img src={LOGO_PATH} alt="" className="w-8 h-8 object-contain" />
           <span className="text-sm font-semibold text-[#636363] hidden sm:inline">
             Settings
           </span>

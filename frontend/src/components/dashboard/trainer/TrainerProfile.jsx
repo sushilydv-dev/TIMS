@@ -176,7 +176,8 @@ export default function TrainerProfile() {
         specialization:  data.specialization  || "",
         experience_year: data.experience_year || 0,
       });
-      setImgPreview(data.profile_img || null);
+      const imgUrl = data.profile_img || null;
+      setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
       setImgData(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load profile");

@@ -351,13 +351,18 @@ function CoursePageInner() {
                   />
                 </div>
               ) : course.thumbnail_url ? (
-                <div className="w-full aspect-video bg-[#f0eef4]">
-                  <img
-                    src={course.thumbnail_url}
-                    alt={course.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                (() => {
+                  const thumbUrl = course.thumbnail_url?.startsWith("data:") ? course.thumbnail_url : `http://localhost:3000${course.thumbnail_url}`;
+                  return (
+                    <div className="w-full aspect-video bg-[#f0eef4]">
+                      <img
+                        src={thumbUrl}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  );
+                })()
               ) : (
                 <div className="w-full aspect-video bg-[#f0eef4] flex items-center justify-center">
                   <div className="flex flex-col items-center gap-2 text-[#c0bccf]">

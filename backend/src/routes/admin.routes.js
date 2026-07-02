@@ -1,4 +1,6 @@
 import express from "express";
+import os from "os";
+import sequelize from "../config/db.js";
 import protect from "../middlewares/authmiddleware.js";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { requireAdminOrHR } from "../middlewares/requireAdminOrHR.js";
@@ -193,6 +195,86 @@ router.get("/billing", asyncHandler(async (req, res) => {
     },
     recent_payments: recentPayments,
     student_fees:    studentFees,
+  });
+}));
+
+/* ── GET /api/admin/system-health ───────────────────── */
+router.get("/system-health", asyncHandler(async (req, res) => {
+  const checks = [];
+
+  // 1. PostgreSQL — attempt a simple query
+  const dbStart = Date.now();
+  let dbStatus = "ok";
+  let dbError = null;
+  try {
+    await sequelize.query("SELECT 1");
+  } catch (err) {
+    dbStatus = "error";
+    dbError = err.message;
+  }
+  const dbLatency = Date.now() - dbStart;
+  checks.push({
+    name: "PostgreSQL",
+    status: dbStatus,
+    latency_ms: dbLatency,
+    detail: dbError || "Connected",
+  });
+
+  // 2. Node.js process memory
+  const mem = process.memoryUsage();
+  const heapUsedMB  = Math.round(mem.heapUsed  / 1024 / 1024);
+  const heapTotalMB = Math.round(mem.heapTotal / 1024 / 1024);
+  const rssMB       = Math.round(mem.rss       / 1024 / 1024);
+  checks.push({
+    name: "Node Process",
+    status: heapUsedMB < heapTotalMB * 0.9 ? "ok" : "warn",
+    latency_ms: null,
+    detail: `Heap ${heapUsedMB}/${heapTotalMB} MB  ·  RSS ${rssMB} MB`,
+  });
+
+  // 3. System CPU load (1-minute average)
+  const cpuLoad = os.loadavg()[0];
+  const cpuCount = os.cpus().length;
+  const cpuNorm  = cpuLoad / cpuCount; // normalised: >1 = saturated
+  checks.push({
+    name: "CPU Load",
+    status: cpuNorm < 0.7 ? "ok" : cpuNorm < 1.0 ? "warn" : "error",
+    latency_ms: null,
+    detail: `Load avg 1m: ${cpuLoad.toFixed(2)} on ${cpuCount} cores`,
+  });
+
+  // 4. System memory
+  const totalMem = os.totalmem();
+  const freeMem  = os.freemem();
+  const usedPct  = ((totalMem - freeMem) / totalMem) * 100;
+  checks.push({
+    name: "System Memory",
+    status: usedPct < 80 ? "ok" : usedPct < 95 ? "warn" : "error",
+    latency_ms: null,
+    detail: `${usedPct.toFixed(1)}% used  ·  ${Math.round(freeMem / 1024 / 1024)} MB free`,
+  });
+
+  // 5. Uptime
+  const uptimeSeconds = process.uptime();
+  const uptimeHours   = (uptimeSeconds / 3600).toFixed(1);
+  checks.push({
+    name: "API Server",
+    status: "ok",
+    latency_ms: null,
+    detail: `Up ${uptimeHours}h  ·  PID ${process.pid}`,
+  });
+
+  const overall = checks.some(c => c.status === "error")
+    ? "error"
+    : checks.some(c => c.status === "warn")
+    ? "warn"
+    : "ok";
+
+  res.json({
+    overall,
+    checked_at: new Date().toISOString(),
+    process_uptime_seconds: Math.round(uptimeSeconds),
+    checks,
   });
 }));
 

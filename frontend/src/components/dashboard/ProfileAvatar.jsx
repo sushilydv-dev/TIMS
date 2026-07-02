@@ -28,11 +28,14 @@ export function ProfileAvatar({
   const placeholder = PLACEHOLDERS[profileType] || studentPlaceholder;
   const sizeClass = SIZE_CLASS[size] || SIZE_CLASS.sm;
   const initial = name?.trim()?.charAt(0)?.toUpperCase() || "";
-  const hasImage = src && String(src).length > 10;
+  
+  // Handle file paths vs base64 URLs
+  const finalSrc = src?.startsWith("data:") ? src : (src ? `http://localhost:3000${src}` : null);
+  const hasImage = finalSrc && String(finalSrc).length > 10;
 
   const content = hasImage ? (
     <img
-      src={src}
+      src={finalSrc}
       alt={name || "Profile"}
       className="w-full h-full object-cover"
       onError={(event) => {

@@ -12,6 +12,8 @@ import Project from "../models/project.js";
 import ProjectSubmission from "../models/projectSubmission.js";
 import User from "../models/user.js";
 import Trainer from "../models/trainer.js";
+import AssessmentResult from "../models/assessmentResult.js";
+import Assessment from "../models/assessment.js";
 import { Op } from "sequelize";
 import { handleFileUpload } from "../utils/fileUpload.js";
 import { sendProjectSubmitted } from "../services/notification.service.js";
@@ -87,13 +89,23 @@ router.put("/me/profile", asyncHandler(async (req, res) => {
 }));
 
 /* ── POST /api/students/backfill-codes (admin util) ──── */
-// One-time endpoint to assign stu- codes to legacy students that have placeholder codes
-router.post("/backfill-codes", asyncHandler(async (req, res) => {
+// One-time endpoint to assign student codes to legacy students — admin only
+router.post("/backfill-codes", protect, async (req, res, next) => {
+  try {
+    const { getUserRoleForClient } = await import("../utils/roleHelpers.js");
+    const role = await getUserRoleForClient(req.user);
+    if (role !== "ADMIN") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    next();
+  } catch (err) { next(err); }
+}, asyncHandler(async (req, res) => {
   const all = await Student.findAll({ attributes: ["id", "student_code"] });
   let updated = 0;
   for (const s of all) {
     const code = (s.student_code || "").trim();
-    const needsBackfill = !code || code === "0" || code.startsWith("STU-") || !code.startsWith("stu-");
+    // Only backfill if code is truly missing or a placeholder
+    const needsBackfill = !code || code === "0";
     if (needsBackfill) {
       // Generate new code
       const year   = new Date().getFullYear();
@@ -364,6 +376,96 @@ router.post("/me/projects/:projectId/submit", asyncHandler(async (req, res) => {
   }
 
   res.status(201).json({ message: "Submitted", submission });
+}));
+
+/* ── GET /api/students/me/performance ─────────────────── */
+router.get("/me/performance", asyncHandler(async (req, res) => {
+  const student = await Student.findOne({
+    where: { user_id: req.user.id },
+    include: [{
+      model: Enrollment,
+      include: [{ model: Batch, include: [{ model: Course, attributes: ["id", "title"] }] }],
+    }],
+  });
+
+  if (!student) { res.status(404); throw new Error("Student profile not found"); }
+
+  const batch = student.Enrollments?.[0]?.Batch || null;
+  const course = batch?.Course || null;
+
+  if (!course) return res.json({ performance: null, course: null });
+
+  // Get attendance data
+  const attendances = await Attendance.findAll({
+    where: { student_id: student.id },
+  });
+  const totalAttendance = attendances.length;
+  // Status is stored uppercase (PRESENT, ABSENT, LATE, LEAVE)
+  const presentAttendance = attendances.filter(
+    a => ["PRESENT", "LATE"].includes(String(a.status).toUpperCase())
+  ).length;
+  const attendanceRate = totalAttendance > 0
+    ? ((presentAttendance / totalAttendance) * 100).toFixed(1)
+    : 0;
+
+  // Get project submissions
+  const projects = await Project.findAll({ where: { course_id: course.id } });
+  const projectIds = projects.map(p => p.id);
+  const submissions = await ProjectSubmission.findAll({
+    where: { student_id: student.id, project_id: { [Op.in]: projectIds } },
+  });
+
+  const totalProjects = projects.length;
+  const submittedProjects = submissions.length;
+  const gradedProjects = submissions.filter(s => s.marks > 0);
+  const avgProjectScore = gradedProjects.length > 0
+    ? (gradedProjects.reduce((sum, s) => sum + s.marks, 0) / gradedProjects.length).toFixed(1)
+    : 0;
+
+  // Get assessment results
+  const assessmentResults = await AssessmentResult.findAll({
+    where: { student_id: student.id },
+    include: [{ model: Assessment, as: "assessment", attributes: ["title", "total_marks"] }],
+  });
+
+  const totalAssessments = assessmentResults.length;
+  // Use each result's own total_marks (not a hardcoded 100) so the scale is correct
+  const avgAssessmentScore = assessmentResults.length > 0
+    ? (assessmentResults.reduce((sum, r) => {
+        const max = Number(r.assessment?.total_marks) || 100;
+        return sum + (r.obtained_marks / max) * 10; // normalise to 0-10
+      }, 0) / assessmentResults.length).toFixed(1)
+    : 0;
+
+  // Calculate overall score (out of 10)
+  const projectScore = gradedProjects.length > 0 ? parseFloat(avgProjectScore) : null;
+  // avgAssessmentScore is already normalised to 0-10
+  const assessmentScore = assessmentResults.length > 0 ? parseFloat(avgAssessmentScore) : null;
+
+  let overallScore;
+  if (projectScore !== null && assessmentScore !== null) {
+    overallScore = ((projectScore + assessmentScore) / 2).toFixed(1);
+  } else {
+    overallScore = (projectScore ?? assessmentScore ?? 0).toFixed(1);
+  }
+
+  res.json({
+    performance: {
+      overall_score: parseFloat(overallScore),
+      assessments: {
+        total: totalProjects + totalAssessments,
+        submitted: submittedProjects + totalAssessments,
+        graded: gradedProjects.length + totalAssessments,
+        avg_score: parseFloat(
+          projectScore !== null && assessmentScore !== null
+            ? ((projectScore + assessmentScore) / 2).toFixed(1)
+            : (projectScore ?? assessmentScore ?? 0).toFixed(1)
+        ),
+        max_score: 10,
+      },
+    },
+    course: { id: course.id, title: course.title },
+  });
 }));
 
 export default router;

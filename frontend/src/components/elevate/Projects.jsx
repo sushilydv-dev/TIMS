@@ -65,7 +65,10 @@ function getDims() {
 function RingCard({ angle, baseAngle, radius, cardW, cardH, trainer, idx, onSelect }) {
   const pal      = PALETTES[idx % PALETTES.length];
   const initials = (trainer.name || "TR").slice(0, 2).toUpperCase();
-  const hasImg   = trainer.profile_img && trainer.profile_img.length > 10;
+  
+  // Handle file paths vs base64 URLs
+  const imgUrl = trainer.profile_img?.startsWith("data:") ? trainer.profile_img : (trainer.profile_img ? `http://localhost:3000${trainer.profile_img}` : null);
+  const hasImg   = imgUrl && imgUrl.length > 10;
 
   const transform = useTransform(angle, (a) => {
     const total = a + baseAngle;
@@ -107,7 +110,7 @@ function RingCard({ angle, baseAngle, radius, cardW, cardH, trainer, idx, onSele
       {/* Background — photo or gradient avatar */}
       {hasImg ? (
         <img
-          src={trainer.profile_img}
+          src={imgUrl}
           alt={trainer.name}
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"

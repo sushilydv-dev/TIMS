@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import productlogo from "../assets/logo.png";
+import { LOGO_PATH } from "../constants";
 
 const PrivacyPolicy = () => {
   return (
@@ -10,7 +10,7 @@ const PrivacyPolicy = () => {
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-4 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 group">
             <img
-              src={productlogo}
+              src={LOGO_PATH}
               alt="TIMS Logo"
               className="h-[30px] w-[40px]"
             />

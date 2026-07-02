@@ -10,6 +10,9 @@ import notificationRoutes from "./notification.routes.js"
 import appointmentRoutes from "./appointment.routes.js"
 import certificateRoutes from "./certificate.routes.js"
 import profileRoutes from "./profile.routes.js"
+import syllabusRoutes from "./syllabus.routes.js"
+import assessmentRoutes from "./assessment.routes.js"
+import analyticsRoutes from "./analytics.routes.js"
 const router=express.Router()
 router.use("/auth", authRoutes);
 router.use("/public", publicRoutes);
@@ -22,5 +25,8 @@ router.use("/notifications", notificationRoutes);
 router.use("/appointments", appointmentRoutes);
 router.use("/certificates", certificateRoutes);
 router.use("/profile", profileRoutes);
+router.use("/admin", syllabusRoutes);
+router.use("/admin/assessments", assessmentRoutes);
+router.use("/admin/analytics", analyticsRoutes);
 
 export default router;

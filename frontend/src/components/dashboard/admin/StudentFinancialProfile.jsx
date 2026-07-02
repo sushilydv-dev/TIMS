@@ -15,6 +15,7 @@ export function StudentFinancialProfile({ open, studentId, onClose, onUpdate }) 
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [imgPreview, setImgPreview] = useState(null);
   
   // Batch assignment state
   const [batchAssignOpen, setBatchAssignOpen]   = useState(false);
@@ -69,6 +70,8 @@ export function StudentFinancialProfile({ open, studentId, onClose, onUpdate }) 
         qualification: student.qualification || "",
         profile_img: student.profile_img || "",
       });
+      const imgUrl = student.profile_img || null;
+      setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
     }
   }, [student]);
 
@@ -227,10 +230,7 @@ export function StudentFinancialProfile({ open, studentId, onClose, onUpdate }) 
                 <div className="flex flex-col items-center pb-5 mt-[-48px]">
                   <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
                     <img
-                      src={
-                        profileForm.profile_img ||
-                        studentPlaceholder
-                      }
+                      src={imgPreview || studentPlaceholder}
                       alt="Student Profile"
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -298,6 +298,8 @@ export function StudentFinancialProfile({ open, studentId, onClose, onUpdate }) 
                         qualification: student.qualification || "",
                         profile_img: student.profile_img || "",
                       });
+                      const imgUrl = student.profile_img || null;
+                      setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
                     }}
                     className="text-[10px] font-bold text-[#fc362d] hover:underline"
                   >

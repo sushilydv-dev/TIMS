@@ -18,6 +18,9 @@ export function SubmissionPanel({ sub, onClose, onGrade }) {
   const hasFile  = Boolean(sub.file_url);
   const isBase64 = hasFile && sub.file_url.startsWith("data:");
 
+  // Handle file paths vs base64 URLs
+  const fileUrl = isBase64 ? sub.file_url : (sub.file_url ? `http://localhost:3000${sub.file_url}` : sub.file_url);
+
   const guessFileName = () => {
     if (!isBase64) return "submission-file";
     const mime = sub.file_url.split(";")[0].replace("data:", "");
@@ -109,8 +112,8 @@ export function SubmissionPanel({ sub, onClose, onGrade }) {
                 />
               ) : (
                 <div className="px-4 py-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-[#475569] break-all flex-1">{sub.file_url}</p>
-                  <a href={sub.file_url} target="_blank" rel="noopener noreferrer"
+                  <p className="text-xs font-semibold text-[#475569] break-all flex-1">{fileUrl}</p>
+                  <a href={fileUrl} target="_blank" rel="noopener noreferrer"
                     className={`shrink-0 ${primaryBtnClass} py-1.5 px-3 text-xs no-underline flex items-center gap-1`}>
                     <FiExternalLink className="w-3 h-3" /> Open
                   </a>

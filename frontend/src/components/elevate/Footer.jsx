@@ -6,7 +6,7 @@ import {
   FaXTwitter,
   FaLinkedin,
 } from "react-icons/fa6";
-import productlogo from "../../assets/logo.png"
+import { LOGO_PATH } from "../../constants";
 import { INSTITUTE_NAME } from "../../constants";
 export const Footer = () => {
   return (
@@ -26,7 +26,7 @@ export const Footer = () => {
                        
                         <div className="flex items-center justify-center ">
                           <img
-                            src={productlogo}
+                            src={LOGO_PATH}
                             alt="MSAI India Logo"
                             className="h-[30px] w-[40px] "
                           />

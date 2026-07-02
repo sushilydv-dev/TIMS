@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { FiUser } from "react-icons/fi";
-import logo from "../../assets/logo.png";
+import { LOGO_PATH } from "../../constants";
 import { AuthImageSlider } from "./AuthImageSlider";
 import { AuthSwitchLink } from "./AuthSwitchLink";
 
@@ -36,7 +36,7 @@ export function AuthSplitLayout({
     <div className="flex-1 flex flex-col min-h-screen min-h-[100dvh] w-full lg:w-1/2 bg-white">
       <header className="flex items-center justify-between px-6 sm:px-10 pt-6 sm:pt-8 shrink-0">
         <Link to="/" className="flex items-center gap-2.5">
-          <img src={logo} alt="TIMS" className="h-9 w-9 object-contain" />
+          <img src={LOGO_PATH} alt="TIMS" className="h-9 w-9 object-contain" />
           <span className="text-lg font-extrabold text-[#0c0407] tracking-tight">
             TIMS
           </span>

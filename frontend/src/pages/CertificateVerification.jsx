@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { FiAward, FiCheckCircle, FiXCircle, FiLoader, FiCalendar, FiUser, FiBook } from "lucide-react";
+import { FiAward, FiCheckCircle, FiXCircle, FiLoader, FiCalendar, FiUser, FiBook } from "react-icons/fi";
 import { INSTITUTE_NAME } from "../constants";
 
 const CertificateVerification = () => {

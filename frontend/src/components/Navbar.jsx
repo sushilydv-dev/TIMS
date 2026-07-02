@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import logo from "../assets/logo.png";
+import { LOGO_PATH } from "../constants";
 import { useAuth } from "../app/AuthContext";
 import { INSTITUTE_NAME } from "../constants";
 
@@ -254,7 +254,7 @@ export const Navbar = ({ courseData: externalCourseData }) => {
           
           <div className="flex items-center justify-center">
             <img
-              src={logo}
+              src={LOGO_PATH}
               alt="MSAI India Logo"
               className="h-[30px] w-[40px] px-1 "
             />
@@ -337,7 +337,7 @@ export const Navbar = ({ courseData: externalCourseData }) => {
               to="/login"
               className="text-[0.88rem] font-semibold text-white no-underline px-4 py-[7px] rounded-full bg-gradient-to-r from-rose-500 to-[#fc362d] shadow-[0_2px_10px_rgba(27,210,164,0.25)] hover:shadow-[0_4px_18px_rgba(27,210,164,0.4)] hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
             >
-              Login
+              Dashboard
             </Link>
           )}
         </div>
@@ -389,7 +389,7 @@ export const Navbar = ({ courseData: externalCourseData }) => {
           <section className="h-full w-1/3 shrink-0 overflow-y-auto px-6 pb-8 pt-5">
             <div className="mb-8 flex items-center justify-between">
               <a href="/" className="flex items-center gap-2 no-underline" onClick={closeMobileMenu}>
-                <img src={logo} alt="MSAI India Logo" className="h-[48px] w-[66px]" />
+                <img src={LOGO_PATH} alt="MSAI India Logo" className="h-[48px] w-[66px]" />
                 <span className="text-[1.05rem] font-bold text-[#0d463e]">{INSTITUTE_NAME}</span>
               </a>
               <button

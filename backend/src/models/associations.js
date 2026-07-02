@@ -62,7 +62,10 @@ Course.hasMany(StudyMaterial, { foreignKey: "course_id", onDelete: "CASCADE" });
 StudyMaterial.belongsTo(Course, { foreignKey: "course_id" });
 
 Course.hasMany(Assessment, { foreignKey: "course_id", onDelete: "CASCADE" });
-Assessment.belongsTo(Course, { foreignKey: "course_id" });
+Assessment.belongsTo(Course, { foreignKey: "course_id", as: "course" });
+
+Batch.hasMany(Assessment, { foreignKey: "batch_id", onDelete: "SET NULL" });
+Assessment.belongsTo(Batch, { foreignKey: "batch_id", as: "batch" });
 
 // Keep one-to-many for backward compatibility (primary trainer)
 Trainer.hasMany(Batch, { foreignKey: "trainer_id", onDelete: "SET NULL" });
@@ -113,10 +116,10 @@ Installment.hasMany(Payment, { foreignKey: "installment_id", onDelete: "SET NULL
 Payment.belongsTo(Installment, { foreignKey: "installment_id", as: "installment" });
 
 Assessment.hasMany(AssessmentResult, { foreignKey: "assessment_id", onDelete: "CASCADE" });
-AssessmentResult.belongsTo(Assessment, { foreignKey: "assessment_id" });
+AssessmentResult.belongsTo(Assessment, { foreignKey: "assessment_id", as: "assessment" });
 
 Student.hasMany(AssessmentResult, { foreignKey: "student_id", onDelete: "CASCADE" });
-AssessmentResult.belongsTo(Student, { foreignKey: "student_id" });
+AssessmentResult.belongsTo(Student, { foreignKey: "student_id", as: "student" });
 
 Student.hasMany(Certificate, { foreignKey: "student_id", onDelete: "CASCADE" });
 Certificate.belongsTo(Student, { foreignKey: "student_id" });

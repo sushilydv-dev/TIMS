@@ -15,6 +15,27 @@ export async function syncDatabase() {
       console.warn("students schema migration warning:", err.message);
     }
 
+    // Rename project_submisssions (triple-s typo) to project_submissions if needed
+    try {
+      await sequelize.query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = 'project_submisssions'
+          ) AND NOT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = 'project_submissions'
+          ) THEN
+            ALTER TABLE "project_submisssions" RENAME TO "project_submissions";
+          END IF;
+        END$$;
+      `);
+      console.log("project_submissions table name verified/corrected");
+    } catch (err) {
+      console.warn("project_submissions rename warning:", err.message);
+    }
+
     const dropConstraints = [
       'ALTER TABLE "courses" DROP CONSTRAINT IF EXISTS "courses_created_by_fkey";',
       'ALTER TABLE "batches" DROP CONSTRAINT IF EXISTS "batches_assigned_by_fkey";',

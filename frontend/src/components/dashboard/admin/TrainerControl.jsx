@@ -196,7 +196,8 @@ export const TrainerControl = () => {
       profile_img: trainer.profile_img || "",
       batch_ids: Array.isArray(trainer.Batches) ? trainer.Batches.map(b => b.id) : [],
     });
-    setImgPreview(trainer.profile_img || null);
+    const imgUrl = trainer.profile_img || null;
+    setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
     setImgData(null);
     setPanelEditMode(false);
     setPanelOpen(true);
@@ -287,7 +288,8 @@ export const TrainerControl = () => {
           profile_img: data.trainer.profile_img || "",
           batch_ids: Array.isArray(data.trainer.Batches) ? data.trainer.Batches.map(b => b.id) : [],
         });
-        setImgPreview(data.trainer.profile_img || null);
+        const imgUrl = data.trainer.profile_img || null;
+        setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
         setImgData(null);
       }
       fetchTrainers(page);
@@ -586,7 +588,8 @@ export const TrainerControl = () => {
                         profile_img: selectedTrainer.profile_img || "",
                         batch_ids: Array.isArray(selectedTrainer.Batches) ? selectedTrainer.Batches.map(b => b.id) : [],
                       });
-                      setImgPreview(selectedTrainer.profile_img || null);
+                      const imgUrl = selectedTrainer.profile_img || null;
+                      setImgPreview(imgUrl?.startsWith("data:") ? imgUrl : (imgUrl ? `http://localhost:3000${imgUrl}` : null));
                       setImgData(null);
                     }}
                     className="text-[10px] font-bold text-[#fc362d] hover:underline"

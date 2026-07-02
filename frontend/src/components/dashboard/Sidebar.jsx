@@ -13,9 +13,10 @@ import {
   FiChevronDown,
   FiClock,
   FiCheckSquare,
+  FiTrendingUp,
 } from "react-icons/fi";
 import { useAuth } from "../../app/AuthContext";
-import logo from "../../assets/logo.png";
+import { LOGO_PATH } from "../../constants";
 import { navActiveClass, navInactiveClass } from "./dashboardTheme";
 
 export const Sidebar = ({ activeRole }) => {
@@ -82,6 +83,7 @@ export const Sidebar = ({ activeRole }) => {
         return [
           ...baseLinks,
           { label: "My Profile",      icon: <FiUsers    className="w-5 h-5" />, path: "/dashboard/student/profile" },
+          { label: "My Performance",  icon: <FiTrendingUp className="w-5 h-5" />, path: "/dashboard/student/performance" },
           { label: "My Certificates", icon: <FiAward    className="w-5 h-5" />, path: "/dashboard/student/certificates" },
           { label: "Projects",        icon: <FiAward    className="w-5 h-5" />, path: "/dashboard/student/projects" },
           { label: "Study Materials", icon: <FiBookOpen className="w-5 h-5" />, path: "/dashboard/student/materials" },
@@ -97,7 +99,7 @@ export const Sidebar = ({ activeRole }) => {
   return (
     <div className="w-72 bg-white min-h-screen h-full border-r border-black/[0.08] flex flex-col py-6 px-5">
       <Link to="/" className="flex items-center gap-3 px-2 py-2 mb-8">
-        <img src={logo} alt={INSTITUTE_NAME} className="h-9 w-9 object-contain" />
+        <img src={LOGO_PATH} alt={INSTITUTE_NAME} className="h-9 w-9 object-contain" />
         <span className="text-xl font-bold text-[#0c0407] tracking-tight">
           {INSTITUTE_NAME}
         </span>

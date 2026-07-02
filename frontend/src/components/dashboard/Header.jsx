@@ -42,7 +42,9 @@ export const Header = ({ activeRole, onRoleChange }) => {
           imageUrl = data.profile_img;
         }
         
-        setProfileImage(imageUrl);
+        // Handle file paths vs base64
+        const finalUrl = imageUrl?.startsWith("data:") ? imageUrl : (imageUrl ? `http://localhost:3000${imageUrl}` : null);
+        setProfileImage(finalUrl);
       } catch (err) {
         console.error("Failed to fetch profile image:", err);
       }

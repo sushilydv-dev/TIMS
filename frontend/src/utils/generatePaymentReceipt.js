@@ -15,6 +15,8 @@
  * @param {string} [opts.label]         — e.g. "Full Payment" / "Instalment 1"
  * @param {string} [opts.status]        — "SUCCESS" etc.
  */
+import { LOGO_PATH } from "../constants";
+
 export function generatePaymentReceipt(opts) {
   return new Promise((resolve, reject) => {
     const {
@@ -175,7 +177,7 @@ export function generatePaymentReceipt(opts) {
       drawContent();
     };
     logo.onerror = drawContent; // proceed without logo
-    logo.src = "/logo.png";     // served from public/
+    logo.src = LOGO_PATH;
   });
 }
 

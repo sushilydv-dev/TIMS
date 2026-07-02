@@ -75,8 +75,11 @@ function CourseCard({ course }) {
   // Resolve what image to show:
   // 1. Uploaded thumbnail  2. Video screenshot (YouTube)  3. Placeholder
   const videoThumb = !course.thumbnail_url ? getVideoThumbnail(course.demo_video_url) : null;
-  const imgSrc = course.thumbnail_url || videoThumb;
-  const isVideoThumb = !course.thumbnail_url && Boolean(videoThumb);
+  
+  // Handle file paths vs base64 URLs
+  const thumbUrl = course.thumbnail_url?.startsWith("data:") ? course.thumbnail_url : (course.thumbnail_url ? `http://localhost:3000${course.thumbnail_url}` : null);
+  const imgSrc = thumbUrl || videoThumb;
+  const isVideoThumb = !thumbUrl && Boolean(videoThumb);
 
   return (
     <motion.div {...cardAnim} layout>

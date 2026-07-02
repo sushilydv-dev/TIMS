@@ -33,9 +33,33 @@ const STATUS_CFG = {
 const getStatus = (s) => STATUS_CFG[(s || "").toUpperCase()] || { label: s || "—", variant: "info", dot: "bg-[#94a3b8]" };
 
 /* ── InstallmentRow ──────────────────────────────────── */
-function InstallmentRow({ inst }) {
+function InstallmentRow({ inst, studentData, payments }) {
   const isPaid    = inst.status === "PAID";
   const isOverdue = inst.status === "OVERDUE";
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadReceipt = async () => {
+    if (!isPaid) return;
+    setDownloading(true);
+    try {
+      const payment = payments?.find(p => p.installment_id === inst.id);
+      await generatePaymentReceipt({
+        studentName:   studentData?.student_name || "—",
+        studentCode:   studentData?.student_code || "—",
+        studentEmail:  studentData?.student_email || "—",
+        courseName:    studentData?.course_title || "—",
+        batchName:     studentData?.batch_name || "—",
+        amount:        inst.amount_due,
+        paymentDate:   payment?.payment_date || inst.due_date,
+        paymentMethod: payment?.method || "—",
+        transactionId: payment?.transaction_id || "—",
+        status:        payment?.status || "SUCCESS",
+        label:         inst.label || "Installment",
+      });
+    } catch { /* silent */ }
+    finally { setDownloading(false); }
+  };
+
   return (
     <div className={`flex items-center justify-between gap-3 py-2 px-3 rounded-lg text-[10px] ${
       isPaid ? "bg-emerald-50 border border-emerald-200" : isOverdue ? "bg-[#fef2f2] border border-[#b91c1c]/20" : "bg-[#f1f5f9] border border-black/[0.06]"
@@ -50,6 +74,16 @@ function InstallmentRow({ inst }) {
         {isPaid && <span className="text-emerald-600 font-extrabold">✓ Paid</span>}
         {!isPaid && inst.settled > 0 && (
           <span className="text-amber-600 font-bold">{inr(inst.settled)} settled</span>
+        )}
+        {isPaid && (
+          <button
+            disabled={downloading}
+            onClick={handleDownloadReceipt}
+            className="flex items-center gap-1 text-[9px] font-bold text-[#475569] hover:text-[#fc362d] cursor-pointer px-2 py-1 rounded-lg border border-black/[0.07] hover:border-[#fc362d]/30 bg-white transition-all disabled:opacity-50"
+          >
+            <FiDownload className="w-3 h-3" />
+            {downloading ? "…" : "Receipt"}
+          </button>
         )}
       </div>
     </div>
@@ -117,7 +151,7 @@ function PaymentRow({ p, onOpenStudentProfile }) {
 }
 
 /* ── StudentFeeRow ───────────────────────────────────── */
-function StudentFeeRow({ row, onOpenStudentProfile }) {
+function StudentFeeRow({ row, onOpenStudentProfile, payments }) {
   const [open, setOpen] = useState(false);
   const st   = getStatus(row.payment_status);
   const pct  = row.total_amount > 0 ? Math.round((row.paid_amount / row.total_amount) * 100) : 0;
@@ -210,7 +244,12 @@ function StudentFeeRow({ row, onOpenStudentProfile }) {
             <div className="space-y-1.5">
               <p className={labelMutedClass}>Installment Schedule</p>
               {row.installments.map(i => (
-                <InstallmentRow key={i.id} inst={i} />
+                <InstallmentRow 
+                  key={i.id} 
+                  inst={i} 
+                  studentData={row}
+                  payments={payments}
+                />
               ))}
             </div>
           )}
@@ -384,6 +423,7 @@ export const BillingLedger = () => {
                     key={row.fee_id || row.student_id}
                     row={row}
                     onOpenStudentProfile={openStudentProfile}
+                    payments={payments}
                   />
                 ))}
               </div>

@@ -11,24 +11,57 @@ const Assessment = sequelize.define(
     },
     course_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       references: { model: "courses", key: "id" },
+    },
+    batch_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: "batches", key: "id" },
     },
     title: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    questions: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+    },
     total_marks: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 100,
     },
-    assessment_date: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
+    passing_marks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    duration_minutes: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    start_time: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    end_time: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: "users", key: "id" },
     },
   },
   {
-    tableName: "assessment",
+    tableName: "assessments",
+    underscored: true,
   },
 );
 

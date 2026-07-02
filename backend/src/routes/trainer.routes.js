@@ -11,6 +11,7 @@ import Attendance from "../models/attendance.js";
 import ProjectSubmission from "../models/projectSubmission.js";
 import Project from "../models/project.js";
 import StudyMaterial from "../models/studyMaterial.js";
+import BatchTrainer from "../models/batchTrainer.js";
 import Notification from "../models/notification.js";
 import { Op } from "sequelize";
 import { handleFileUpload } from "../utils/fileUpload.js";
@@ -30,6 +31,26 @@ router.use((req, res, next) => {
 
 async function getTrainerRecord(userId) {
   return Trainer.findOne({ where: { user_id: userId } });
+}
+
+/** Returns all batch IDs where this trainer is primary OR co-trainer */
+async function getTrainerBatchIds(trainerId) {
+  const [primary, secondary] = await Promise.all([
+    Batch.findAll({ where: { trainer_id: trainerId }, attributes: ["id"] }),
+    BatchTrainer.findAll({ where: { trainer_id: trainerId }, attributes: ["batch_id"] }),
+  ]);
+  const ids = new Set([
+    ...primary.map(b => b.id),
+    ...secondary.map(bt => bt.batch_id),
+  ]);
+  return [...ids];
+}
+
+/** Finds a batch the trainer is allowed to manage (primary or co-trainer) */
+async function findTrainerBatch(batchId, trainerId) {
+  const batchIds = await getTrainerBatchIds(trainerId);
+  if (!batchIds.includes(batchId)) return null;
+  return Batch.findByPk(batchId);
 }
 
 /* ── GET /api/trainer/profile ────────────────────────── */
@@ -158,14 +179,17 @@ router.get("/me", asyncHandler(async (req, res) => {
   });
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batches = await Batch.findAll({
-    where: { trainer_id: trainer.id },
-    include: [
-      { model: Course, attributes: ["id", "title", "duration_month"] },
-      { model: Enrollment, attributes: ["id"], include: [{ model: Student, attributes: ["id"] }] },
-    ],
-    order: [["start_date", "DESC"]],
-  });
+  const batchIds = await getTrainerBatchIds(trainer.id);
+  const batches = batchIds.length > 0
+    ? await Batch.findAll({
+        where: { id: batchIds },
+        include: [
+          { model: Course, attributes: ["id", "title", "duration_month"] },
+          { model: Enrollment, attributes: ["id"], include: [{ model: Student, attributes: ["id"] }] },
+        ],
+        order: [["start_date", "DESC"]],
+      })
+    : [];
 
   res.json({
     id: trainer.id,
@@ -191,8 +215,10 @@ router.get("/batches/:batchId", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({
-    where: { id: req.params.batchId, trainer_id: trainer.id },
+  const access = await findTrainerBatch(req.params.batchId, trainer.id);
+  if (!access) { res.status(404); throw new Error("Batch not found or not assigned to you"); }
+
+  const batch = await Batch.findByPk(req.params.batchId, {
     include: [
       { model: Course, attributes: ["id", "title", "duration_month"] },
       {
@@ -204,8 +230,6 @@ router.get("/batches/:batchId", asyncHandler(async (req, res) => {
       },
     ],
   });
-
-  if (!batch) { res.status(404); throw new Error("Batch not found or not assigned to you"); }
 
   res.json({
     id: batch.id,
@@ -233,7 +257,7 @@ router.get("/batches/:batchId/attendance", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({ where: { id: req.params.batchId, trainer_id: trainer.id } });
+  const batch = await findTrainerBatch(req.params.batchId, trainer.id);
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
   const { date } = req.query;
@@ -271,7 +295,7 @@ router.post("/batches/:batchId/attendance", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({ where: { id: req.params.batchId, trainer_id: trainer.id } });
+  const batch = await findTrainerBatch(req.params.batchId, trainer.id);
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
   const { date, entries } = req.body;
@@ -305,10 +329,7 @@ router.get("/batches/:batchId/submissions", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({
-    where: { id: req.params.batchId, trainer_id: trainer.id },
-    include: [{ model: Course, attributes: ["id"] }],
-  });
+  const batch = await findTrainerBatch(req.params.batchId, trainer.id);
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
   // Get projects for this batch's course
@@ -332,7 +353,7 @@ router.get("/batches/:batchId/submissions", asyncHandler(async (req, res) => {
       name: s.Student?.User?.name || "",
       profile_img: s.Student?.profile_img || "",
     },
-    github_link: s.github_link,
+    github_link: s.GitHub_link,
     file_url: s.file_url,
     submitted_at: s.submitted_at,
     marks: s.marks,
@@ -346,9 +367,7 @@ router.get("/batches/:batchId/projects", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({
-    where: { id: req.params.batchId, trainer_id: trainer.id },
-  });
+  const batch = await findTrainerBatch(req.params.batchId, trainer.id);
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
   const projects = await Project.findAll({
@@ -383,7 +402,7 @@ router.get("/batches/:batchId/projects", asyncHandler(async (req, res) => {
     submissions: (subMap[p.id] || []).map(s => ({
       id: s.id,
       student: { id: s.Student?.id, name: s.Student?.User?.name || "" },
-      github_link: s.github_link,
+      github_link: s.GitHub_link,
       file_url: s.file_url,
       submitted_at: s.submitted_at,
       marks: s.marks,
@@ -398,9 +417,7 @@ router.post("/batches/:batchId/projects", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({
-    where: { id: req.params.batchId, trainer_id: trainer.id },
-  });
+  const batch = await findTrainerBatch(req.params.batchId, trainer.id);
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
   const { title, description, deadline } = req.body;
@@ -439,8 +456,11 @@ router.put("/projects/:id", asyncHandler(async (req, res) => {
   const project = await Project.findByPk(req.params.id);
   if (!project) { res.status(404); throw new Error("Project not found"); }
 
-  // Verify trainer owns a batch for this course
-  const batch = await Batch.findOne({ where: { course_id: project.course_id, trainer_id: trainer.id } });
+  // Verify trainer owns a batch for this course (primary or co-trainer)
+  const trainerBatchIds = await getTrainerBatchIds(trainer.id);
+  const batch = trainerBatchIds.length > 0
+    ? await Batch.findOne({ where: { course_id: project.course_id, id: trainerBatchIds } })
+    : null;
   if (!batch) { res.status(403); throw new Error("Not authorized to edit this project"); }
 
   const { title, description, deadline } = req.body;
@@ -460,8 +480,11 @@ router.delete("/projects/:id", asyncHandler(async (req, res) => {
   const project = await Project.findByPk(req.params.id);
   if (!project) { res.status(404); throw new Error("Project not found"); }
 
-  const batch = await Batch.findOne({ where: { course_id: project.course_id, trainer_id: trainer.id } });
-  if (!batch) { res.status(403); throw new Error("Not authorized to delete this project"); }
+  const trainerBatchIdsForDelete = await getTrainerBatchIds(trainer.id);
+  const batchForDelete = trainerBatchIdsForDelete.length > 0
+    ? await Batch.findOne({ where: { course_id: project.course_id, id: trainerBatchIdsForDelete } })
+    : null;
+  if (!batchForDelete) { res.status(403); throw new Error("Not authorized to delete this project"); }
 
   await ProjectSubmission.destroy({ where: { project_id: project.id } });
   await project.destroy();
@@ -492,9 +515,7 @@ router.get("/batches/:batchId/materials", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({
-    where: { id: req.params.batchId, trainer_id: trainer.id },
-  });
+  const batch = await findTrainerBatch(req.params.batchId, trainer.id);
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
   const materials = await StudyMaterial.findAll({
@@ -510,9 +531,7 @@ router.post("/batches/:batchId/materials", asyncHandler(async (req, res) => {
   const trainer = await getTrainerRecord(req.user.id);
   if (!trainer) { res.status(404); throw new Error("Trainer profile not found"); }
 
-  const batch = await Batch.findOne({
-    where: { id: req.params.batchId, trainer_id: trainer.id },
-  });
+  const batch = await findTrainerBatch(req.params.batchId, trainer.id);
   if (!batch) { res.status(404); throw new Error("Batch not found"); }
 
   const { title, topic_name, file_url, file_data, material_type } = req.body;
@@ -546,9 +565,12 @@ router.delete("/materials/:id", asyncHandler(async (req, res) => {
   const material = await StudyMaterial.findByPk(req.params.id);
   if (!material) { res.status(404); throw new Error("Material not found"); }
 
-  // Verify this trainer owns the batch for this course
-  const batch = await Batch.findOne({ where: { course_id: material.course_id, trainer_id: trainer.id } });
-  if (!batch) { res.status(403); throw new Error("Not authorized to delete this material"); }
+  // Verify this trainer owns the batch for this course (primary or co-trainer)
+  const trainerBatchIdsForMaterial = await getTrainerBatchIds(trainer.id);
+  const batchForMaterial = trainerBatchIdsForMaterial.length > 0
+    ? await Batch.findOne({ where: { course_id: material.course_id, id: trainerBatchIdsForMaterial } })
+    : null;
+  if (!batchForMaterial) { res.status(403); throw new Error("Not authorized to delete this material"); }
 
   await material.destroy();
   res.json({ message: "Material deleted" });

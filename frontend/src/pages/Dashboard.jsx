@@ -5,7 +5,7 @@ import { Header } from "../components/dashboard/Header";
 import { Footer } from "../components/dashboard/Footer";
 import { useAuth } from "../app/AuthContext";
 import { FiMenu, FiX, FiBell, FiLogOut } from "react-icons/fi";
-import logo from "../assets/logo.png";
+import { LOGO_PATH } from "../constants";
 import axios from "axios";
 
 const Dashboard = () => {
@@ -124,7 +124,7 @@ const Dashboard = () => {
       <main className="flex-1 xl:ml-72 flex flex-col min-h-screen p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto w-full">
         <div className="xl:hidden flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.05)] mb-4">
           <div className="flex items-center gap-2.5">
-            <img src={logo} alt="TIMS" className="h-8 w-8 object-contain" />
+            <img src={LOGO_PATH} alt="TIMS" className="h-8 w-8 object-contain" />
             <span className="font-bold text-sm text-[#0c0407]">TIMS</span>
           </div>
           <div className="flex items-center gap-2">
