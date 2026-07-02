@@ -9,8 +9,8 @@ const NAV_LINKS = [
   { label: "Home",       hasDropdown: false, to: "/" },
   { label: "About us",   hasDropdown: false, to: "/about-us" },
   { label: "Courses",    hasDropdown: true },
-  { label: "Resources",  hasDropdown: true },
-  { label: "Pricing",    hasDropdown: false },
+  { label: "Contact", hasDropdown: false, to: "/contact" }
+ 
 ];
 
 const EMPTY_COURSE_DATA = {

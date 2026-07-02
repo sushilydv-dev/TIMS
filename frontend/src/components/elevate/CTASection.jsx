@@ -1,7 +1,13 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, CalendarCheck, GraduationCap } from "lucide-react";
 import { useConsultation } from "../../context/ConsultationContext";
+import cta_background from "../../assets/cta_background.png";
+const PATHWAYS = [
+  { icon: GraduationCap, label: "Registered apprenticeships" },
+  { icon: BriefcaseBusiness, label: "Live project programs" },
+  { icon: CalendarCheck, label: "One-on-one consultation" },
+];
 
 export const CTASection = () => {
   const { openConsultation } = useConsultation();
@@ -12,106 +18,112 @@ export const CTASection = () => {
     offset: ["start end", "end start"],
   });
 
-  // Smoothly subtle parallax movement for the internal glow blobs
-  const glowY = useTransform(scrollYProgress, [0, 1], ["-15%", "15%"]);
+  const accentY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
 
   return (
-    <section ref={sectionRef} className="relative py-20 md:py-24 px-4 md:px-8 lg:px-16 overflow-hidden bg-white">
-      {/* Light background subtle decorative ambient blur */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-red-100/40 blur-[150px] pointer-events-none" />
+    <section  ref={sectionRef} className="relative overflow-hidden bg-white px-4 py-20 md:px-8 md:py-28 lg:px-16">
+      <motion.div
+        style={{ y: accentY }}
+        className="absolute inset-x-0 top-0 h-24 border-y border-[#fc362d]/10 opacity-70"
+        aria-hidden="true"
+      />
 
-      <div className="max-w-6xl mx-auto">
+      <div className="relative mx-auto max-w-7xl ">
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 32 }}
-          whileInView={{ opacity: 1, scale: 1, y: 0 }}
+          initial={{ opacity: 0, y: 32 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[36px] md:rounded-[48px] shadow-2xl bg-[#0c0509] border border-white/5"
-          style={{ minHeight: "420px" }}
+          className="relative overflow-hidden rounded-[28px] border border-black/[0.06] bg-rose-100
+        shadow-[0_24px_80px_rgba(12,4,7,0.08)] "
         >
-          {/* Obsidian Style Glow Layers instead of a photo */}
-          <motion.div
-            style={{ y: glowY }}
-            className="absolute inset-0 pointer-events-none overflow-hidden"
-            aria-hidden="true"
-          >
-            {/* Top-left ambient glow */}
-            <div className="absolute -top-32 -left-32 w-96 h-96 bg-rose-500/10 rounded-full blur-[100px]" />
-            {/* Bottom-right ambient glow */}
-            <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#fc362d]/10 rounded-full blur-[100px]" />
-          </motion.div>
-
-          {/* Premium Fine Grid Mesh Texture Layer */}
-          <div 
-            className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-overlay"
+          <div
+            className="absolute inset-0 pointer-events-none opacity-70"
             style={{
-              backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-              backgroundSize: '24px 24px'
+              backgroundImage:
+                "linear-gradient(135deg, rgba(252,54,45,0.12), transparent 34%), linear-gradient(90deg, rgba(255,255,255,0.88), rgba(255,255,255,0.42))",
             }}
             aria-hidden="true"
           />
 
-          {/* Content */}
-          <div className="relative z-10 flex flex-col items-center text-center px-6 md:px-16 py-16 md:py-20">
-            <motion.span
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="px-3 py-1.5 rounded-full text-xs font-bold tracking-[0.2em] uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 mb-6"
-            >
-              Get Started
-            </motion.span>
-
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.65, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-              className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight mb-6 max-w-2xl"
-            >
-              Ready to launch your{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-[#fc362d] to-rose-600">
-                next career chapter?
-              </span>
-            </motion.h2>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.22 }}
-              className="text-zinc-400 text-sm md:text-base lg:text-lg max-w-xl mb-10 leading-relaxed font-medium"
-            >
-              Explore registered apprenticeships, live project programs, or schedule a one-on-one consultation with our team today.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.55, delay: 0.28 }}
-              className="flex flex-col sm:flex-row items-center gap-3"
-            >
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                onClick={openConsultation}
-                className="relative group px-8 py-4 rounded-full font-bold text-white bg-[#fc362d] hover:bg-[#e02d25] transition-all duration-300 shadow-[0_4px_28px_rgba(252,54,45,0.3)] hover:shadow-[0_4px_38px_rgba(252,54,45,0.5)] cursor-pointer flex items-center gap-2 text-sm"
+          <div className="relative z-10 grid gap-10 px-6 py-12 md:px-10 md:py-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-14">
+            <div>
+              <motion.span
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="mb-6 inline-flex rounded-full border border-[#fc362d]/20 bg-[#fc362d]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#fc362d]"
               >
-                Schedule a Consultation
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
+                Start Today
+              </motion.span>
 
-              <motion.a
-                whileHover={{ scale: 1.02 }}
-                href="/all-courses"
-                className="px-8 py-4 rounded-full font-bold text-zinc-300 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all duration-300 no-underline text-sm"
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.65, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                className="mb-6 max-w-3xl text-3xl font-extrabold leading-tight tracking-tight text-[#0c0407] md:text-5xl lg:text-6xl"
               >
-                Browse Programs
-              </motion.a>
-            </motion.div>
+                Ready to launch your next career chapter?
+              </motion.h2>
+
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.22 }}
+                className="max-w-2xl text-base font-medium leading-relaxed text-[#636363] md:text-lg"
+              >
+                Explore registered apprenticeships, live project programs, or schedule a one-on-one consultation with our team today.
+              </motion.p>
+            </div>
+
+            <div className="flex flex-col gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.55, delay: 0.26 }}
+                className="grid gap-3"
+              >
+                {PATHWAYS.map(({ icon: Icon, label }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/80 px-4 py-3 text-sm font-bold text-[#140d0f] shadow-sm"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fc362d]/10 text-[#fc362d]">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    {label}
+                  </div>
+                ))}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.55, delay: 0.32 }}
+                className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row"
+              >
+                <button
+                  type="button"
+                  onClick={openConsultation}
+                  className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#fc362d] px-7 py-4 text-sm font-bold text-white shadow-[0_4px_28px_rgba(252,54,45,0.3)] transition-all duration-300 hover:bg-[#e02d25] hover:shadow-[0_6px_36px_rgba(252,54,45,0.45)]"
+                >
+                  Schedule a Consultation
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </button>
+
+                <a
+                  href="/all-courses"
+                  className="inline-flex items-center justify-center rounded-full border border-black/12 px-7 py-4 text-sm font-bold text-[#0c0407] no-underline shadow-sm transition-all duration-300 hover:border-[#fc362d] hover:bg-white"
+                >
+                  Browse Programs
+                </a>
+              </motion.div>
+            </div>
           </div>
         </motion.div>
       </div>

@@ -1,7 +1,15 @@
 @import "tailwindcss";
-html {
-  scroll-behavior: smooth;
+
+@font-face {
+  font-family: "ParallaxTitle";
+  src: url("/fonts/Neglige.otf");
 }
+
+@font-face {
+  font-family: "ParallaxBody";
+  src: url("/fonts/NeueMontreal_Medium.otf");
+}
+
 /* TIMS hash loader — continuous animation (react-spinners–compatible look) */
 .tims-hash-loader {
   display: inline-block;
