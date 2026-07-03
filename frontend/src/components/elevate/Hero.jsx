@@ -7,7 +7,7 @@ import { useConsultation } from "../../context/ConsultationContext";
 import { INSTITUTE_NAME } from "../../constants";
 
 const TRUST_PILLS = [
-  { icon: Users,    text: "50K+ Alumni" },
+  { icon: Users,    text: "Professional Instructors" },
   { icon: BookOpen, text: "20+ Programs" },
   { icon: Award,    text: "Certified Outcomes" },
 ];

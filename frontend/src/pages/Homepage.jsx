@@ -10,7 +10,7 @@ import { LogoTicker } from "../components/elevate/LogoTicker";
 import { About } from "../components/elevate/About";
 import { Services } from "../components/elevate/Services";
 import { Projects } from "../components/elevate/Projects";
-import { Testimonials } from "../components/elevate/Testimonials";
+import { CardsParallax } from "../components/elevate/CardsParallax";
 import { FAQs } from "../components/elevate/FAQs";
 import { CTASection } from "../components/elevate/CTASection";
 import { Footer } from "../components/elevate/Footer";
@@ -90,7 +90,7 @@ export const Homepage = () => {
 
   return (
     <ConsultationProvider>
-      <div className="bg-white min-h-screen text-[#0c0407] overflow-x-hidden">
+      <div className="bg-white min-h-screen text-[#0c0407] overflow-x-clip">
         {/* 3. Combined Navbar & Scroll Progress Container */}
         <div className="fixed top-0 left-0 w-full z-20">
           <Navbar courseData={courseData} />
@@ -110,7 +110,7 @@ export const Homepage = () => {
           <About />
           <Services />
           <Projects />
-          <Testimonials />
+          <CardsParallax />
           <FAQs />
           <CTASection />
         </main>

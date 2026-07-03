@@ -6,7 +6,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { useLenis } from "lenis/react"; // ── Modern import format
+import { ReactLenis, useLenis } from "lenis/react";
 import { AuthProvider } from "./app/AuthContext";
 import { PrivateRoutes } from "./Routes/PrivateRoutes";
 import { PublicRoutes } from "./Routes/PublicRoutes";
@@ -154,8 +154,16 @@ const ScrollToTop = () => {
 export const App = () => {
   return (
     <AuthProvider>
-     
-     
+      <ReactLenis
+        root
+        options={{
+          duration: 1.25,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          wheelMultiplier: 0.85,
+          touchMultiplier: 1.2,
+        }}
+      >
         <Router>
           <ScrollToTop />
           <Suspense fallback={<PageLoader label="Loading page" />}>
@@ -349,7 +357,7 @@ export const App = () => {
             </Routes>
           </Suspense>
         </Router>
-      
+      </ReactLenis>
     </AuthProvider>
   );
 };

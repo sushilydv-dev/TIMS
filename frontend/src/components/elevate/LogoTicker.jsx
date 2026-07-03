@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 
-const PARTNERS = [
-  "Infosys", "Wipro", "TCS", "Razorpay", "Zomato",
-  "PhonePe", "Zepto", "HDFC Bank", "Capgemini", "Accenture",
+const CORE_PILLARS = [
+  "Industrial Training", "Live Projects", "Practical Learning", 
+  "Code Evaluation", "Syllabus Modules", "Technical Mentorship", 
+  "Performance Tracking", "Assessment Quizzes", "Industry Standards", 
+  "Project Delivery", "Hands-On Coding", "Internal Onboarding"
 ];
 
 function TickerRow({ items, direction = 1, duration = 28 }) {
@@ -35,9 +37,9 @@ export const LogoTicker = () => (
   <section className="py-12 border-y border-black/[0.04] bg-[#f9f9fb] overflow-hidden">
     <div className="max-w-7xl mx-auto px-4 mb-8 text-center">
       <p className="text-[0.65rem] md:text-xs font-black tracking-[0.25em] text-black/30 uppercase">
-        Our graduates work at leading organisations
+       Start your professional journey with
       </p>
     </div>
-    <TickerRow items={PARTNERS} direction={1}  duration={28} />
+    <TickerRow items={CORE_PILLARS} direction={1}  duration={28} />
   </section>
 );
