@@ -65,10 +65,11 @@ const Login = () => {
       await login(trimmedEmail, password, rememberMe);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "An error occurred during login. Please check your credentials.",
-      );
+      console.error("Login error:", err);
+      const errorMessage = err.response?.data?.message || 
+        err.message || 
+        "An error occurred during login. Please check your credentials.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -90,10 +91,11 @@ const Login = () => {
       setSuccessMessage("OTP sent successfully to your email.");
       setView("forgot_otp");
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to send reset OTP. Verify your email is correct.",
-      );
+      console.error("Send reset OTP error:", err);
+      const errorMessage = err.response?.data?.message || 
+        err.message || 
+        "Failed to send reset OTP. Verify your email is correct.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -124,10 +126,11 @@ const Login = () => {
       setNewPassword("");
       setFieldErrors({});
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "An error occurred. Check your OTP and try again.",
-      );
+      console.error("Reset password error:", err);
+      const errorMessage = err.response?.data?.message || 
+        err.message || 
+        "An error occurred. Check your OTP and try again.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

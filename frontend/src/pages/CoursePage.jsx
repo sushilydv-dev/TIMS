@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { ReactLenis } from "lenis/react";
 import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/elevate/Footer";
 import {
@@ -577,7 +578,18 @@ function CoursePageInner() {
 export default function CoursePage() {
   return (
     <ConsultationProvider>
-      <CoursePageInner />
+      <ReactLenis
+        root
+        options={{
+          duration: 1.25,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          wheelMultiplier: 0.85,
+          touchMultiplier: 1.2,
+        }}
+      >
+        <CoursePageInner />
+      </ReactLenis>
     </ConsultationProvider>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { ReactLenis } from "lenis/react";
 import axios from "axios";
 import { HashLoader } from "react-spinners";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -95,16 +96,37 @@ const ActivateAccount = () => {
 
   if (authLoading || pageLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#fafafa]">
-        <HashLoader color="#fc362d" />
-        <p className="text-sm text-[#636363] font-medium">Loading activation…</p>
-      </div>
+      <ReactLenis
+        root
+        options={{
+          duration: 1.25,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          wheelMultiplier: 0.85,
+          touchMultiplier: 1.2,
+        }}
+      >
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#fafafa]">
+          <HashLoader color="#fc362d" />
+          <p className="text-sm text-[#636363] font-medium">Loading activation…</p>
+        </div>
+      </ReactLenis>
     );
   }
 
   return (
-    <AuthSplitLayout
-      imagePosition="right"
+    <ReactLenis
+      root
+      options={{
+        duration: 1.25,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        wheelMultiplier: 0.85,
+        touchMultiplier: 1.2,
+      }}
+    >
+      <AuthSplitLayout
+        imagePosition="right"
       pageTitle="Welcome to TIMS"
       pageSubtitle="Please set up a strong password to activate your account."
       alternateLink={{ to: "/login", label: "Sign in" }}
@@ -186,6 +208,7 @@ const ActivateAccount = () => {
         </form>
       )}
     </AuthSplitLayout>
+    </ReactLenis>
   );
 };
 

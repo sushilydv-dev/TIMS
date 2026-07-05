@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
+import { ReactLenis } from "lenis/react";
 import {
   Target, Eye, Heart, Users, Award, Lightbulb,
   BookOpen, Briefcase, Globe, ArrowRight, CheckCircle,
@@ -363,7 +364,18 @@ function AboutPageInner() {
 export default function AboutPage() {
   return (
     <ConsultationProvider>
-      <AboutPageInner />
+      <ReactLenis
+        root
+        options={{
+          duration: 1.25,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          wheelMultiplier: 0.85,
+          touchMultiplier: 1.2,
+        }}
+      >
+        <AboutPageInner />
+      </ReactLenis>
     </ConsultationProvider>
   );
 }
