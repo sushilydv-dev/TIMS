@@ -6,7 +6,6 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { ReactLenis, useLenis } from "lenis/react";
 import { AuthProvider } from "./app/AuthContext";
 import { PrivateRoutes } from "./Routes/PrivateRoutes";
 import { PublicRoutes } from "./Routes/PublicRoutes";
@@ -136,228 +135,201 @@ const NotificationCenter = lazy(
   () => import("./components/dashboard/NotificationCenter"),
 );
 
-// ── Companion component to handle route changes
-const ScrollToTop = () => {
-  const { pathname } = useLocation();
-  const lenis = useLenis();
-
-  useEffect(() => {
-    if (lenis) {
-      // Instantly resets scroll container to top without triggering standard smooth scroll lag on navigation
-      lenis.scrollTo(0, { immediate: true });
-    }
-  }, [pathname, lenis]);
-
-  return null;
-};
-
 export const App = () => {
   return (
     <AuthProvider>
-      <ReactLenis
-        root
-        options={{
-          duration: 1.25,
-          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          smoothWheel: true,
-          wheelMultiplier: 0.85,
-          touchMultiplier: 1.2,
-        }}
-      >
-        <Router>
-          <ScrollToTop />
-          <Suspense fallback={<PageLoader label="Loading page" />}>
-            <Routes>
-              <Route path="/activate-account" element={<ActivateAccount />} />
+      <Router>
+        <Suspense fallback={<PageLoader label="Loading page" />}>
+          <Routes>
+            <Route path="/activate-account" element={<ActivateAccount />} />
+            <Route
+              path="/complete-trainer-profile"
+              element={<CompleteTrainerProfile />}
+            />
+
+            <Route element={<PublicRoutes />}>
+              <Route path="/" element={<Homepage />} />
+              <Route path="/about-us" element={<AboutPage />} />
+              <Route path="/all-courses" element={<AllCoursesPage />} />
+              <Route path="/course/:courseId" element={<CoursePage />} />
+              <Route path="/learn-more/:trackId" element={<LearnMore />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route
-                path="/complete-trainer-profile"
-                element={<CompleteTrainerProfile />}
+                path="/cancellation-policy"
+                element={<CancellationPolicy />}
               />
+              <Route path="/verify/:code" element={<CertificateVerification />} />
+              <Route element={<AuthPresenceWrapper />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Navigate to="/login" replace />} />
+              </Route>
+            </Route>
 
-              <Route element={<PublicRoutes />}>
-                <Route path="/" element={<Homepage />} />
-                <Route path="/about-us" element={<AboutPage />} />
-                <Route path="/all-courses" element={<AllCoursesPage />} />
-                <Route path="/course/:courseId" element={<CoursePage />} />
-                <Route path="/learn-more/:trackId" element={<LearnMore />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route element={<PrivateRoutes />}>
+              <Route path="/dashboard" element={<Dashboard />}>
+                <Route index element={<DashboardIndex />} />
                 <Route
-                  path="/cancellation-policy"
-                  element={<CancellationPolicy />}
+                  path="notifications"
+                  element={<NotificationCenter />}
                 />
-                <Route path="/verify/:code" element={<CertificateVerification />} />
-                <Route element={<AuthPresenceWrapper />}>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Navigate to="/login" replace />} />
-                </Route>
-              </Route>
 
-              <Route element={<PrivateRoutes />}>
-                <Route path="/dashboard" element={<Dashboard />}>
-                  <Route index element={<DashboardIndex />} />
+                {/* ── Trainer ── */}
+                <Route element={<RequireTrainerProfile />}>
                   <Route
-                    path="notifications"
-                    element={<NotificationCenter />}
-                  />
-
-                  {/* ── Trainer ── */}
-                  <Route element={<RequireTrainerProfile />}>
-                    <Route
-                      path="trainer/profile"
-                      element={<TrainerProfile />}
-                    />
-                    <Route
-                      path="trainer/batches"
-                      element={<TrainerBatches />}
-                    />
-                    <Route
-                      path="trainer/batches/:batchId"
-                      element={<TrainerBatches />}
-                    />
-                    <Route
-                      path="trainer/attendance"
-                      element={<TrainerAttendance />}
-                    />
-                  </Route>
-
-                  {/* ── Student ── */}
-                  <Route path="student/profile" element={<StudentProfile />} />
-                  <Route
-                    path="student/performance"
-                    element={<PerformanceScorecard />}
+                    path="trainer/profile"
+                    element={<TrainerProfile />}
                   />
                   <Route
-                    path="student/certificates"
-                    element={<MyCertificates />}
+                    path="trainer/batches"
+                    element={<TrainerBatches />}
                   />
                   <Route
-                    path="student/projects"
-                    element={<StudentProjects />}
+                    path="trainer/batches/:batchId"
+                    element={<TrainerBatches />}
                   />
                   <Route
-                    path="student/materials"
-                    element={<StudentMaterials />}
-                  />
-
-                  {/* ── Admin ── */}
-                  <Route
-                    path="admin/profile"
-                    element={
-                      <RequireAdmin>
-                        <AdminProfile />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="admin/certificates/approvals"
-                    element={
-                      <RequireAdmin>
-                        <CertificateApproval />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="users"
-                    element={
-                      <RequireAdmin>
-                        <UserControl />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="students"
-                    element={
-                      <RequireAdminOrHR>
-                        <StudentControl />
-                      </RequireAdminOrHR>
-                    }
-                  />
-                  <Route
-                    path="trainers"
-                    element={
-                      <RequireAdmin>
-                        <TrainerControl />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="hr"
-                    element={
-                      <RequireAdminOrHR>
-                        <HrControl />
-                      </RequireAdminOrHR>
-                    }
-                  />
-                  <Route
-                    path="appointment-requests"
-                    element={
-                      <RequireAdmin>
-                        <AppointmentRequests />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="departments"
-                    element={
-                      <RequireAdmin>
-                        <CourseSetup />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="courses"
-                    element={
-                      <RequireAdmin>
-                        <CoursesList />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="courses/:courseId"
-                    element={
-                      <RequireAdmin>
-                        <CourseDetail />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="batches"
-                    element={
-                      <RequireAdmin>
-                        <BatchesList />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="health"
-                    element={
-                      <RequireAdmin>
-                        <SystemHealth />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="billing"
-                    element={
-                      <RequireAdmin>
-                        <BillingLedger />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="analytics"
-                    element={
-                      <RequireAdmin>
-                        <AnalyticsDashboard />
-                      </RequireAdmin>
-                    }
+                    path="trainer/attendance"
+                    element={<TrainerAttendance />}
                   />
                 </Route>
+
+                {/* ── Student ── */}
+                <Route path="student/profile" element={<StudentProfile />} />
+                <Route
+                  path="student/performance"
+                  element={<PerformanceScorecard />}
+                />
+                <Route
+                  path="student/certificates"
+                  element={<MyCertificates />}
+                />
+                <Route
+                  path="student/projects"
+                  element={<StudentProjects />}
+                />
+                <Route
+                  path="student/materials"
+                  element={<StudentMaterials />}
+                />
+
+                {/* ── Admin ── */}
+                <Route
+                  path="admin/profile"
+                  element={
+                    <RequireAdmin>
+                      <AdminProfile />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="admin/certificates/approvals"
+                  element={
+                    <RequireAdmin>
+                      <CertificateApproval />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="users"
+                  element={
+                    <RequireAdmin>
+                      <UserControl />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="students"
+                  element={
+                    <RequireAdminOrHR>
+                      <StudentControl />
+                    </RequireAdminOrHR>
+                  }
+                />
+                <Route
+                  path="trainers"
+                  element={
+                    <RequireAdmin>
+                      <TrainerControl />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="hr"
+                  element={
+                    <RequireAdminOrHR>
+                      <HrControl />
+                    </RequireAdminOrHR>
+                  }
+                />
+                <Route
+                  path="appointment-requests"
+                  element={
+                    <RequireAdmin>
+                      <AppointmentRequests />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="departments"
+                  element={
+                    <RequireAdmin>
+                      <CourseSetup />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="courses"
+                  element={
+                    <RequireAdmin>
+                      <CoursesList />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="courses/:courseId"
+                  element={
+                    <RequireAdmin>
+                      <CourseDetail />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="batches"
+                  element={
+                    <RequireAdmin>
+                      <BatchesList />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="health"
+                  element={
+                    <RequireAdmin>
+                      <SystemHealth />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="billing"
+                  element={
+                    <RequireAdmin>
+                      <BillingLedger />
+                    </RequireAdmin>
+                  }
+                />
+                <Route
+                  path="analytics"
+                  element={
+                    <RequireAdmin>
+                      <AnalyticsDashboard />
+                    </RequireAdmin>
+                  }
+                />
               </Route>
-            </Routes>
-          </Suspense>
-        </Router>
-      </ReactLenis>
+            </Route>
+          </Routes>
+        </Suspense>
+      </Router>
     </AuthProvider>
   );
 };

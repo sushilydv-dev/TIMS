@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { ReactLenis } from "lenis/react";
 import axios from "axios";
 import {
   Search, Clock, BookOpen, ArrowRight, X,
@@ -428,7 +429,18 @@ function AllCoursesInner() {
 export default function AllCoursesPage() {
   return (
     <ConsultationProvider>
-      <AllCoursesInner />
+      <ReactLenis
+        root
+        options={{
+          duration: 1.25,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          wheelMultiplier: 0.85,
+          touchMultiplier: 1.2,
+        }}
+      >
+        <AllCoursesInner />
+      </ReactLenis>
     </ConsultationProvider>
   );
 }

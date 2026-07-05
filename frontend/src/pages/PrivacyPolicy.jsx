@@ -1,11 +1,22 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { ReactLenis } from "lenis/react";
 import { LOGO_PATH } from "../constants";
 
 const PrivacyPolicy = () => {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
+    <ReactLenis
+      root
+      options={{
+        duration: 1.25,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        wheelMultiplier: 0.85,
+        touchMultiplier: 1.2,
+      }}
+    >
+      <div className="min-h-screen bg-white">
+        {/* Header */}
       <header className="bg-white border-b border-black/[0.04] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-4 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 group">
@@ -124,7 +135,8 @@ const PrivacyPolicy = () => {
           </p>
         </div>
       </footer>
-    </div>
+      </div>
+    </ReactLenis>
   );
 };
 
