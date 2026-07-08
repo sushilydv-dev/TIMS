@@ -35,6 +35,7 @@ import {
   updateBatch,
   getStudentDetails,
   removeStudentFromBatch,
+  deleteBatch,
 } from "../controllers/batches.controller.js";
 import Fee from "../models/fee.js";
 import Payment from "../models/payment.js";
@@ -73,6 +74,7 @@ router.post("/batches", createBatch);
 router.get("/batches", listAllBatches);
 router.get("/batches/:id", getBatch);
 router.put("/batches/:id", updateBatch);
+router.delete("/batches/:id", deleteBatch);
 router.delete("/batches/:id/students/:studentId", removeStudentFromBatch);
 router.get("/courses/:id", getCourse);
 router.post("/courses", createCourse);

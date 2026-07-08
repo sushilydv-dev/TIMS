@@ -245,7 +245,7 @@ export const createCourse = asyncHandler(async (req, res) => {
     fees: Number(fees) || 0,
     created_by: req.user?.id || null,
     thumbnail_url: handleFileUpload(thumbnail_url, "course"),
-    demo_video_url: demo_video_url?.trim() || null,
+    demo_video_url: handleFileUpload(demo_video_url, "course") || null,
     outcomes: normalizedOutcomes,
   });
 
@@ -293,7 +293,9 @@ export const updateCourse = asyncHandler(async (req, res) => {
   if (thumbnail_url !== undefined) {
     course.thumbnail_url = handleFileUpload(thumbnail_url, "course");
   }
-  if (demo_video_url !== undefined) course.demo_video_url = demo_video_url?.trim() || null;
+  if (demo_video_url !== undefined) {
+    course.demo_video_url = handleFileUpload(demo_video_url, "course") || null;
+  }
   if (outcomes !== undefined) {
     course.outcomes = Array.isArray(outcomes)
       ? outcomes.map((o) => String(o || "").trim()).filter(Boolean)

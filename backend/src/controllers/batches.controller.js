@@ -624,3 +624,30 @@ export const removeStudentFromBatch = asyncHandler(async (req, res) => {
 
   res.json({ message: "Student removed from batch successfully" });
 });
+
+export const deleteBatch = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const batch = await Batch.findByPk(id);
+  if (!batch) {
+    res.status(404);
+    throw new Error("Batch not found");
+  }
+
+  // Safely clean up references
+  await BatchTrainer.destroy({ where: { batch_id: id } });
+  await Enrollment.destroy({ where: { batch_id: id } });
+  await Attendance.destroy({ where: { batch_id: id } });
+  
+  // Dynamic imports for models not loaded at the top of batches.controller.js
+  const Certificate = (await import("../models/certificate.js")).default;
+  const Assessment = (await import("../models/assessment.js")).default;
+
+  await Certificate.destroy({ where: { batch_id: id } });
+  await Assessment.update({ batch_id: null }, { where: { batch_id: id } });
+
+  await batch.destroy();
+
+  res.json({ message: "Batch deleted successfully" });
+});
+

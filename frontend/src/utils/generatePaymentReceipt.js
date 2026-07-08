@@ -1,20 +1,4 @@
-/**
- * Generates a TIMS payment receipt as a PNG and triggers download.
- * Works cross-browser via Blob URL.
- *
- * @param {object} opts
- * @param {string} opts.studentName
- * @param {string} opts.studentCode
- * @param {string} opts.studentEmail
- * @param {string} opts.courseName
- * @param {string} opts.batchName
- * @param {number} opts.amount          — amount paid (INR)
- * @param {string} opts.paymentDate
- * @param {string} opts.paymentMethod
- * @param {string} opts.transactionId
- * @param {string} [opts.label]         — e.g. "Full Payment" / "Instalment 1"
- * @param {string} [opts.status]        — "SUCCESS" etc.
- */
+
 import { LOGO_PATH } from "../constants";
 
 export function generatePaymentReceipt(opts) {
