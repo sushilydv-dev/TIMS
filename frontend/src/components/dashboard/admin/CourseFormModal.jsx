@@ -35,6 +35,7 @@ export function CourseFormModal({
 }) {
   const isEdit = Boolean(editCourse?.id);
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
   /* ── form state ── */
   const [title, setTitle] = useState("");
@@ -110,8 +111,32 @@ export function CourseFormModal({
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Handle video upload
+    if (file.type.startsWith("video/")) {
+      if (file.size > 50 * 1024 * 1024) {
+        setError("Video cover media must be under 50 MB");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setThumbnailPreview(event.target.result);
+        setThumbnailData(event.target.result);
+        setClearThumbnail(false);
+        setError("");
+      };
+      reader.onerror = () => {
+        setError("Could not read video file");
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+      return;
+    }
+
+    // Handle image upload
     if (file.size > 10 * 1024 * 1024) {
-      setError("Image must be under 10 MB");
+      setError("Image cover media must be under 10 MB");
       return;
     }
 
@@ -139,6 +164,7 @@ export function CourseFormModal({
       setThumbnailPreview(dataUrl);
       setThumbnailData(dataUrl);
       setClearThumbnail(false);
+      setError("");
     };
 
     img.onerror = () => {
@@ -154,6 +180,26 @@ export function CourseFormModal({
     setThumbnailPreview(null);
     setThumbnailData(null);
     setClearThumbnail(true);
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      setError("Video must be under 50 MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setDemoVideoUrl(event.target.result);
+      setError("");
+    };
+    reader.onerror = () => {
+      setError("Could not read video file");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   /* ── outcomes helpers ── */
@@ -353,16 +399,33 @@ export function CourseFormModal({
             {/* Thumbnail */}
             <div>
               <label className="block text-xs font-bold text-[#475569] mb-2">
-                Thumbnail image <span className="text-[#94a3b8] font-normal">(max 10 MB · auto-compressed · JPEG/PNG/WebP)</span>
+                Thumbnail / cover media <span className="text-[#94a3b8] font-normal">(image under 10 MB or video under 50 MB)</span>
               </label>
 
               {thumbnailPreview ? (
                 <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-black/[0.08] bg-[#f0eef4]">
-                  <img
-                    src={thumbnailPreview}
-                    alt="Thumbnail preview"
-                    className="w-full h-full object-cover"
-                  />
+                  {thumbnailPreview.startsWith("data:video/") ||
+                  thumbnailPreview.endsWith(".mp4") ||
+                  thumbnailPreview.endsWith(".mov") ||
+                  thumbnailPreview.endsWith(".webm") ||
+                  thumbnailPreview.endsWith(".ogg") ||
+                  (thumbnailPreview.includes("/uploads/") &&
+                    (thumbnailPreview.endsWith(".mp4") ||
+                      thumbnailPreview.endsWith(".mov") ||
+                      thumbnailPreview.endsWith(".webm") ||
+                      thumbnailPreview.endsWith(".ogg"))) ? (
+                    <video
+                      src={thumbnailPreview}
+                      controls
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  ) : (
+                    <img
+                      src={thumbnailPreview}
+                      alt="Thumbnail preview"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                   <div className="absolute top-2 right-2 flex gap-1.5">
                     <button
                       type="button"
@@ -375,7 +438,7 @@ export function CourseFormModal({
                       type="button"
                       onClick={handleRemoveImage}
                       className="p-1.5 rounded-lg bg-white/90 border border-black/10 text-[#b91c1c] hover:bg-white cursor-pointer"
-                      aria-label="Remove image"
+                      aria-label="Remove cover media"
                     >
                       <FiTrash2 className="w-3.5 h-3.5" />
                     </button>
@@ -388,30 +451,77 @@ export function CourseFormModal({
                   className="w-full aspect-video rounded-2xl border-2 border-dashed border-black/[0.1] bg-[#fafafa] hover:border-[#fc362d]/40 hover:bg-[#fc362d]/[0.02] transition-all flex flex-col items-center justify-center gap-2 text-[#94a3b8] cursor-pointer"
                 >
                   <FiImage className="w-8 h-8" />
-                  <span className="text-xs font-semibold">Click to upload thumbnail</span>
+                  <span className="text-xs font-semibold">Click to upload cover image/video</span>
                 </button>
               )}
 
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/ogg,video/quicktime,.mov"
                 className="hidden"
                 onChange={handleImageChange}
               />
             </div>
 
-            {/* Demo video URL */}
+            {/* Demo video */}
             <div>
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">
-                Demo video URL <span className="text-[#94a3b8] font-normal">(YouTube, Vimeo or direct .mp4)</span>
+              <label className="block text-xs font-bold text-[#475569] mb-2">
+                Demo video <span className="text-[#94a3b8] font-normal">(YouTube link or upload direct MP4/WebM under 50 MB)</span>
               </label>
+
+              {demoVideoUrl && (demoVideoUrl.startsWith("data:video/") || demoVideoUrl.includes("/uploads/courses/")) ? (
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-black/[0.08] bg-black">
+                  <video
+                    src={demoVideoUrl.startsWith("data:") ? demoVideoUrl : `http://localhost:3000${demoVideoUrl}`}
+                    controls
+                    className="w-full h-full object-contain"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="px-2.5 py-1.5 rounded-lg bg-white/90 border border-black/10 text-xs font-semibold text-[#475569] hover:bg-white cursor-pointer"
+                    >
+                      Change Video
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDemoVideoUrl("")}
+                      className="p-1.5 rounded-lg bg-white/90 border border-black/10 text-[#b91c1c] hover:bg-white cursor-pointer"
+                      aria-label="Remove video"
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      className={`${inputClass} flex-1`}
+                      value={demoVideoUrl || ""}
+                      onChange={(e) => setDemoVideoUrl(e.target.value)}
+                      placeholder="e.g. https://www.youtube.com/embed/..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="px-4 py-2 border border-black/10 rounded-xl bg-[#fafafa] text-[#475569] hover:bg-[#f1f5f9] transition-colors cursor-pointer text-xs font-semibold whitespace-nowrap"
+                    >
+                      Upload File
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <input
-                type="url"
-                className={inputClass}
-                value={demoVideoUrl}
-                onChange={(e) => setDemoVideoUrl(e.target.value)}
-                placeholder="https://www.youtube.com/embed/..."
+                ref={videoInputRef}
+                type="file"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime,.mov"
+                className="hidden"
+                onChange={handleVideoChange}
               />
             </div>
           </div>

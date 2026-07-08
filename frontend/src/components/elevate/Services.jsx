@@ -2,60 +2,53 @@ import { useRef } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Code, Layers, Database, Cpu, BarChart2, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import fullstack from "../../assets/fullstack.jpg";
+import uiux from "../../assets/uiux.jpg";
+import cloud from "../../assets/cloud.png";
+import ai from "../../assets/ai.jpg"
+import management from "../../assets/management.png";
+import cybersecurity from "../../assets/cybersecurity.jpg"
 const SERVICES = [
   {
     icon: Code,
     title: "Full-Stack Web Development",
     description: "Master both ends of the architecture. Build ultra-responsive frontends with highly secure, cloud-hosted backend systems deployed to production.",
-    accent: "group-hover:bg-[#fc362d]/5",
-    border: "group-hover:border-[#fc362d]/25",
-    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    image: fullstack,
     trackId: "full-stack-web-development",
   },
   {
     icon: Layers,
     title: "UI/UX Architecture & Interaction",
     description: "Learn to design modern, intuitive digital layouts focused entirely on driving engagement — from wireframes to pixel-perfect production interfaces.",
-    accent: "group-hover:bg-[#fc362d]/5",
-    border: "group-hover:border-[#fc362d]/25",
-    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    image: uiux,
     trackId: "ui-ux-architecture",
   },
   {
     icon: Database,
     title: "Cloud Infrastructure & Database",
     description: "Dive deep into relational database design, efficient backend scaling pipelines, stateful caching layers, and cloud deployment strategies.",
-    accent: "group-hover:bg-[#fc362d]/5",
-    border: "group-hover:border-[#fc362d]/25",
-    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    image: cloud,
     trackId: "cloud-infrastructure",
   },
   {
     icon: Cpu,
-    title: "AI & Machine Learning Fundamentals",
+    title: "AI & Machine Learning",
     description: "Understand model building, data pipelines, and practical ML workflows. Build projects that integrate intelligent features into real-world applications.",
-    accent: "group-hover:bg-[#fc362d]/5",
-    border: "group-hover:border-[#fc362d]/25",
-    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    image: ai,
     trackId: "ai-machine-learning",
   },
   {
     icon: BarChart2,
     title: "Business & HR Management",
     description: "Structured programs in operations, talent acquisition, and business administration for aspiring management professionals entering corporates.",
-    accent: "group-hover:bg-[#fc362d]/5",
-    border: "group-hover:border-[#fc362d]/25",
-    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    image: management,
     trackId: "business-hr-management",
   },
   {
     icon: ShieldCheck,
     title: "Cybersecurity & DevSecOps",
     description: "Learn security-first development, ethical hacking fundamentals, CI/CD hardening, and compliance practices for modern software teams.",
-    accent: "group-hover:bg-[#fc362d]/5",
-    border: "group-hover:border-[#fc362d]/25",
-    iconHover: "group-hover:bg-[#fc362d]/10 group-hover:text-[#fc362d]",
+    image: cybersecurity,
     trackId: "cybersecurity-devsecops",
   },
 ];
@@ -129,31 +122,47 @@ export const Services = () => {
               <motion.div
                 key={srv.title}
                 variants={cardItem}
-                className={`relative group bg-white border border-black/[0.06] ${srv.border} rounded-3xl p-8 flex flex-col items-start shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden cursor-default`}
+                className="relative group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer h-[420px]"
               >
-                <div className={`absolute -right-14 -top-14 w-32 h-32 rounded-full bg-transparent ${srv.accent} blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700`} />
-
-                <div className={`w-12 h-12 rounded-2xl bg-black/[0.03] border border-black/[0.07] ${srv.iconHover} text-[#0c0407] flex items-center justify-center mb-7 transition-all duration-400`}>
-                  <Icon className="w-5 h-5 stroke-[1.8]" />
+                {/* Image Section - 75% height in static, 50% on hover */}
+                <div className="absolute top-0 left-0 right-0 h-[75%] overflow-hidden transition-all duration-500 group-hover:h-[50%] z-0">
+                  <img
+                    src={srv.image}
+                    alt={srv.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
                 </div>
 
-                <h3 className="text-lg font-bold text-[#0c0407] mb-3 tracking-wide leading-snug">
-                  {srv.title}
-                </h3>
+                {/* Icon overlay */}
+                <div className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg z-20">
+                  <Icon className="w-5 h-5 text-[#0c0407]" />
+                </div>
 
-                <p className="text-[#636363] group-hover:text-black/75 text-sm leading-relaxed transition-colors duration-300 font-medium flex-1">
-                  {srv.description}
-                </p>
+                {/* Content Section - 25% height in static, 50% on hover */}
+                <div className="absolute bottom-0 left-0 right-0 h-[25%] bg-white p-6 flex flex-col justify-between transition-all duration-500 group-hover:h-[50%] z-10">
+                  {/* Content */}
+                  <div className="relative z-10">
+                    <h3 className="text-xl font-bold text-[#0c0407] mb-2 group-hover:text-black transition-colors duration-300">
+                      {srv.title}
+                    </h3>
+                    <p className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:text-gray-600 line-clamp-3">
+                      {srv.description}
+                    </p>
+                  </div>
 
-                <Link
-                  to={`/learn-more/${srv.trackId}`}
-                  className="mt-7 flex items-center gap-2 text-black/35 group-hover:text-[#fc362d] text-xs font-bold tracking-wider uppercase transition-all duration-300 no-underline"
-                >
-                  <span>Learn More</span>
-                  <svg className="w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </Link>
+                  {/* Footer with Learn More link */}
+                  <div className="relative z-10 flex items-center justify-end mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                    <Link
+                      to={`/learn-more/${srv.trackId}`}
+                      className="flex items-center gap-2 text-sm font-semibold text-[#fc362d] transition-colors duration-300 no-underline"
+                    >
+                      <span>Learn More</span>
+                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </Link>
+                  </div>
+                </div>
               </motion.div>
             );
           })}

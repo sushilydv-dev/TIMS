@@ -12,7 +12,7 @@ import { Footer } from "../components/elevate/Footer";
 import { ConsultationProvider, useConsultation } from "../context/ConsultationContext";
 import consultationImage from "../assets/consultation.jpg";
 
-/* ── helpers ─────────────────────────────────────────── */
+
 const formatINR = (v) => {
   const n = Number(v || 0);
   if (!n) return "Free";
@@ -53,18 +53,14 @@ function SkeletonCard() {
 function getVideoThumbnail(url) {
   if (!url) return null;
 
-  // YouTube — embed, watch, or short URLs
   const ytEmbed = url.match(/youtube\.com\/embed\/([^?&/]+)/);
   const ytWatch = url.match(/[?&]v=([^&]+)/);
   const ytShort = url.match(/youtu\.be\/([^?]+)/);
   const ytId = (ytEmbed || ytWatch || ytShort)?.[1];
   if (ytId) return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
 
-  // Vimeo — any vimeo.com/ID pattern
   const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   if (vimeo) {
-    // Vimeo thumbnails require an API call; return null and let the
-    // placeholder render — the upload thumbnail is the better path.
     return null;
   }
 
@@ -82,6 +78,19 @@ function CourseCard({ course }) {
   const imgSrc = thumbUrl || videoThumb;
   const isVideoThumb = !thumbUrl && Boolean(videoThumb);
 
+  const isDirectVideo = course.thumbnail_url && (
+    course.thumbnail_url.startsWith("data:video/") ||
+    course.thumbnail_url.endsWith(".mp4") ||
+    course.thumbnail_url.endsWith(".mov") ||
+    course.thumbnail_url.endsWith(".webm") ||
+    course.thumbnail_url.endsWith(".ogg") ||
+    (course.thumbnail_url.includes("/uploads/") &&
+      (course.thumbnail_url.endsWith(".mp4") ||
+        course.thumbnail_url.endsWith(".mov") ||
+        course.thumbnail_url.endsWith(".webm") ||
+        course.thumbnail_url.endsWith(".ogg")))
+  );
+
   return (
     <motion.div {...cardAnim} layout>
       <Link
@@ -90,7 +99,16 @@ function CourseCard({ course }) {
       >
         {/* Thumbnail */}
         <div className="relative w-full aspect-video bg-[#f0eef4] overflow-hidden">
-          {imgSrc ? (
+          {isDirectVideo ? (
+            <video
+              src={thumbUrl}
+              muted
+              playsInline
+              loop
+              autoPlay
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : imgSrc ? (
             <>
               <img
                 src={imgSrc}
@@ -295,11 +313,11 @@ function AllCoursesInner() {
         </div>
       )}
 
-      {/* ── COURSE GRID ──────────────────────────────────── */}
+      {/*  COURSE list grid  */}
       <section className="relative px-4 md:px-8 lg:px-16 py-12 md:py-16 min-h-[40vh]">
         <div className="max-w-7xl mx-auto">
 
-          {/* Results label */}
+          {/* Results */}
           {!loading && !error && (
             <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
               <p className="text-sm font-semibold text-[#636363]">
@@ -320,14 +338,14 @@ function AllCoursesInner() {
             </div>
           )}
 
-          {/* Loading skeletons */}
+          {/* Loading  */}
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           )}
 
-          {/* Error */}
+          {/* Error mesg*/}
           {!loading && error && (
             <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
               <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center">
@@ -343,7 +361,7 @@ function AllCoursesInner() {
             </div>
           )}
 
-          {/* Empty state */}
+          {/* Empty label */}
           {!loading && !error && filtered.length === 0 && (
             <motion.div {...cardAnim}
               className="flex flex-col items-center justify-center py-24 gap-4 text-center"
@@ -364,7 +382,7 @@ function AllCoursesInner() {
             </motion.div>
           )}
 
-          {/* Course cards */}
+          {/* Course cards list */}
           {!loading && !error && filtered.length > 0 && (
             <motion.div
               layout
@@ -380,7 +398,7 @@ function AllCoursesInner() {
         </div>
       </section>
 
-      {/* ── CTA ──────────────────────────────────────────── */}
+      {/*  CTA*/}
       <section className="relative py-24 px-4 md:px-8 lg:px-16 overflow-hidden bg-white">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-red-100 blur-[150px] pointer-events-none" />
         <div className="max-w-6xl mx-auto">

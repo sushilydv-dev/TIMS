@@ -1,5 +1,10 @@
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
+// Set base URL for all axios requests
+axios.defaults.baseURL = API_BASE_URL;
+
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -14,14 +19,20 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Add response interceptor for token refresh to global axios
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't tried refreshing yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Exclude public auth routes (e.g. login, forgot-password, reset-password, send-otp) from token refresh
+    const isPublicAuthRoute =
+      originalRequest.url &&
+      originalRequest.url.includes("/api/auth/") &&
+      !originalRequest.url.includes("/api/auth/profile") &&
+      !originalRequest.url.includes("/api/auth/change-password");
+
+    // If error is 401 and we haven't tried refreshing yet (and it's not a public auth route)
+    if (error.response?.status === 401 && !originalRequest._retry && !isPublicAuthRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -44,7 +55,7 @@ axios.interceptors.response.use(
           throw new Error("No refresh token available");
         }
 
-        const response = await axios.post("http://localhost:3000/api/auth/refresh-token", {
+        const response = await axios.post("/api/auth/refresh-token", {
           refreshToken,
         });
 

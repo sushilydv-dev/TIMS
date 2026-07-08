@@ -1,10 +1,6 @@
 import sequelize from "./db.js";
 import { migrateStudentsSchema } from "./migrateStudentsSchema.js";
 
-/**
- * Applies schema changes (new tables/columns) including departments and course links.
- * Set DB_SYNC_ALTER=false in production if you use migrations instead.
- */
 export async function syncDatabase() {
   const alter = process.env.DB_SYNC_ALTER !== "false";
 
@@ -15,7 +11,6 @@ export async function syncDatabase() {
       console.warn("students schema migration warning:", err.message);
     }
 
-    // Rename project_submisssions (triple-s typo) to project_submissions if needed
     try {
       await sequelize.query(`
         DO $$

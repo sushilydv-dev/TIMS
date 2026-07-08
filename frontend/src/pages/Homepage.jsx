@@ -102,20 +102,19 @@ export const Homepage = () => {
         }}
       >
         <div className="bg-white min-h-screen text-[#0c0407] overflow-x-clip">
-          {/* 3. Combined Navbar & Scroll Progress Container */}
+          
           <div className="fixed top-0 left-0 w-full z-20">
             <Navbar courseData={courseData} />
 
-            {/* The Scroll Progress Bar */}
+           
             <motion.div
               style={{ scaleX: scrollYProgress, originX: 0 }}
-              className="h-[3px] bg-gradient-to-r from-rose-500 via-[#fc362d] to-rose-600 w-full fixed top-0 left-0 z-20" // Change 'bg-blue-600' to your brand color
+              className="h-[3px] bg-gradient-to-r from-rose-500 via-[#fc362d] to-rose-600 w-full fixed top-0 left-0 z-20" 
             />
           </div>
 
           <main className="relative z-10 pt-16">
-            {/* Note: Added pt-16 (padding-top) to main so the Hero content 
-                doesn't get hidden behind your fixed Navbar */}
+          
             <Hero />
             <LogoTicker />
             <About />

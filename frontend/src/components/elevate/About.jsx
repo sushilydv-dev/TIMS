@@ -4,7 +4,7 @@ import { CheckCircle } from "lucide-react";
 import { useConsultation } from "../../context/ConsultationContext";
 import { INSTITUTE_NAME } from "../../constants";
 
-/* ── Animated counter ────────────────────────────────── */
+
 function Counter({ value, suffix = "" }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
@@ -40,7 +40,7 @@ const POINTS = [
   "Certified outcomes recognised by top employers",
 ];
 
-/* ── Stagger container ────────────────────────────────── */
+
 const stagger = {
   hidden: {},
   show: { transition: { staggerChildren: 0.1 } },

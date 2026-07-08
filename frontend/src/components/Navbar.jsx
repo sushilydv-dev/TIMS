@@ -238,8 +238,8 @@ export const Navbar = ({ courseData: externalCourseData }) => {
         className={`pointer-events-auto flex items-center gap-2 w-full max-w-[1200px] transition-all duration-300
           ${
             scrolled
-              ? "bg-white/90 shadow-[0_6px_30px_rgba(28,92,85,0.08),_0_2px_6px_rgba(28,92,85,0.04)] py-2 px-6"
-              : "bg-white/75 shadow-[0_2px_12px_rgba(28,92,85,0.05),_0_1px_2px_rgba(28,92,85,0.02)] py-2.5 px-6"
+              ? "bg-white/90 shadow-[0_8px_40px_rgba(28,92,85,0.12),_0_3px_10px_rgba(28,92,85,0.06)] py-2 px-6"
+              : "bg-white/75 shadow-[0_4px_20px_rgba(28,92,85,0.08),_0_2px_6px_rgba(28,92,85,0.04)] py-2.5 px-6"
           } 
           backdrop-blur-[18px] backdrop-saturate-[180%] border border-white/95
           max-md:w-full max-md:rounded-b-3xl max-md:px-5 md:rounded-full

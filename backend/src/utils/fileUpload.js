@@ -97,6 +97,7 @@ const getExtensionFromMimeType = (mimeType) => {
     "video/mp4": ".mp4",
     "video/mpeg": ".mpeg",
     "video/webm": ".webm",
+    "video/quicktime": ".mov",
   };
 
   return mimeToExt[mimeType] || ".bin";

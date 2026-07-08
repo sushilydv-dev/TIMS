@@ -251,10 +251,42 @@ function CoursePageInner() {
         <Navbar />
       </div>
 
-      {/* ── HERO (dark band, Udemy-style) ───────────────── */}
       <section className="bg-[#0c0407] pt-28 pb-16 md:pb-20 px-4 md:px-8 relative">
+        {/* Blurry cover media background */}
+        {course.thumbnail_url && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            {course.thumbnail_url.startsWith("data:video/") ||
+            course.thumbnail_url.endsWith(".mp4") ||
+            course.thumbnail_url.endsWith(".mov") ||
+            course.thumbnail_url.endsWith(".webm") ||
+            course.thumbnail_url.endsWith(".ogg") ||
+            (course.thumbnail_url.includes("/uploads/") &&
+              (course.thumbnail_url.endsWith(".mp4") ||
+                course.thumbnail_url.endsWith(".mov") ||
+                course.thumbnail_url.endsWith(".webm") ||
+                course.thumbnail_url.endsWith(".ogg"))) ? (
+              <video
+                src={course.thumbnail_url.startsWith("data:") ? course.thumbnail_url : `http://localhost:3000${course.thumbnail_url}`}
+                muted
+                playsInline
+                loop
+                autoPlay
+                className="w-full h-full object-cover blur-[50px] scale-110 opacity-80"
+              />
+            ) : (
+              <img
+                src={course.thumbnail_url.startsWith("data:") ? course.thumbnail_url : `http://localhost:3000${course.thumbnail_url}`}
+                alt=""
+                className="w-full h-full object-cover blur-[50px] scale-110 opacity-80"
+              />
+            )}
+            {/* Dark vignette overlay for contrast */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0c0407] via-[#0c0407]/65 to-transparent" />
+          </div>
+        )}
+
         {/* Subtle red glow — contained */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute top-0 left-1/3 w-[500px] h-[300px] rounded-full bg-rose-600/[0.08] blur-[120px]" />
           <div className="absolute bottom-0 right-1/4 w-[300px] h-[200px] rounded-full bg-rose-600/[0.05] blur-[100px]" />
         </div>
@@ -343,24 +375,52 @@ function CoursePageInner() {
               {/* Thumbnail or video or placeholder */}
               {course.demo_video_url ? (
                 <div className="w-full aspect-video bg-black">
-                  <iframe
-                    src={course.demo_video_url}
-                    title="Course demo"
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                  {course.demo_video_url.startsWith("/uploads/") || course.demo_video_url.startsWith("data:") ? (
+                    <video
+                      src={course.demo_video_url.startsWith("data:") ? course.demo_video_url : `http://localhost:3000${course.demo_video_url}`}
+                      controls
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <iframe
+                      src={course.demo_video_url}
+                      title="Course demo"
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
                 </div>
               ) : course.thumbnail_url ? (
                 (() => {
                   const thumbUrl = course.thumbnail_url?.startsWith("data:") ? course.thumbnail_url : `http://localhost:3000${course.thumbnail_url}`;
+                  const isDirectVideo = course.thumbnail_url && (
+                    course.thumbnail_url.startsWith("data:video/") ||
+                    course.thumbnail_url.endsWith(".mp4") ||
+                    course.thumbnail_url.endsWith(".mov") ||
+                    course.thumbnail_url.endsWith(".webm") ||
+                    course.thumbnail_url.endsWith(".ogg") ||
+                    (course.thumbnail_url.includes("/uploads/") &&
+                      (course.thumbnail_url.endsWith(".mp4") ||
+                        course.thumbnail_url.endsWith(".mov") ||
+                        course.thumbnail_url.endsWith(".webm") ||
+                        course.thumbnail_url.endsWith(".ogg")))
+                  );
                   return (
                     <div className="w-full aspect-video bg-[#f0eef4]">
-                      <img
-                        src={thumbUrl}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                      />
+                      {isDirectVideo ? (
+                        <video
+                          src={thumbUrl}
+                          controls
+                          className="w-full h-full object-contain bg-black"
+                        />
+                      ) : (
+                        <img
+                          src={thumbUrl}
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                   );
                 })()
@@ -534,20 +594,7 @@ function CoursePageInner() {
               </motion.section>
             )}
 
-            {/* About this course */}
-            {course.description && (
-              <motion.section {...viewFadeUp(0.05)}>
-                <span className="inline-block px-3 py-1.5 rounded-full text-[0.68rem] font-bold tracking-[0.18em] uppercase text-[#fc362d] bg-[#fc362d]/10 border border-[#fc362d]/20 mb-4">
-                  About
-                </span>
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-[#0c0407]">
-                  About This Course
-                </h2>
-                <p className="text-[#636363] text-sm md:text-base leading-relaxed">
-                  {course.description}
-                </p>
-              </motion.section>
-            )}
+            
           </div>
         </div>
         {/* end md:pr-[380px] content */}

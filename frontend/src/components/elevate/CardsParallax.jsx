@@ -145,7 +145,7 @@ export const CardsParallax = () => {
 
   return (
     <>
-      <section className="relative py-24 md:py-32 overflow-hidden bg-white">
+      <section className="relative py-24 md:py-32 overflow-hidden bg-[#fafafa]">
         <div className="max-w-7xl mx-auto">
           <motion.div
             ref={headRef}
@@ -178,7 +178,7 @@ export const CardsParallax = () => {
 
       <section
         ref={container}
-        className="relative mt-0 bg-white"
+        className="relative mt-0 bg-[#fafafa]"
         style={{ height: `${(projects.length + 1) * 100}vh` }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">

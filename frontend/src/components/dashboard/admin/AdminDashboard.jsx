@@ -125,10 +125,7 @@ export const AdminDashboard = ({ user }) => {
             Monitor system health, user access, courses, and financial flows from one console.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 px-3.5 py-1.5 rounded-full font-bold self-start md:self-center">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-          System Online
-        </div>
+        
       </div>
 
       {/* 4 Stat Tiles */}

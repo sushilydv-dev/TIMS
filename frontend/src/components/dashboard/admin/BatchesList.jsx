@@ -95,8 +95,8 @@ export const BatchesList = () => {
     });
   };
 
-  const handleBatchEditSuccess = () => {
-    setToast("Batch updated successfully");
+  const handleBatchEditSuccess = (msg) => {
+    setToast(msg || "Batch updated successfully");
     fetchBatches();
     window.setTimeout(() => setToast(""), 4000);
   };

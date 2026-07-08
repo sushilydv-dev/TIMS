@@ -5,12 +5,19 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Code, Layers, Database, Cpu, BarChart2, ShieldCheck, CheckCircle, Users, Zap, Target } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/elevate/Footer";
+import fullstack from "../assets/fullstack.jpg";
+import uiux from "../assets/uiux.jpg";
+import cloud from "../assets/cloud.png";
+import ai from "../assets/ai.jpg";
+import management from "../assets/management.png";
+import cybersecurity from "../assets/cybersecurity.jpg";
 
 const TRACK_DATA = {
   "full-stack-web-development": {
     title: "Full-Stack Web Development",
     icon: Code,
     accent: "#fc362d",
+    heroImage: fullstack,
     description: "Master both ends of modern web architecture. Build ultra-responsive frontends with highly secure, cloud-hosted backend systems deployed to production.",
     images: [
       "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=400&fit=crop",
@@ -40,6 +47,7 @@ const TRACK_DATA = {
     title: "UI/UX Architecture & Interaction",
     icon: Layers,
     accent: "#fc362d",
+    heroImage: uiux,
     description: "Learn to design modern, intuitive digital layouts focused entirely on driving engagement — from wireframes to pixel-perfect production interfaces.",
     images: [
       "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=400&fit=crop",
@@ -69,6 +77,7 @@ const TRACK_DATA = {
     title: "Cloud Infrastructure & Database",
     icon: Database,
     accent: "#fc362d",
+    heroImage: cloud,
     description: "Dive deep into relational database design, efficient backend scaling pipelines, stateful caching layers, and cloud deployment strategies.",
     images: [
       "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=400&fit=crop",
@@ -98,6 +107,7 @@ const TRACK_DATA = {
     title: "AI & Machine Learning Fundamentals",
     icon: Cpu,
     accent: "#fc362d",
+    heroImage: ai,
     description: "Understand model building, data pipelines, and practical ML workflows. Build projects that integrate intelligent features into real-world applications.",
     images: [
       "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=400&fit=crop",
@@ -127,6 +137,7 @@ const TRACK_DATA = {
     title: "Business & HR Management",
     icon: BarChart2,
     accent: "#fc362d",
+    heroImage: management,
     description: "Structured programs in operations, talent acquisition, and business administration for aspiring management professionals entering corporates.",
     images: [
       "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=400&fit=crop",
@@ -156,6 +167,7 @@ const TRACK_DATA = {
     title: "Cybersecurity & DevSecOps",
     icon: ShieldCheck,
     accent: "#fc362d",
+    heroImage: cybersecurity,
     description: "Learn security-first development, ethical hacking fundamentals, CI/CD hardening, and compliance practices for modern software teams.",
     images: [
       "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=400&fit=crop",
@@ -242,15 +254,20 @@ export const LearnMore = () => {
       
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4 md:px-8 lg:px-16 overflow-hidden">
-        <motion.div
-          style={{ y: heroY, backgroundColor: track.accent }}
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-20 blur-[200px] pointer-events-none"
-        />
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={track.heroImage}
+            alt={track.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        </div>
         
-        <div className="max-w-7xl mx-auto">
+        <div className="relative z-10 max-w-7xl mx-auto">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-700 mb-8 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-white mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Homepage
@@ -266,30 +283,29 @@ export const LearnMore = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8"
-              style={{ backgroundColor: `${track.accent}15`, color: track.accent }}
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-white/20 backdrop-blur-sm"
             >
-              <Icon className="w-8 h-8" />
+              <Icon className="w-8 h-8 text-white" />
             </motion.div>
 
-            <h1 className="text-4xl md:text-6xl font-extrabold text-[#0c0407] tracking-tight leading-tight mb-6">
+            <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight leading-tight mb-6">
               {track.title}
             </h1>
 
-            <p className="text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl">
+            <p className="text-xl text-white/90 leading-relaxed mb-8 max-w-2xl">
               {track.description}
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-sm font-semibold text-white">
                 <Users className="w-4 h-4" />
                 Industry Experts
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-sm font-semibold text-white">
                 <Zap className="w-4 h-4" />
                 Modern Tech Stack
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-sm font-semibold text-white">
                 <Target className="w-4 h-4" />
                 Career Focused
               </div>

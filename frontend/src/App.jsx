@@ -23,6 +23,7 @@ import CompleteTrainerProfile from "./pages/CompleteTrainerProfile";
 
 /* ── Lazily loaded — split into separate chunks ── */
 const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AllCoursesPage = lazy(() => import("./pages/AllCoursesPage"));
 const CoursePage = lazy(() => import("./pages/CoursePage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -150,6 +151,7 @@ export const App = () => {
             <Route element={<PublicRoutes />}>
               <Route path="/" element={<Homepage />} />
               <Route path="/about-us" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="/all-courses" element={<AllCoursesPage />} />
               <Route path="/course/:courseId" element={<CoursePage />} />
               <Route path="/learn-more/:trackId" element={<LearnMore />} />

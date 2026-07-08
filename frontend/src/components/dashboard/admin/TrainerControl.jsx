@@ -334,7 +334,7 @@ export const TrainerControl = () => {
       <WelcomeBanner
         badge="Trainer Control Center"
         title="Faculty Management & Specializations"
-        description="Monitor staff member payroll logs, define training competencies, assign groups, and regulate account activity."
+        description="Define training competencies, assign groups, and regulate account activity."
         actions={
           <PrimaryButton type="button" onClick={() => setInviteOpen(true)}>
             Invite Trainer
@@ -391,7 +391,6 @@ export const TrainerControl = () => {
                 <th className="pb-3 px-3">Trainer</th>
                 <th className="pb-3 px-2">Specialization</th>
                 <th className="pb-3 px-2">Experience</th>
-                <th className="pb-3 px-2">Salary</th>
                 <th className="pb-3 px-2">Status</th>
                 <th className="pb-3 px-2 text-right">Actions</th>
               </tr>
@@ -399,13 +398,13 @@ export const TrainerControl = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#94a3b8] font-semibold">
+                  <td colSpan={5} className="py-8 text-center text-[#94a3b8] font-semibold">
                     Loading trainers list…
                   </td>
                 </tr>
               ) : trainers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#94a3b8] font-semibold">
+                  <td colSpan={5} className="py-8 text-center text-[#94a3b8] font-semibold">
                     {debouncedSearch ? "No trainers match your search." : "No trainers found."}
                   </td>
                 </tr>
@@ -435,9 +434,6 @@ export const TrainerControl = () => {
                     </td>
                     <td className="py-3.5 px-2 font-bold text-[#0c0407]">
                       {t.experience_year} Years
-                    </td>
-                    <td className="py-3.5 px-2 font-extrabold text-[#059669]">
-                      {formatInr(t.salary)}
                     </td>
                     <td className="py-3.5 px-2">
                       <StatusBadge variant={t.User?.status === "active" ? "ok" : "danger"}>
@@ -639,29 +635,16 @@ export const TrainerControl = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">Experience (Years)</label>
-                      <input
-                        type="number"
-                        value={profileForm.experience_year}
-                        onChange={(e) => setProfileForm({ ...profileForm, experience_year: e.target.value })}
-                        disabled={!panelEditMode}
-                        className={`${inputClass} disabled:bg-[#fafafa] disabled:text-[#64748b] disabled:cursor-not-allowed`}
-                        min={0}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">Salary (Monthly INR)</label>
-                      <input
-                        type="number"
-                        value={profileForm.salary}
-                        onChange={(e) => setProfileForm({ ...profileForm, salary: e.target.value })}
-                        disabled={!panelEditMode}
-                        className={`${inputClass} disabled:bg-[#fafafa] disabled:text-[#64748b] disabled:cursor-not-allowed`}
-                        min={0}
-                      />
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">Experience (Years)</label>
+                    <input
+                      type="number"
+                      value={profileForm.experience_year}
+                      onChange={(e) => setProfileForm({ ...profileForm, experience_year: e.target.value })}
+                      disabled={!panelEditMode}
+                      className={`${inputClass} disabled:bg-[#fafafa] disabled:text-[#64748b] disabled:cursor-not-allowed`}
+                      min={0}
+                    />
                   </div>
 
                   <div className="space-y-1">

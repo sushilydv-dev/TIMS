@@ -10,6 +10,23 @@
   src: url("/fonts/NeueMontreal_Medium.otf");
 }
 
+/* Global font family */
+* {
+  font-family: 'Familjen Grotesk', sans-serif;
+}
+
+/* Typography settings for headings */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+h1 {
+  letter-spacing: -0.03em;
+  line-height: 1.0;
+}
+
 /* TIMS hash loader — continuous animation (react-spinners–compatible look) */
 .tims-hash-loader {
   display: inline-block;
@@ -117,4 +134,141 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* ── Dark Mode Global Overrides ── */
+.dark {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+}
+
+.dark body {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+}
+
+/* Dashboard Outer Page Gradient Override */
+.dark .bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, #090d16, #0b0f19, #111827) !important;
+}
+
+/* Sidebar and Main Cards Override */
+.dark .bg-white {
+  background-color: #111827 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f9fafb !important;
+}
+
+/* Desktop and Mobile Sidebar Drawer Container */
+.dark aside.bg-white,
+.dark .bg-white.xl\:hidden,
+.dark aside .bg-white {
+  background-color: #0f172a !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Inputs, Textareas, Select dropdowns */
+.dark input, 
+.dark textarea, 
+.dark select {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+.dark input:focus, 
+.dark textarea:focus {
+  border-color: #4b5563 !important;
+  box-shadow: 0 0 0 2px rgba(75, 85, 99, 0.2) !important;
+}
+
+/* Interactive hover rows & active links */
+.dark .hover\:bg-black\/\[0\.02\]:hover,
+.dark .hover\:bg-black\/5:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Navigation Links */
+.dark .text-\[\#0c0407\],
+.dark .text-slate-900 {
+  color: #f9fafb !important;
+}
+
+.dark .text-\[\#64748b\],
+.dark .text-slate-500 {
+  color: #9ca3af !important;
+}
+
+.dark .text-\[\#475569\],
+.dark .text-slate-700 {
+  color: #d1d5db !important;
+}
+
+.dark .text-\[\#636363\],
+.dark .text-[#636363] {
+  color: #9ca3af !important;
+}
+
+.dark .text-\[\#3a3b50\] {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-\[\#94a3b8\],
+.dark .text-slate-400 {
+  color: #9ca3af !important;
+}
+
+/* Common Backgrounds */
+.dark .bg-\[\#fafafa\],
+.dark .bg-[#fafafa],
+.dark .bg-\[\#f8fafc\],
+.dark .bg-[#f8fafc],
+.dark .bg-\[\#f1f5f9\],
+.dark .bg-[#f1f5f9] {
+  background-color: #1f2937 !important;
+}
+
+/* Modals & Backdrop */
+.dark .fixed.inset-0.bg-black\/50,
+.dark .fixed.inset-0.bg-\[\#0c0407\]\/20 {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.dark div.bg-white.rounded-3xl,
+.dark div.bg-white.rounded-2xl {
+  background-color: #111827 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f9fafb !important;
+}
+
+/* Custom Component Elements */
+.dark .welcome-banner-title {
+  color: #ffffff !important;
+}
+
+.dark .tims-card {
+  background-color: #111827 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Tables & Rows */
+.dark table {
+  color: #e5e7eb !important;
+}
+
+.dark tr.border-b {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark tr:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.dark th {
+  color: #9ca3af !important;
 }

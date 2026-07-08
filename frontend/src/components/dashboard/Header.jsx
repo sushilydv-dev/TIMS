@@ -3,6 +3,8 @@ import {
   FiBell,
   FiUser,
   FiLogOut,
+  FiSun,
+  FiMoon,
 } from "react-icons/fi";
 import { useAuth } from "../../app/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -13,6 +15,30 @@ export const Header = ({ activeRole, onRoleChange }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const [isDark, setIsDark] = useState(() => {
+    return document.documentElement.classList.contains("dark");
+  });
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
   const [profileImage, setProfileImage] = useState(null);
 
   const rolesList = [
@@ -126,6 +152,15 @@ export const Header = ({ activeRole, onRoleChange }) => {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="hidden lg:flex relative w-10 h-10 rounded-xl items-center justify-center text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#0c0407] transition-all cursor-pointer shrink-0"
+          aria-label="Toggle dark mode"
+        >
+          {isDark ? <FiSun className="w-[18px] h-[18px]" /> : <FiMoon className="w-[18px] h-[18px]" />}
+        </button>
+
         <button
           type="button"
           onClick={() => navigate("/dashboard/notifications")}

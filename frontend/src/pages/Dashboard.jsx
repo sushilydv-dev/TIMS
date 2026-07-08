@@ -4,7 +4,7 @@ import { Sidebar } from "../components/dashboard/Sidebar";
 import { Header } from "../components/dashboard/Header";
 import { Footer } from "../components/dashboard/Footer";
 import { useAuth } from "../app/AuthContext";
-import { FiMenu, FiX, FiBell, FiLogOut } from "react-icons/fi";
+import { FiMenu, FiX, FiBell, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
 import { LOGO_PATH } from "../constants";
 import axios from "axios";
 
@@ -14,6 +14,30 @@ const Dashboard = () => {
   const [activeRole, setActiveRole] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+
+  const [isDark, setIsDark] = useState(() => {
+    return document.documentElement.classList.contains("dark");
+  });
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   useEffect(() => {
     if (user?.role) {
@@ -128,6 +152,14 @@ const Dashboard = () => {
             <span className="font-bold text-sm text-[#0c0407]">TIMS</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#0c0407] transition-all cursor-pointer shrink-0"
+              aria-label="Toggle dark mode"
+            >
+              {isDark ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+            </button>
             <button
               type="button"
               className="relative w-10 h-10 rounded-xl flex items-center justify-center text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#0c0407] transition-all cursor-pointer shrink-0"

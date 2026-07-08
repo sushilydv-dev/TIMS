@@ -23,7 +23,7 @@ import {
 const router = express.Router();
 router.use(protect);
 
-/* ── Guard: only trainers ─────────────────────────── */
+
 router.use((req, res, next) => {
   if (!req.user) { res.status(401); throw new Error("Not authenticated"); }
   next();
@@ -33,7 +33,6 @@ async function getTrainerRecord(userId) {
   return Trainer.findOne({ where: { user_id: userId } });
 }
 
-/** Returns all batch IDs where this trainer is primary OR co-trainer */
 async function getTrainerBatchIds(trainerId) {
   const [primary, secondary] = await Promise.all([
     Batch.findAll({ where: { trainer_id: trainerId }, attributes: ["id"] }),

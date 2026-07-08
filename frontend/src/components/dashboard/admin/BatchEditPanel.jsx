@@ -155,7 +155,7 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
         end_date: endDate,
         student_ids: selectedStudents,
       });
-      onSuccess?.();
+      onSuccess?.("Batch updated successfully");
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || "Could not update batch");
@@ -163,6 +163,30 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
       setLoading(false);
     }
   };
+
+  const handleDeleteBatch = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${batch.batch_name}"? All student enrollment and attendance history for this batch will be lost permanently.`
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await axios.delete(`/api/admin/batches/${batch.id}`);
+      onSuccess?.("Batch deleted successfully");
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not delete batch");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleAddTrainer = (trainer) => {
     if (!selectedTrainers.find(t => t.id === trainer.id)) {
@@ -487,6 +511,15 @@ export function BatchEditPanel({ open, batch, courseTitle, onClose, onSuccess })
           </form>
 
           <div className="flex flex-wrap gap-3 p-5 sm:p-6 border-t border-black/[0.06] shrink-0 bg-white">
+            <button
+              type="button"
+              onClick={handleDeleteBatch}
+              disabled={loading}
+              className="mr-auto px-4 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors"
+            >
+              <FiTrash2 className="w-3.5 h-3.5" />
+              Delete Batch
+            </button>
             <button
               type="submit"
               form="batch-edit-form"
